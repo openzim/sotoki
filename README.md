@@ -37,7 +37,7 @@ http://source.wiredtiger.com/releases/wiredtiger-2.6.1.tar.bz2
 
 And compile and install it with:
 
-```
+```bash
 ./configure --enable-python
 make
 make install
@@ -48,12 +48,23 @@ python 2. To install python dependencies use a virtualenv that has
 access to system python packages. Using virtualenvwrapper you can
 create one with the following command:
 
-```
+```bash
 mkvirtualenv sotoki --system-site-packages
 ```
 
 Then install requirements:
 
-```
+```bash
 pip install -r requirements.txt
 ```
+
+Then you can run the builder. Prepare a directory with all the files for a given
+StackOverflow website inside a directory and run the following commands:
+
+```bash
+./sotoki.py load dumps/superuser db/superuser
+./sotoki.py build templates db/superuser build/superuser
+```
+
+The first will create a wiredtiger database with all the info found in the dump.
+The second will build the html pages.
