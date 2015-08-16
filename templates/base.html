@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>{% block title %}{% endblock %} - superuser - stackexchange</title>
+    <meta name="description" content=""/>
+    <meta name="author" content="kiwix Team"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="stylesheet" href="/static/normalize.css"/>
+    <link rel="stylesheet" href="/static/main.css"/>    
+    {# <link rel="icon" type="image/png" href="images/favicon.png"> #}
+  </head>
+  <body class="{% block bodyclass %}{% endblock %}">
+    <div id="header">
+      <h1>stackoverflow</h1>
+    </div>
+    <div id="container">
+      {% block body %}{% endblock %}
+    </div>
+  </body>
+</html>

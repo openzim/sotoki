@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+
+{% block body %}
+  <div id="question" class="post">
+    <h3 class="title">{{ question.Title }}</h3>
+    <div class="body">{{ question.Body | safe }}</div>
+    {% if comments %}
+      <div class="comments">
+        {% for comment in comments %}
+          <div class="comment">
+            <span class="score">{{ comment.Score }}</span>
+            <span class="text">{{ comment.Text }}</span>
+            <span class="date">{{ comment.CreationDate }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+  <h2>Answers</h2>
+  <div id="answers">
+    {% for answer, comments in answers %}
+      <div class="post">
+        <div class="body">{{ answer.Body | safe }}</div>
+        {% if comments %}
+          <div class="comments">
+            {% for comment in comments %}
+              <div class="comment">
+                <span class="score">{{ comment.Score }}</span>
+                <span class="text">{{ comment.Text }}</span>
+                <span class="date">{{ comment.CreationDate }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}
