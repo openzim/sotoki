@@ -68,10 +68,11 @@ def render(output, template, templates, **context):
 WT_NOTFOUND = -31803
 
 
-def iter_cursor(cursor, *key):
+def iter_cursor(db, *key):
     """Iterate a cursor over records matching `key`
     starting near `key`. You *must* finish the iteration
     before reusing `cursor`"""
+    cursor = db.index()
     cursor.set_key(key)
     match = [e for e in key if e]
     ok = cursor.search_near()
@@ -94,7 +95,7 @@ def iter_cursor(cursor, *key):
                 continue
         else:
             break
-    cursor.reset()
+    cursor.close()
 
 
 class TupleSpace(object):
@@ -112,8 +113,11 @@ class TupleSpace(object):
             'columns=(name,kind,value,uid)'
         )
         self.cursor = self.session.open_cursor('table:tuples')
-        self.index = self.session.open_cursor('index:tuples:index')
 
+
+    def index(self):
+        return self.session.open_cursor('index:tuples:index')
+        
     def insert(self, uid, name, value):
         # set key
         self.cursor.set_key(uid, name)
@@ -138,63 +142,93 @@ class TupleSpace(object):
             return loads(value)
 
     def get(self, uid):
-        def iter():
-            for key, value in iter_cursor(self.cursor, uid, ''):
-                _, name = key
-                yield name, self._unpack_value(*value)
+        def __get():
+            self.cursor.set_key(uid, '')
+            ok = self.cursor.search_near()
+            if ok == WT_NOTFOUND:
+                raise Exception('nothing found')
+            if ok == -1:
+                self.cursor.next()
+            while True:
+                other = self.cursor.get_key()
+                ok = reduce(
+                    lambda x, y: (cmp(*y) == 0) and y,
+                    zip((uid,), other),
+                    True
+                )
+                if ok:
+                    _, name = other
+                    value = self.cursor.get_value()
+                    yield name, self._unpack_value(*value)
 
-        return dict(iter())
+                    if self.cursor.next() == WT_NOTFOUND:
+                        break
+                    else:
+                        continue
+                else:
+                    break
+
+        return dict(__get())
 
     def close(self):
         self.cursor.close()
-        self.index.close()
         self.session.close()
         self.connection.close()
 
 
 def load(dump, database):
     # init database
-    # FIXME: handle error
     os.makedirs(database)
     db = TupleSpace(database)
-    # parse Posts
-    xml = parse(os.path.join(dump, 'Posts.xml'))
-    posts = xml.getroot()
-    for post in posts.iterchildren():
-        # make sure this is a unique identifier
-        uid = 'post:' + post.attrib['Id']
-        # populate post attributes
-        for key in post.keys():
-            db.insert(uid, key, post.attrib[key])
-    db.close()
 
+    # parse Posts
+    def to_db(filename):
+        name = filename.split('.')[0].lower()
+        xml = parse(os.path.join(dump, filename))
+        posts = xml.getroot()
+        for post in posts.iterchildren():
+            # make sure this is a unique identifier
+            uid = '%s:%s' % (name, post.attrib['Id'])
+            # populate post attributes
+            for key in post.keys():
+                db.insert(uid, key, post.attrib[key])
+
+    to_db('Posts.xml')
+    to_db('Comments.xml')
+    to_db('PostLinks.xml')
+
+    db.close()
 
 # build
 
+
+def comments(db, id):
+    records = iter_cursor(db, 'PostID', 2, id, '')
+    for key, _ in records:
+        name, kind, value, uid = key
+        yield db.get(uid)
+
+
 def questions(db):
-    # XXX: only one cursor is available, so we must finish
-    # the query before starting another one. In this case `db.get`
     def uids():
-        for item in iter_cursor(db.index, 'PostTypeId', 2, '1', ''):
+        for item in iter_cursor(db, 'PostTypeId', 2, '1', ''):
             key, _ = item
             name, kind, value, uid = key
             yield uid
     # Consume the generator with list
     uids = list(uids())
     for uid in uids:
-        # It's ok to be lazy
-        # because `db.get` finish it's query before returning
         yield db.get(uid)
 
 
 def answers(db, id):
-    # retrieve from `db.index` all tuples that have a key `ParentID`
+    # retrieve from `db` all tuples that have a key `ParentID`
     # and a value that is a string ie. kind `2` and value `id`
-    # XXX: last field ie. `uid` is left empty, that's the one we interested in
-    records = iter_cursor(db.index, 'ParentID', 2, id, '')
+    records = iter_cursor(db, 'ParentID', 2, id, '')
     for key, _ in records:
         name, kind, value, uid = key
-        yield db.get(uid)
+        answer = db.get(uid)
+        yield answer, list(comments(db, answer['Id']))
 
 
 def build(templates, database, output):
@@ -202,15 +236,16 @@ def build(templates, database, output):
     os.makedirs(os.path.join(output, 'posts'))
     for question in questions(db):
         id = question['Id']
-        print id
-
+        coms = list(comments(db, question['Id']))
         render(
             os.path.join(output, 'posts', '%s.html' % id),
             'post.html',
             templates,
             question=question,
+            comments=coms,
             answers=answers(db, id)
         )
+        break
 
 
 if __name__ == '__main__':
