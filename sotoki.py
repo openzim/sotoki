@@ -17,6 +17,8 @@ import os
 from json import dumps
 from json import loads
 
+from contextlib import contextmanager
+
 from docopt import docopt
 
 from markdown import markdown
@@ -47,36 +49,6 @@ def render(output, template, templates, **context):
 WT_NOTFOUND = -31803
 
 
-def iter_cursor(db, *key):
-    """Iterate a cursor over records matching `key`
-    starting near `key`. You *must* finish the iteration
-    before reusing `cursor`"""
-    cursor = db.index()
-    cursor.set_key(key)
-    match = [e for e in key if e]
-    ok = cursor.search_near()
-    if ok == WT_NOTFOUND:
-        raise Exception('nothing found')
-    if ok == -1:
-        cursor.next()
-    while True:
-        other = cursor.get_key()
-        ok = reduce(
-            lambda x, y: (cmp(*y) == 0) and y,
-            zip(match, other),
-            True
-        )
-        if ok:
-            yield other, cursor.get_value()
-            if cursor.next() == WT_NOTFOUND:
-                break
-            else:
-                continue
-        else:
-            break
-    cursor.close()
-
-
 class TupleSpace(object):
     """Generic database"""
 
@@ -91,10 +63,28 @@ class TupleSpace(object):
             'index:tuples:index',
             'columns=(name,kind,value,uid)'
         )
-        self.cursor = self.session.open_cursor('table:tuples')
+        self.tuples_cursors = list()
+        self.index_cursors = list()
 
+    @contextmanager
+    def tuples(self):
+        if self.tuples_cursors:
+            cursor = self.tuples_cursors.pop()
+        else:
+            cursor = self.session.open_cursor('table:tuples')
+        yield cursor
+        cursor.reset()
+        self.tuples_cursors.append(cursor)
+
+    @contextmanager
     def index(self):
-        return self.session.open_cursor('index:tuples:index')
+        if self.index_cursors:
+            cursor = self.index_cursors.pop()
+        else:
+            cursor = self.session.open_cursor('index:tuples:index')
+        yield cursor
+        cursor.reset()
+        self.index_cursors.append(cursor)
 
     def insert(self, uid, name, value):
         # set key
@@ -111,45 +101,73 @@ class TupleSpace(object):
         self.cursor.insert()
         self.cursor.reset()
 
-    def _unpack_value(self, kind, value):
-        if kind == 1:
-            return unpack('Q', value)[0]
-        elif kind == 2:
-            return value
-        else:
-            return loads(value)
-
     def get(self, uid):
+
+        def __unpack_value(kind, value):
+            if kind == 1:
+                return unpack('Q', value)[0]
+            elif kind == 2:
+                return value
+            else:
+                return loads(value)
+
         def __get():
-            self.cursor.set_key(uid, '')
-            ok = self.cursor.search_near()
+            with self.tuples() as cursor:
+                cursor.set_key(uid, '')
+                ok = cursor.search_near()
+                if ok == WT_NOTFOUND:
+                    raise Exception('nothing found')
+                if ok == -1:
+                    cursor.next()
+                while True:
+                    other = cursor.get_key()
+                    ok = reduce(
+                        lambda x, y: (cmp(*y) == 0) and y,
+                        zip((uid,), other),
+                        True
+                    )
+                    if ok:
+                        _, name = other
+                        value = cursor.get_value()
+                        yield name, __unpack_value(*value)
+
+                        if cursor.next() == WT_NOTFOUND:
+                            break
+                        else:
+                            continue
+                    else:
+                        break
+        return dict(__get())
+
+    def query(self, *key):
+        """Iterate a cursor over records matching `key`
+        starting near `key`. You *must* finish the iteration
+        before reusing `cursor`"""
+        with self.index() as cursor:
+            cursor.set_key(key)
+            match = [e for e in key if e]
+            ok = cursor.search_near()
             if ok == WT_NOTFOUND:
                 raise Exception('nothing found')
             if ok == -1:
-                self.cursor.next()
+                cursor.next()
             while True:
-                other = self.cursor.get_key()
+                other = cursor.get_key()
                 ok = reduce(
                     lambda x, y: (cmp(*y) == 0) and y,
-                    zip((uid,), other),
+                    zip(match, other),
                     True
                 )
                 if ok:
-                    _, name = other
-                    value = self.cursor.get_value()
-                    yield name, self._unpack_value(*value)
-
-                    if self.cursor.next() == WT_NOTFOUND:
+                    yield other, cursor.get_value()
+                    if cursor.next() == WT_NOTFOUND:
                         break
                     else:
                         continue
                 else:
                     break
-
-        return dict(__get())
-
+    
     def close(self):
-        self.cursor.close()
         self.session.close()
         self.connection.close()
 
@@ -181,7 +199,7 @@ def load(dump, database):
 
 
 def comments(db, id):
-    records = iter_cursor(db, 'PostID', 2, id, '')
+    records = db.query('PostID', 2, id, '')
     for key, _ in records:
         name, kind, value, uid = key
         yield db.get(uid)
@@ -189,7 +207,7 @@ def comments(db, id):
 
 def questions(db):
     def uids():
-        for item in iter_cursor(db, 'PostTypeId', 2, '1', ''):
+        for item in db.query('PostTypeId', 2, '1', ''):
             key, _ = item
             name, kind, value, uid = key
             yield uid
@@ -202,7 +220,7 @@ def questions(db):
 def answers(db, id):
     # retrieve from `db` all tuples that have a key `ParentID`
     # and a value that is a string ie. kind `2` and value `id`
-    records = iter_cursor(db, 'ParentID', 2, id, '')
+    records = db.query('ParentID', 2, id, '')
     for key, _ in records:
         name, kind, value, uid = key
         answer = db.get(uid)
@@ -224,6 +242,7 @@ def build(templates, database, output):
             answers=answers(db, id)
         )
         break
+
 
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='sotoki 0.1')
