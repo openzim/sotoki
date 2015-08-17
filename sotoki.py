@@ -19,6 +19,8 @@ from json import loads
 
 from docopt import docopt
 
+from markdown import markdown
+
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
 
@@ -55,9 +57,6 @@ class Jinja:
 
 
 def render(output, template, templates, **context):
-    # `template` dirname is used to lookup other templates used
-    # in `template`. This is done so to simply the signature
-    # which is enough for this script.
     with open(output, 'w') as f:
         page = Jinja.render(template, templates, **context)
         f.write(page.encode('utf-8'))
