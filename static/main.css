@@ -15,9 +15,13 @@
 /* } */
 
 .post {
-    border: 1px solid #EEE;
+    border-bottom: 1px solid #EEE;
     padding: 15px;
     margin-bottom: 15px;
+}
+
+#question.post {
+    border: 0px;
 }
 
 .post .reputation {
@@ -30,14 +34,26 @@
 }
 
 .post .comments {
-    border: 1px solid #EEE;
+    border-top: 1px solid #EEE;
     padding: 10px;
 }
 
 .post .comments .comment {
-    border: 1px solid #EEE;
+    border-bottom: 1px solid #EEE;
     padding: 5px;
     margin-bottom: 5px;
+}
+
+.post .comments .comment .text p {
+    display: inline;
+}
+
+.post .comments .comment .score {
+    display: inline-block;
+    min-width: 1.6em;
+    min-height: 1.6em;
+    background: #eee;
+    text-align: center;
 }
 
 .post .comments .comment:last-child {
