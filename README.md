@@ -72,7 +72,15 @@ The second will build the html pages.
 ## TODO
 
 - question page (by amz3)
-- tag page + index
+  - color comments according to score
+  - add badges to users
+  - sidebar:
+    - add questions infos (asked, viewed, active) (sidebar)
+    - add linked/related questions
+  - add different sort order active/oldest/votes (javascript)
+  - humanize dates + javascript to stay current
+
+- tag page + index page
 - user page
 - search
 - create a script to generate dumps from stackoverflow API
