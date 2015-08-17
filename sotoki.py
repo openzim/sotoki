@@ -19,8 +19,6 @@ from json import loads
 
 from docopt import docopt
 
-from markdown import markdown
-
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
 
@@ -31,34 +29,14 @@ from wiredtiger.packing import unpack
 from wiredtiger import wiredtiger_open
 
 
-class Jinja:
-    """Do it all jinja2 helper.
-
-    Should work in any situation."""
-
-    def __init__(self, *paths, **filters):
-        paths = map(os.path.abspath, paths)
-        self.environment = Environment(
-            loader=FileSystemLoader(paths),
-        )
-        self.environment.filters.update(filters)
-
-    def __call__(self, template, **context):
-        template = self.environment.get_template(template)
-        out = template.render(**context)
-        return out
-
-    @classmethod
-    def render(cls, template, *paths, **context):
-        filters = dict([e for e in context.items() if callable(e[1])])
-        render = cls(*paths, **filters)
-        output = render(template, **context)
-        return output
-
-
 def render(output, template, templates, **context):
+    templates = os.path.abspath(templates)
+    env = Environment(loader=FileSystemLoader((templates,)))
+    filters = dict()
+    env.filters.update(filters)
+    template = env.get_template(template)
+    page = template.render(**context)
     with open(output, 'w') as f:
-        page = Jinja.render(template, templates, **context)
         f.write(page.encode('utf-8'))
 
 
@@ -243,7 +221,6 @@ def build(templates, database, output):
             comments=coms,
             answers=answers(db, id)
         )
-        break
 
 
 if __name__ == '__main__':
