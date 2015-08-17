@@ -19,6 +19,8 @@ from json import loads
 
 from docopt import docopt
 
+from markdown import markdown
+
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
 
@@ -32,7 +34,7 @@ from wiredtiger import wiredtiger_open
 def render(output, template, templates, **context):
     templates = os.path.abspath(templates)
     env = Environment(loader=FileSystemLoader((templates,)))
-    filters = dict()
+    filters = dict(markdown=markdown)
     env.filters.update(filters)
     template = env.get_template(template)
     page = template.render(**context)
@@ -93,7 +95,7 @@ class TupleSpace(object):
 
     def index(self):
         return self.session.open_cursor('index:tuples:index')
-        
+
     def insert(self, uid, name, value):
         # set key
         self.cursor.set_key(uid, name)
@@ -221,7 +223,7 @@ def build(templates, database, output):
             comments=coms,
             answers=answers(db, id)
         )
-
+        break
 
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='sotoki 0.1')

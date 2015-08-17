@@ -15,7 +15,7 @@
           {% for comment in comments %}
             <div class="comment">
               <span class="score">{{ comment.Score }}</span>
-              <span class="text">{{ comment.Text }}</span>
+              <span class="text">{{ comment.Text | markdown }}</span>
               <span class="date">{{ comment.CreationDate }}</span>
             </div>
           {% endfor %}
