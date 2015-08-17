@@ -10,7 +10,7 @@ Download the [stackexchange dumps using bittorrent](https://archive.org/details/
 in your favorite bittorrent client to do the tests.
 
 
-# Getting started
+## Getting started
 
 First clone this repository:
 
@@ -68,3 +68,11 @@ StackOverflow website inside a directory and run the following commands:
 
 The first will create a wiredtiger database with all the info found in the dump.
 The second will build the html pages.
+
+## TODO
+
+- question page (by amz3)
+- tag page + index
+- user page
+- search
+  
