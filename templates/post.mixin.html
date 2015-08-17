@@ -1,0 +1,46 @@
+<div class="post">
+  <h3 class="title">{{ post.Title }}</h3>
+  <div class="post-container">
+    <div class="reputation">
+      <div class="score">
+        <p><span class="glyphicon glyphicon-triangle-top"></span></p>
+        <p>{{ post.Score }}</p>
+      </div>
+      <div>
+        <p class="favorites"><span class="glyphicon glyphicon-star"></span></p>
+        <p><span>{{ post.FavoriteCount }}</span></p>
+      </div>
+    </div>
+    <div class="body">{{ post.Body | safe }}</div>
+  </div>
+  <div class="author">
+    <div>
+      <p>asked 41 mins ago</p>
+      <div>
+        <div>
+          <img src="http://lorempixel.com/32/32/" />
+        </div>
+        <div>
+          <p><a href="">Eva Luator</a></p>
+          <p>badges</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  {% if comments %}
+    <div class="comments">
+      {% for comment in comments %}
+        <div class="comment">
+          <p>
+            <span class="score">{{ comment.Score }}</span>
+            <span class="text">{{ comment.Text | markdown }}</span>
+            –
+            <a href="#">Eva Luator</a>
+            <span class="date">{{ comment.CreationDate }}</span>
+            </p>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>

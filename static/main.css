@@ -1,18 +1,4 @@
-#header {
-    background: #FC9A24;
-    padding: 15px;
-}
-
-#header h1 {
-    padding: 0px;
-    margin: 0px;
-}
-
-/* #container { */
-/*     padding: 15px; */
-/*     max-width: 700px; */
-/*     margin: auto; */
-/* } */
+/* post */
 
 .post {
     border-bottom: 1px solid #EEE;
@@ -20,22 +6,86 @@
     margin-bottom: 15px;
 }
 
-#question.post {
+#question .post {
     border: 0px;
 }
 
+.post .post-container {
+    display: flex;
+    
+}
+
+/** reputation **/
+
 .post .reputation {
+    padding-right: 15px;
+}
+
+.post .reputation > div {
+    margin-bottom: 15px;
+}
+
+.post .reputation p {
+    text-align: center;
+    padding: 0px;
+    margin: 0px;    
+    font-size: 22px;
+}
+
+.post .reputation .score .glyphicon {
     font-size: 36px;
-    text-align: right:
+    color: #FC9A24;
+    margin: 0px;                   
+}
+
+.post .reputation .favorites .glyphicon {
+    font-size: 36px;
+    color: hsl(50, 100%, 50%);
+    margin: 0px;
 }
 
 .post .body {
     padding: 15px;
 }
 
+.post .body blockquote {
+    font-size: 0.8em;
+}
+
+/** author **/
+
+.post .author {
+    text-align: right;
+}
+
+.post .author > div {
+    display: inline-block;
+    padding: 10px 20px;;
+    background: #eee;
+}
+
+.post .author > div > div {
+    text-align: left;
+    display: flex;
+    justify-content: flex-begin;
+}
+
+.post .author img {
+    padding: 5px;
+}
+
+.post .author p {
+    margin: 0px;
+}
+
+/* comments */
+
 .post .comments {
+    margin-top: 15px;
+    padding: 15px;
     border-top: 1px solid #EEE;
-    padding: 10px;
+    font-size: 0.9em;
+
 }
 
 .post .comments .comment {
@@ -44,7 +94,7 @@
     margin-bottom: 5px;
 }
 
-.post .comments .comment .text p {
+.post .comments .comment .text {
     display: inline;
 }
 

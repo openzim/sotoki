@@ -21,7 +21,7 @@ from contextlib import contextmanager
 
 from docopt import docopt
 
-from markdown import markdown
+from markdown import markdown as md
 
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
@@ -31,6 +31,11 @@ from lxml.etree import parse
 from wiredtiger.packing import pack
 from wiredtiger.packing import unpack
 from wiredtiger import wiredtiger_open
+
+
+def markdown(text):
+    # strip p tags
+    return md(text)[3:-4]
 
 
 def render(output, template, templates, **context):
@@ -88,18 +93,18 @@ class TupleSpace(object):
 
     def insert(self, uid, name, value):
         # set key
-        self.cursor.set_key(uid, name)
+        with self.tuples() as cursor:
+            cursor.set_key(uid, name)
 
-        # pack and set value
-        if type(value) is int:
-            self.cursor.set_value(1, pack('Q', value))
-        elif type(value) is str:
-            self.cursor.set_value(2, value)
-        else:
-            self.cursor.set_value(3, dumps(value))
+            # pack and set value
+            if type(value) is int:
+                cursor.set_value(1, pack('Q', value))
+            elif type(value) is str:
+                cursor.set_value(2, value)
+            else:
+                cursor.set_value(3, dumps(value))
 
-        self.cursor.insert()
-        self.cursor.reset()
+            cursor.insert()
 
     def get(self, uid):
 
@@ -166,7 +171,7 @@ class TupleSpace(object):
                         continue
                 else:
                     break
-    
+
     def close(self):
         self.session.close()
         self.connection.close()
@@ -192,10 +197,19 @@ def load(dump, database):
     to_db('Posts.xml')
     to_db('Comments.xml')
     to_db('PostLinks.xml')
+    to_db('Tags.xml')
+    to_db('Users.xml')
 
     db.close()
 
 # build
+
+def user(db, id):
+    records = db.query('PostID', 2, id, '')
+    for key, _ in records:
+        name, kind, value, uid = key
+        yield db.get(uid)
+
 
 
 def comments(db, id):
@@ -224,7 +238,7 @@ def answers(db, id):
     for key, _ in records:
         name, kind, value, uid = key
         answer = db.get(uid)
-        yield answer, comments(db, answer['Id'])
+        yield answer, list(comments(db, answer['Id']))
 
 
 def build(templates, database, output):
@@ -237,7 +251,7 @@ def build(templates, database, output):
             os.path.join(output, 'posts', '%s.html' % id),
             'post.html',
             templates,
-            question=question,
+            post=question,
             comments=coms,
             answers=answers(db, id)
         )
