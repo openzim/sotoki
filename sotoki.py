@@ -114,7 +114,6 @@ class TupleSpace(object):
         )
         self.cursor = self.session.open_cursor('table:tuples')
 
-
     def index(self):
         return self.session.open_cursor('index:tuples:index')
         
@@ -216,7 +215,7 @@ def questions(db):
             name, kind, value, uid = key
             yield uid
     # Consume the generator with list
-    uids = list(uids())
+    uids = uids()
     for uid in uids:
         yield db.get(uid)
 
@@ -228,7 +227,7 @@ def answers(db, id):
     for key, _ in records:
         name, kind, value, uid = key
         answer = db.get(uid)
-        yield answer, list(comments(db, answer['Id']))
+        yield answer, comments(db, answer['Id'])
 
 
 def build(templates, database, output):
