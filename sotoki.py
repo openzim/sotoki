@@ -34,6 +34,7 @@ from wiredtiger import wiredtiger_open
 
 
 def markdown(text):
+    # FIXME: add postprocess step to transform 'http://' into a link
     # strip p tags
     return md(text)[3:-4]
 
@@ -132,9 +133,13 @@ class TupleSpace(object):
                         True
                     )
                     if ok:
-                        _, name = other
+                        _, key = other
+                        # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+                        # XXX: remove namespace!!!
+                        # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+                        key = key.split('/')[1]
                         value = cursor.get_value()
-                        yield name, __unpack_value(*value)
+                        yield key, __unpack_value(*value)
 
                         if cursor.next() == WT_NOTFOUND:
                             break
@@ -177,6 +182,14 @@ class TupleSpace(object):
         self.connection.close()
 
 
+# load
+
+KEYS_TO_COERCE_TO_INT = [
+    'Score',
+    'FavoriteCount',
+]
+
+
 def load(dump, database):
     # init database
     os.makedirs(database)
@@ -184,7 +197,8 @@ def load(dump, database):
 
     # parse Posts
     def to_db(filename):
-        name = filename.split('.')[0].lower()
+        name = filename.split('.')[0][:-1]
+        print 'loading :', name
         xml = parse(os.path.join(dump, filename))
         posts = xml.getroot()
         for post in posts.iterchildren():
@@ -192,7 +206,13 @@ def load(dump, database):
             uid = '%s:%s' % (name, post.attrib['Id'])
             # populate post attributes
             for key in post.keys():
-                db.insert(uid, key, post.attrib[key])
+                value = post.attrib[key]
+                if key in KEYS_TO_COERCE_TO_INT:
+                    if value:
+                        value = int(value)
+                # XXX: namespace keys with underscore `/`
+                key = '%s/%s' % (name, key)
+                db.insert(uid, key, value)
 
     to_db('Posts.xml')
     to_db('Comments.xml')
@@ -202,60 +222,76 @@ def load(dump, database):
 
     db.close()
 
-# build
+
+# queries
+
 
 def user(db, id):
-    records = db.query('PostID', 2, id, '')
-    for key, _ in records:
-        name, kind, value, uid = key
-        yield db.get(uid)
+    record = next(db.query('User/Id', 2, id, ''))
+    key, _ = record
+    name, kind, value, uid = key
+    return db.get(uid)
 
+
+def get_post(db, id):
+    post = db.get(id)
+    # It's possible that there is no owner
+    try:
+        post['Author'] = user(db, post['OwnerUserId'])
+    except:
+        post['Author'] = None
+    # sanitize tags if any
+    try:
+        post['Tags'] = post['Tags'][1:-1].split('><')
+    except:
+        pass
+    return post
 
 
 def comments(db, id):
-    records = db.query('PostID', 2, id, '')
+    records = db.query('Comment/PostId', 2, id, '')
     for key, _ in records:
         name, kind, value, uid = key
-        yield db.get(uid)
+        comment = db.get(uid)
+        comment['Author'] = user(db, comment['UserId'])
+        yield comment
 
 
 def questions(db):
-    def uids():
-        for item in db.query('PostTypeId', 2, '1', ''):
-            key, _ = item
-            name, kind, value, uid = key
-            yield uid
-    # Consume the generator with list
-    uids = uids()
-    for uid in uids:
-        yield db.get(uid)
+    for item in db.query('Post/PostTypeId', 2, '1', ''):
+        key, _ = item
+        name, kind, value, uid = key
+        yield get_post(db, uid)
 
 
 def answers(db, id):
     # retrieve from `db` all tuples that have a key `ParentID`
     # and a value that is a string ie. kind `2` and value `id`
-    records = db.query('ParentID', 2, id, '')
-    for key, _ in records:
-        name, kind, value, uid = key
-        answer = db.get(uid)
-        yield answer, list(comments(db, answer['Id']))
+    def __iter():
+        records = db.query('Post/ParentID', 2, id, '')
+        for key, _ in records:
+            name, kind, value, uid = key
+            answer = get_post(db, uid)
+            yield answer, list(comments(db, answer['Id']))
+    return sorted(list(__iter()), key=lambda x: x[0]['Score'], reverse=True)
+
+
+# build
 
 
 def build(templates, database, output):
     db = TupleSpace(database)
     os.makedirs(os.path.join(output, 'posts'))
-    for question in questions(db):
-        id = question['Id']
-        coms = list(comments(db, question['Id']))
+    for num, question in enumerate(questions(db)):
+        question_id = question['Id']
         render(
-            os.path.join(output, 'posts', '%s.html' % id),
+            os.path.join(output, 'posts', '%s.html' % question_id),
             'post.html',
             templates,
             post=question,
-            comments=coms,
-            answers=answers(db, id)
+            comments=comments(db, question_id),
+            answers=answers(db, question_id)
         )
-        break
 
 
 if __name__ == '__main__':

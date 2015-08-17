@@ -6,37 +6,49 @@
         <p><span class="glyphicon glyphicon-triangle-top"></span></p>
         <p>{{ post.Score }}</p>
       </div>
-      <div>
-        <p class="favorites"><span class="glyphicon glyphicon-star"></span></p>
-        <p><span>{{ post.FavoriteCount }}</span></p>
-      </div>
+      {% if post.FavoriteCount %}
+        <div>
+          <p class="favorites"><span class="glyphicon glyphicon-star"></span></p>
+          <p><span>{{ post.FavoriteCount }}</span></p>
+        </div>
+      {% endif %}
     </div>
     <div class="body">{{ post.Body | safe }}</div>
   </div>
-  <div class="author">
-    <div>
-      <p>asked 41 mins ago</p>
+  {% if post.Tags %}
+    <div class="tags">
+      <ul>
+        {% for tag in post.Tags %}
+          <li><a href="#">{{ tag }}</a></li>
+        {% endfor %}
+    </div>
+  {% endif %}
+  {% if post.Author %}
+    <div class="author">
       <div>
+        <p>asked {{ post.CreationDate }}</p>
         <div>
-          <img src="http://lorempixel.com/32/32/" />
-        </div>
-        <div>
-          <p><a href="">Eva Luator</a></p>
-          <p>badges</p>
+          <div>
+            <img src="http://lorempixel.com/32/32/" />
+          </div>
+          <div>
+            <p><a href="">{{ post.Author.DisplayName }}</a></p>
+            <p>## reputation ##</p>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-  
+  {% endif %}
+
   {% if comments %}
     <div class="comments">
       {% for comment in comments %}
         <div class="comment">
           <p>
             <span class="score">{{ comment.Score }}</span>
-            <span class="text">{{ comment.Text | markdown }}</span>
+            <span class="text">{{ comment.Text | urlize | markdown }}</span>
             –
-            <a href="#">Eva Luator</a>
+            <a href="#">{{ comment.Author.DisplayName }}</a>
             <span class="date">{{ comment.CreationDate }}</span>
             </p>
         </div>

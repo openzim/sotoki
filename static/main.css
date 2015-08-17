@@ -52,6 +52,18 @@
     font-size: 0.8em;
 }
 
+/** tags  **/
+
+.post .tags ul li {
+    display: inline;
+    background: #eee;
+    padding: 5px 10px;
+}
+
+.post .tags ul li a {
+    color: #333;
+}
+
 /** author **/
 
 .post .author {
