@@ -2,10 +2,16 @@ all:
 	@echo "Héllo you!"
 
 
-generate:
+copy-static:
+	cp -r static build/
+
+
+build-html:
 	rm build -rf || true
 	python sotoki.py build templates/ db/superuser/ build/
-	cp -r static build/
+
+build-all: build-html copy-static
+
 
 load:
 	rm -r db/superuser || true
