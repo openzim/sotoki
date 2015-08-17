@@ -2,38 +2,44 @@
 
 
 {% block body %}
-  <div id="question" class="post">
-    <h3 class="title">{{ question.Title }}</h3>
-    <div class="body">{{ question.Body | safe }}</div>
-    {% if comments %}
-      <div class="comments">
-        {% for comment in comments %}
-          <div class="comment">
-            <span class="score">{{ comment.Score }}</span>
-            <span class="text">{{ comment.Text }}</span>
-            <span class="date">{{ comment.CreationDate }}</span>
-          </div>
-        {% endfor %}
+  <div class="row col-lg-6">
+    <div id="question" class="post">
+      <h3 class="title">{{ question.Title }}</h3>
+      <div class="reputation">
+        <span class="score glyphicon glyphicon-arrow-up">6</span>
+        <span class="favorites glyphicon glyphicon-star">12</span>
       </div>
-    {% endif %}
-  </div>
-  <h2>Answers</h2>
-  <div id="answers">
-    {% for answer, comments in answers %}
-      <div class="post">
-        <div class="body">{{ answer.Body | safe }}</div>
-        {% if comments %}
-          <div class="comments">
-            {% for comment in comments %}
-              <div class="comment">
-                <span class="score">{{ comment.Score }}</span>
-                <span class="text">{{ comment.Text }}</span>
-                <span class="date">{{ comment.CreationDate }}</span>
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
-      </div>
-    {% endfor %}
+      <div class="body">{{ question.Body | safe }}</div>
+      {% if comments %}
+        <div class="comments">
+          {% for comment in comments %}
+            <div class="comment">
+              <span class="score">{{ comment.Score }}</span>
+              <span class="text">{{ comment.Text }}</span>
+              <span class="date">{{ comment.CreationDate }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+    <h2>Answers</h2>
+    <div id="answers">
+      {% for answer, comments in answers %}
+        <div class="post">
+          <div class="body">{{ answer.Body | safe }}</div>
+          {% if comments %}
+            <div class="comments">
+              {% for comment in comments %}
+                <div class="comment">
+                  <span class="score">{{ comment.Score }}</span>
+                  <span class="text">{{ comment.Text }}</span>
+                  <span class="date">{{ comment.CreationDate }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
   </div>
 {% endblock %}

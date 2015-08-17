@@ -6,15 +6,41 @@
     <meta name="description" content=""/>
     <meta name="author" content="kiwix Team"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <link rel="stylesheet" href="/static/normalize.css"/>
-    <link rel="stylesheet" href="/static/main.css"/>    
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="/static/main.css"/>
     {# <link rel="icon" type="image/png" href="images/favicon.png"> #}
   </head>
   <body class="{% block bodyclass %}{% endblock %}">
-    <div id="header">
-      <h1>stackoverflow</h1>
-    </div>
-    <div id="container">
+    <!-- Static navbar -->
+    <nav class="navbar navbar-default navbar-static-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">StackOverflow Offline</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="#">Home</a></li>
+            <li><a href="#about">Questions</a></li>
+            <li><a href="#contact">Tags</a></li>
+          </ul>
+          <form class="navbar-form navbar-left" role="search">
+            <div class="form-group">
+              <input class="form-control" placeholder="Search" type="text">
+            </div>
+            <button type="submit" class="btn btn-default">Search</button>
+          </form>
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+    <div class="container">
       {% block body %}{% endblock %}
     </div>
   </body>

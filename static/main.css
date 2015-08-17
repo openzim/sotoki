@@ -8,16 +8,25 @@
     margin: 0px;
 }
 
-#container {
-    padding: 15px;
-    max-width: 700px;
-    margin: auto;
-}
+/* #container { */
+/*     padding: 15px; */
+/*     max-width: 700px; */
+/*     margin: auto; */
+/* } */
 
 .post {
     border: 1px solid #EEE;
     padding: 15px;
     margin-bottom: 15px;
+}
+
+.post .reputation {
+    font-size: 36px;
+    text-align: right:
+}
+
+.post .body {
+    padding: 15px;
 }
 
 .post .comments {
