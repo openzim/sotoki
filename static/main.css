@@ -38,11 +38,30 @@ body.question h2 {
     font-size: 22px;
 }
 
+/*** reputation score ***/
+
 .post .reputation .score .glyphicon {
     font-size: 36px;
-    color: #FC9A24;
     margin: 0px;                   
 }
+
+.post .reputation .score .glyphicon.negative {
+    color: hsl(10, 90%, 80%);
+}
+
+.post .reputation .score .glyphicon.positive {
+    color: hsl(33, 97%, 76%);
+}
+
+.post .reputation .score .glyphicon.good {
+    color: hsl(33, 97%, 66%);
+}
+
+.post .reputation .score .glyphicon.verygood {
+    color: hsl(33, 97%, 56%);
+}
+
+/*** reputation favorites ***/
  
 .post .reputation .favorites .glyphicon {
     font-size: 36px;
@@ -116,12 +135,34 @@ body.question h2 {
     display: inline;
 }
 
+/** score **/
+
 .post .comments .comment .score {
     display: inline-block;
     min-width: 1.6em;
     min-height: 1.6em;
-    background: #eee;
     text-align: center;
+}
+
+.post .comments .comment .score.negative {
+    background: hsl(10, 90%, 80%);
+}
+
+.post .comments .comment .score.zero {
+    background: #eee;
+}
+
+.post .comments .comment .score.positive {
+    background: hsla(99, 72%, 35%, 0.5);
+}
+
+.post .comments .comment .score.good {
+    background: hsla(99, 72%, 35%, 0.7);
+}
+
+.post .comments .comment .score.verygood {
+    background: hsla(99, 72%, 35%, 1);
+    color: hsl(0, 0%, 0%);
 }
 
 .post .comments .comment:last-child {

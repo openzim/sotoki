@@ -49,12 +49,27 @@ def markdown(text):
     return md(text)[3:-4]
 
 
+def scale(number):
+    """Convert number to scale to be used in style to color arrows
+    and comment score"""
+    if number < 0:
+        return 'negative'
+    if number == 0:
+        return 'zero'
+    if number < 3:
+        return 'positive'
+    if number < 8:
+        return 'good'
+    return 'verygood'
+
+
 def render(output, template, templates, **context):
     templates = os.path.abspath(templates)
     env = Environment(loader=FileSystemLoader((templates,)))
     filters = dict(
         markdown=markdown,
         intspace=intspace,
+        scale=scale,
     )
     env.filters.update(filters)
     template = env.get_template(template)

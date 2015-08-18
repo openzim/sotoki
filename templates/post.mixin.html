@@ -1,13 +1,20 @@
 <div class="post">
   <div class="post-container">
     <div class="reputation">
-      <div class="score">
-        <p><span class="glyphicon glyphicon-triangle-top"></span></p>
-        <p>{{ post.Score | intspace }}</p>
-      </div>
+      {% if post.Score >= 0 %}
+        <div class="score">
+          <p><span class="glyphicon glyphicon-triangle-top {{ post.Score | scale }}"></span></p>
+          <p>{{ post.Score | intspace }}</p>
+        </div>
+      {% else %}
+        <div class="score">
+          <p>{{ post.Score | intspace }}</p>
+          <p><span class="glyphicon glyphicon-triangle-bottom {{ post.Score | scale }}"></span></p>
+        </div>
+      {% endif %}
       {% if post.FavoriteCount %}
         <div>
-          <p class="favorites"><span class="glyphicon glyphicon-star"></span></p>
+          <p class="favorites {{ post.FavoriteCount | scale }}"><span class="glyphicon glyphicon-star"></span></p>
           <p><span>{{ post.FavoriteCount | intspace }}</span></p>
         </div>
       {% endif %}
@@ -44,7 +51,7 @@
       {% for comment in comments %}
         <div class="comment">
           <p>
-            <span class="score">{{ comment.Score }}</span>
+            <span class="score {{ comment.Score | scale }}">{{ comment.Score }}</span>
             <span class="text">{{ comment.Text | urlize | markdown }}</span>
             –
             <a href="#">{{ comment.Author.DisplayName }}</a>
