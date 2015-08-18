@@ -1,3 +1,9 @@
+body.question h2 {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
 /* post */
 
 .post {
@@ -37,7 +43,7 @@
     color: #FC9A24;
     margin: 0px;                   
 }
-
+ 
 .post .reputation .favorites .glyphicon {
     font-size: 36px;
     color: hsl(50, 100%, 50%);

@@ -1,6 +1,6 @@
 # sotoki
 
-*StackOverflow to Kiwi*
+*StackOverflow to Kiwix*
 
 The goal of this project is to create a suite of tools to create
 zim files required by [kiwix](http://kiwix.org/) reader to make
@@ -72,14 +72,16 @@ The second will build the html pages.
 ## TODO
 
 - question page (by amz3)
+
   - color comments according to score
+  - color arrow according to score
   - add badges to users
   - sidebar:
-    - add questions infos (asked, viewed, active) (sidebar)
     - add linked/related questions
   - add different sort order active/oldest/votes (javascript)
-  - humanize dates + javascript to stay current
-
+  - fix user link page
+  - add identicon (https://github.com/azaghal/pydenticon)
+  
 - tag page + index page
 - user page
 - search

@@ -1,15 +1,14 @@
 <div class="post">
-  <h3 class="title">{{ post.Title }}</h3>
   <div class="post-container">
     <div class="reputation">
       <div class="score">
         <p><span class="glyphicon glyphicon-triangle-top"></span></p>
-        <p>{{ post.Score }}</p>
+        <p>{{ post.Score | intspace }}</p>
       </div>
       {% if post.FavoriteCount %}
         <div>
           <p class="favorites"><span class="glyphicon glyphicon-star"></span></p>
-          <p><span>{{ post.FavoriteCount }}</span></p>
+          <p><span>{{ post.FavoriteCount | intspace }}</span></p>
         </div>
       {% endif %}
     </div>
@@ -26,14 +25,14 @@
   {% if post.Author %}
     <div class="author">
       <div>
-        <p>asked {{ post.CreationDate }}</p>
+        <p>asked <span class="date" title="{{ post.CreationDate }}">{{ post.CreationDate }}</span></p>
         <div>
           <div>
             <img src="http://lorempixel.com/32/32/" />
           </div>
           <div>
             <p><a href="">{{ post.Author.DisplayName }}</a></p>
-            <p>## reputation ##</p>
+            <p>{{ post.Author.Reputation | intspace }}</p>
           </div>
         </div>
       </div>
@@ -49,7 +48,7 @@
             <span class="text">{{ comment.Text | urlize | markdown }}</span>
             –
             <a href="#">{{ comment.Author.DisplayName }}</a>
-            <span class="date">{{ comment.CreationDate }}</span>
+            <span class="date" title="{{ post.CreationDate }}">{{ comment.CreationDate }}</span>
             </p>
         </div>
       {% endfor %}

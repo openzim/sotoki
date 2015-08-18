@@ -1,20 +1,31 @@
 {% extends "base.html" %}
 
+{% block bodyclass %}question{% endblock %}
 
 {% block body %}
-  <div class="row col-md-6">
-    <div id="question">
-      {% include "post.mixin.html" %}
-    </div>
-    {% if answers %}
-      <h2>Answers</h2>
-      <div id="answers">
-        {% for post, comments in answers %}
-          {% include "post.mixin.html" %}
-        {% endfor %}
+  <div class="row">
+    <h2 class="title">{{ post.Title }}</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <div id="question">
+        {% include "post.mixin.html" %}
       </div>
-    {% else %}
-      <h2>No answers</h2>
-    {% endif %}
+      {% if answers %}
+        <h2>Answers</h2>
+        <div id="answers">
+          {% for post, comments in answers %}
+            {% include "post.mixin.html" %}
+          {% endfor %}
+        </div>
+      {% else %}
+        <h2>No answers</h2>
+      {% endif %}
+    </div>
+    <div class="row col-md-3">
+      <p>asked: <span class="date" title="{{ post.CreationDate }}">{{ post.CreationDate }}</span></p>
+      <p>viewed: {{ post.ViewCount | intspace }} times</p>
+      <p>active: <span class="date" title="{{ post.LastActivityDate }}">{{ post.LastActivityDate }}</span></p>
+    </div>
   </div>
 {% endblock %}

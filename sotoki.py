@@ -13,6 +13,7 @@ Options:
 
 """
 import os
+import re
 
 from json import dumps
 from json import loads
@@ -33,6 +34,15 @@ from wiredtiger.packing import unpack
 from wiredtiger import wiredtiger_open
 
 
+def intspace(value):
+    orig = str(value)
+    new = re.sub("^(-?\d+)(\d{3})", '\g<1> \g<2>', orig)
+    if orig == new:
+        return new
+    else:
+        return intspace(new)
+
+
 def markdown(text):
     # FIXME: add postprocess step to transform 'http://' into a link
     # strip p tags
@@ -42,7 +52,10 @@ def markdown(text):
 def render(output, template, templates, **context):
     templates = os.path.abspath(templates)
     env = Environment(loader=FileSystemLoader((templates,)))
-    filters = dict(markdown=markdown)
+    filters = dict(
+        markdown=markdown,
+        intspace=intspace,
+    )
     env.filters.update(filters)
     template = env.get_template(template)
     page = template.render(**context)
@@ -249,13 +262,14 @@ def get_post(db, id):
 
 
 def comments(db, id):
-    records = db.query('Comment/PostId', 2, id, '')
-    for key, _ in records:
-        name, kind, value, uid = key
-        comment = db.get(uid)
-        comment['Author'] = user(db, comment['UserId'])
-        yield comment
-
+    def __iter():
+        records = db.query('Comment/PostId', 2, id, '')
+        for key, _ in records:
+            name, kind, value, uid = key
+            comment = db.get(uid)
+            comment['Author'] = user(db, comment['UserId'])
+            yield comment
+    return sorted(list(__iter()), key=lambda x: x['CreationDate'])
 
 def questions(db):
     for item in db.query('Post/PostTypeId', 2, '1', ''):
@@ -272,7 +286,7 @@ def answers(db, id):
         for key, _ in records:
             name, kind, value, uid = key
             answer = get_post(db, uid)
-            yield answer, list(comments(db, answer['Id']))
+            yield answer, comments(db, answer['Id'])
     return sorted(list(__iter()), key=lambda x: x[0]['Score'], reverse=True)
 
 
@@ -292,7 +306,8 @@ def build(templates, database, output):
             comments=comments(db, question_id),
             answers=answers(db, question_id)
         )
-
+        if num == 10:
+            break
 
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='sotoki 0.1')
