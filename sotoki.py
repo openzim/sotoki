@@ -91,7 +91,7 @@ class TupleSpace(object):
         self.session = self.connection.open_session()
         self.session.create(
             'table:tuples',
-            'key_format=SS,value_format=QS,columns=(uid,name,kind,value)'
+            'key_format=SS,value_format=Qu,columns=(uid,name,kind,value)'
         )
         self.session.create(
             'index:tuples:index',
@@ -99,6 +99,7 @@ class TupleSpace(object):
         )
         self.tuples_cursors = list()
         self.index_cursors = list()
+        self.count = 0
 
     @contextmanager
     def tuples(self):
@@ -106,9 +107,11 @@ class TupleSpace(object):
             cursor = self.tuples_cursors.pop()
         else:
             cursor = self.session.open_cursor('table:tuples')
-        yield cursor
-        cursor.reset()
-        self.tuples_cursors.append(cursor)
+        try:
+            yield cursor
+        finally:
+            cursor.reset()
+            self.tuples_cursors.append(cursor)
 
     @contextmanager
     def index(self):
@@ -116,35 +119,38 @@ class TupleSpace(object):
             cursor = self.index_cursors.pop()
         else:
             cursor = self.session.open_cursor('index:tuples:index')
-        yield cursor
-        cursor.reset()
-        self.index_cursors.append(cursor)
+        try:
+            yield cursor
+        finally:
+            cursor.reset()
+            self.index_cursors.append(cursor)
+
+    def _unpack_value(self, kind, value):
+        if kind == 1:
+            return unpack('Q', value)[0]
+        elif kind == 2:
+            return unpack('S', value)[0]
+        else:
+            return loads(unpack('S', value)[0])
+
+    def _pack_value(self, value):
+        # pack and set value
+        if type(value) is int:
+            return 1, pack('Q', value)
+        elif type(value) is str:
+            return 2, pack('S', value)
+        else:
+            return 3, pack('S', dumps(value))
 
     def insert(self, uid, name, value):
         # set key
         with self.tuples() as cursor:
             cursor.set_key(uid, name)
-
-            # pack and set value
-            if type(value) is int:
-                cursor.set_value(1, pack('Q', value))
-            elif type(value) is str:
-                cursor.set_value(2, value)
-            else:
-                cursor.set_value(3, dumps(value))
-
+            value = self._pack_value(value)
+            cursor.set_value(*value)
             cursor.insert()
 
     def get(self, uid):
-
-        def __unpack_value(kind, value):
-            if kind == 1:
-                return unpack('Q', value)[0]
-            elif kind == 2:
-                return value
-            else:
-                return loads(value)
-
         def __get():
             with self.tuples() as cursor:
                 cursor.set_key(uid, '')
@@ -167,7 +173,7 @@ class TupleSpace(object):
                         # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
                         key = key.split('/')[1]
                         value = cursor.get_value()
-                        yield key, __unpack_value(*value)
+                        yield key, self._unpack_value(*value)
 
                         if cursor.next() == WT_NOTFOUND:
                             break
@@ -177,12 +183,15 @@ class TupleSpace(object):
                         break
         return dict(__get())
 
-    def query(self, *key):
+    def query(self, name, value, uid):
         """Iterate a cursor over records matching `key`
         starting near `key`. You *must* finish the iteration
         before reusing `cursor`"""
+
         with self.index() as cursor:
-            cursor.set_key(key)
+            kind, value = self._pack_value(value)
+            key = name, kind, value, uid
+            cursor.set_key(*key)
             match = [e for e in key if e]
             ok = cursor.search_near()
             if ok == WT_NOTFOUND:
@@ -255,8 +264,7 @@ def load(dump, database):
 
 
 def user(db, id):
-    # XXX: here `(2, id)` arguments is the (kind, value) tuple
-    record = next(db.query('User/Id', 2, id, ''))
+    record = next(db.query('User/Id', id, ''))
     key, _ = record
     name, kind, value, uid = key
     return db.get(uid)
@@ -281,30 +289,35 @@ def get_post(db, id):
 def related(db, id):
     # get related questions
     def __iter():
-        records = db.query('PostLink/PostId', 2, id, '')
+        records = db.query('PostLink/PostId', id, '')
         for key, _ in records:
             name, kind, value, uid = key
             link = db.get(uid)
-            uid = 'Post:'+ link['RelatedPostId']
+            uid = 'Post:' + link['RelatedPostId']
             related = get_post(db, uid)
             related['Kind'] = link['LinkTypeId']
             yield related
-    return sorted(list(__iter()), key=lambda x: x['Score'], reverse=True)
+    # XXX: not sure why there is no score
+    return sorted(list(__iter()), key=lambda x: x.get('Score', 0), reverse=True)
 
 
 def comments(db, id):
     def __iter():
-        records = db.query('Comment/PostId', 2, id, '')
+        records = db.query('Comment/PostId', id, '')
         for key, _ in records:
             name, kind, value, uid = key
             comment = db.get(uid)
-            comment['Author'] = user(db, comment['UserId'])
-            yield comment
+            try:
+                comment['Author'] = user(db, comment['UserId'])
+            except KeyError:
+                pass
+            else:
+                yield comment
     return sorted(list(__iter()), key=lambda x: x['CreationDate'])
 
 
 def questions(db):
-    for item in db.query('Post/PostTypeId', 2, '1', ''):
+    for item in db.query('Post/PostTypeId', '1', ''):
         key, _ = item
         name, kind, value, uid = key
         yield get_post(db, uid)
@@ -314,7 +327,7 @@ def answers(db, id):
     # retrieve from `db` all tuples that have a key `ParentID`
     # and a value that is a string ie. kind `2` and value `id`
     def __iter():
-        records = db.query('Post/ParentID', 2, id, '')
+        records = db.query('Post/ParentID', id, '')
         for key, _ in records:
             name, kind, value, uid = key
             answer = get_post(db, uid)
@@ -339,8 +352,8 @@ def build(templates, database, output):
             comments=comments(db, question_id),
             answers=answers(db, question_id)
         )
-        if num == 10:
-            break
+        # if num == 10:
+        #     break
 
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='sotoki 0.1')
