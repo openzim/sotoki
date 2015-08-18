@@ -14,6 +14,7 @@ Options:
 """
 import os
 import re
+from string import punctuation
 
 from json import dumps
 from json import loads
@@ -70,6 +71,7 @@ def render(output, template, templates, **context):
         markdown=markdown,
         intspace=intspace,
         scale=scale,
+        clean=lambda y: filter(lambda x: x not in punctuation, y)
     )
     env.filters.update(filters)
     template = env.get_template(template)
@@ -316,7 +318,7 @@ def comments(db, id):
     return sorted(list(__iter()), key=lambda x: x['CreationDate'])
 
 
-def questions(db):
+def get_questions(db):
     for item in db.query('Post/PostTypeId', '1', ''):
         key, _ = item
         name, kind, value, uid = key
@@ -341,7 +343,10 @@ def answers(db, id):
 def build(templates, database, output):
     db = TupleSpace(database)
     os.makedirs(os.path.join(output, 'posts'))
-    for num, question in enumerate(questions(db)):
+    questions = get_questions(db)
+    for num, question in enumerate(questions):
+        qs.append(question)  # debug
+        print 'render post', num
         question_id = question['Id']
         render(
             os.path.join(output, 'posts', '%s.html' % question_id),
@@ -352,8 +357,23 @@ def build(templates, database, output):
             comments=comments(db, question_id),
             answers=answers(db, question_id)
         )
-        # if num == 10:
-        #     break
+        if num == 100:
+            break
+    print 'render', 'index.html'
+    render(
+        os.path.join(output, 'index.html'),
+        'index.html',
+        templates
+    )
+    # print 'render', 'search.js'
+    # render(
+    #     os.path.join(output, 'search.js'),
+    #     'search.js',
+    #     templates,
+    #     questions=qs,  # debug
+    # )
+    print 'done'
+    
 
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='sotoki 0.1')
