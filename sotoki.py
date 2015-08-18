@@ -249,15 +249,26 @@ def load(dump, database):
                 if key in KEYS_TO_COERCE_TO_INT:
                     if value:
                         value = int(value)
-                # XXX: namespace keys with underscore `/`
+                # XXX: namespace keys with slash `/`
                 key = '%s/%s' % (name, key)
                 db.insert(uid, key, value)
 
     to_db('Posts.xml')
     to_db('Comments.xml')
     to_db('PostLinks.xml')
-    to_db('Tags.xml')
+    # tag dump doesn't provide useful information
+    # to_db('Tags.xml')
     to_db('Users.xml')
+
+    # generate tag informations
+    print 'load tag links'
+    for question in get_questions(db):
+        for tag in question['Tags']:
+            # add tag to the global list of tags anyway
+            db.insert('Tag:%s' % tag, 'name', tag)
+            # create TagLink
+            uid = 'TagLink/%s:%s' % (tag, question['Id'])
+            db.insert(uid, tag, question['Id'])
 
     db.close()
 
@@ -300,7 +311,8 @@ def related(db, id):
             related['Kind'] = link['LinkTypeId']
             yield related
     # XXX: not sure why there is no score
-    return sorted(list(__iter()), key=lambda x: x.get('Score', 0), reverse=True)
+    out = sorted(list(__iter()), key=lambda x: x.get('Score', 0), reverse=True)
+    return out
 
 
 def comments(db, id):
@@ -373,7 +385,7 @@ def build(templates, database, output):
     #     questions=qs,  # debug
     # )
     print 'done'
-    
+
 
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='sotoki 0.1')
