@@ -29,10 +29,10 @@ need to install linux headers. On debian amd64 use the following command:
 sudo apt-get install linux-headers-amd64
 ```
 
-Then download wiredtiger:
+Get wiredtiger **master**:
 
 ```bash
-http://source.wiredtiger.com/releases/wiredtiger-2.6.1.tar.bz2
+git clone https://github.com/wiredtiger/wiredtiger.git
 ```
 
 And compile and install it with:
@@ -86,5 +86,7 @@ The second will build the html pages.
 
 - tag page + index page
 - user page
-- search
+- search (http://lunrjs.com/)
 - create a script to generate dumps from stackoverflow API
+
+ 
