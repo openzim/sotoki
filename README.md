@@ -74,15 +74,11 @@ The second will build the html pages.
 - question page (by amz3)
 
   - check for closed question
-  - sidebar:
-    - add linked/related questions
-
   - add badges to users
   - add different sort order active/oldest/votes (javascript)
   - fix user link page
   - fix tag links
   - add identicon (https://github.com/azaghal/pydenticon)
-
 
 - tag page + index page
 - user page
