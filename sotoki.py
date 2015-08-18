@@ -255,6 +255,7 @@ def load(dump, database):
 
 
 def user(db, id):
+    # XXX: here `(2, id)` arguments is the (kind, value) tuple
     record = next(db.query('User/Id', 2, id, ''))
     key, _ = record
     name, kind, value, uid = key
@@ -273,7 +274,22 @@ def get_post(db, id):
         post['Tags'] = post['Tags'][1:-1].split('><')
     except:
         pass
+
     return post
+
+
+def related(db, id):
+    # get related questions
+    def __iter():
+        records = db.query('PostLink/PostId', 2, id, '')
+        for key, _ in records:
+            name, kind, value, uid = key
+            link = db.get(uid)
+            uid = 'Post:'+ link['RelatedPostId']
+            related = get_post(db, uid)
+            related['Kind'] = link['LinkTypeId']
+            yield related
+    return sorted(list(__iter()), key=lambda x: x['Score'], reverse=True)
 
 
 def comments(db, id):
@@ -285,6 +301,7 @@ def comments(db, id):
             comment['Author'] = user(db, comment['UserId'])
             yield comment
     return sorted(list(__iter()), key=lambda x: x['CreationDate'])
+
 
 def questions(db):
     for item in db.query('Post/PostTypeId', 2, '1', ''):
@@ -318,6 +335,7 @@ def build(templates, database, output):
             'post.html',
             templates,
             post=question,
+            related=related(db, question_id),
             comments=comments(db, question_id),
             answers=answers(db, question_id)
         )

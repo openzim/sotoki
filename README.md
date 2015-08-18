@@ -73,6 +73,7 @@ The second will build the html pages.
 
 - question page (by amz3)
 
+  - check for closed question
   - sidebar:
     - add linked/related questions
 

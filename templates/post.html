@@ -23,9 +23,21 @@
       {% endif %}
     </div>
     <div class="row col-md-3">
-      <p>asked: <span class="date" title="{{ post.CreationDate }}">{{ post.CreationDate }}</span></p>
-      <p>viewed: {{ post.ViewCount | intspace }} times</p>
-      <p>active: <span class="date" title="{{ post.LastActivityDate }}">{{ post.LastActivityDate }}</span></p>
+      <div class="row">
+        <p>asked: <span class="date" title="{{ post.CreationDate }}">{{ post.CreationDate }}</span></p>
+        <p>viewed: {{ post.ViewCount | intspace }} times</p>
+        <p>active: <span class="date" title="{{ post.LastActivityDate }}">u{{ post.LastActivityDate }}</span></p>
+      </div>
+      {% if related %}
+        <div class="row">
+          <h3>Related</h3>
+          <ul>
+          {% for post in related %}
+            <li><a href="/posts/{}.html" {{post.Id }}>{{ post.Title }}<a></li>
+          {% endfor %}
+          <ul>
+        </div>
+      {% endif %}
     </div>
   </div>
 {% endblock %}
