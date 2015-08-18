@@ -73,6 +73,8 @@ The second will build the html pages.
 
 - question page (by amz3)
 
+  - use html meta keywords
+  - create proper titles
   - check for closed question
   - add badges to users
   - add different sort order active/oldest/votes (javascript)
