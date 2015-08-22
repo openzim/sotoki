@@ -48,23 +48,3 @@ make build-all
 
 The first will create a wiredtiger database with all the info found in the dump.
 The second will build the html pages.
-
-## TODO
-
-- question page (by amz3)
-
-  - use html meta keywords
-  - create proper titles
-  - check for closed question
-  - add badges to users
-  - add different sort order active/oldest/votes (javascript)
-  - fix user link page
-  - fix tag links
-  - add identicon (https://github.com/azaghal/pydenticon)
-
-- tag page + index page
-- user page
-- search (http://lunrjs.com/)
-- create a script to generate dumps from stackoverflow API
-
- 
