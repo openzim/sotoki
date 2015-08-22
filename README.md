@@ -18,10 +18,10 @@ First clone this repository:
 git clone https://git.framasoft.org/amz3/sotoki.git
 ```
 
-Install bsddb3 using you system packages:
+Install leveldb using you system packages:
 
 ```
-sudo apt-get install python-bsddb3
+sudo apt-get install libleveldb1 libleveldb-dev
 ```
 
 To install python dependencies use a virtualenv that has
