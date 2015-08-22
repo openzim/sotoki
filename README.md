@@ -42,8 +42,8 @@ Then you can run the builder. Prepare a directory with all the files for a given
 StackOverflow website inside a directory and run the following commands:
 
 ```
-./sotoki.py load dumps/superuser db/superuser
-./sotoki.py build templates db/superuser build/superuser
+make load
+make build-all
 ```
 
 The first will create a wiredtiger database with all the info found in the dump.
