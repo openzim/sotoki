@@ -14,54 +14,34 @@ in your favorite bittorrent client to do the tests.
 
 First clone this repository:
 
-```bash
+```
 git clone https://git.framasoft.org/amz3/sotoki.git
 ```
 
-wiredtiger [documentation](http://source.wiredtiger.com/2.6.1/index.html)
-is used as database. The reason for this choice and a tutorial are available
-in `wiredtiger.md` file next to this file. 
+Install bsddb3 using you system packages:
 
-You need to install wiredtiger from source. This is very easy. You will
-need to install linux headers. On debian amd64 use the following command:
-
-```bash
-sudo apt-get install linux-headers-amd64
+```
+sudo apt-get install python-bsddb3
 ```
 
-Get wiredtiger **master**:
-
-```bash
-git clone https://github.com/wiredtiger/wiredtiger.git
-```
-
-And compile and install it with:
-
-```bash
-./configure --enable-python
-make
-make install
-```
-
-You will also need python 2.7 since wiredtiger has binding only for
-python 2. To install python dependencies use a virtualenv that has
+To install python dependencies use a virtualenv that has
 access to system python packages. Using virtualenvwrapper you can
 create one with the following command:
 
-```bash
+```
 mkvirtualenv sotoki --system-site-packages
 ```
 
 Then install requirements:
 
-```bash
+```
 pip install -r requirements.txt
 ```
 
 Then you can run the builder. Prepare a directory with all the files for a given
 StackOverflow website inside a directory and run the following commands:
 
-```bash
+```
 ./sotoki.py load dumps/superuser db/superuser
 ./sotoki.py build templates db/superuser build/superuser
 ```
