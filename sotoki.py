@@ -14,12 +14,8 @@ Options:
 """
 import os
 import re
+from traceback import print_exc
 from string import punctuation
-
-from json import dumps
-from json import loads
-
-from contextlib import contextmanager
 
 from docopt import docopt
 
@@ -30,9 +26,8 @@ from jinja2 import FileSystemLoader
 
 from lxml.etree import parse
 
-from wiredtiger.packing import pack
-from wiredtiger.packing import unpack
-from wiredtiger import wiredtiger_open
+from ajgudb import AjguDB
+from ajgudb import AjguDBException
 
 
 def intspace(value):
@@ -80,310 +75,241 @@ def render(output, template, templates, **context):
         f.write(page.encode('utf-8'))
 
 
-# wiredtiger helper
-
-WT_NOTFOUND = -31803
-
-
-class TupleSpace(object):
-    """Generic database"""
-
-    def __init__(self, path):
-        self.connection = wiredtiger_open(path, 'create')
-        self.session = self.connection.open_session()
-        self.session.create(
-            'table:tuples',
-            'key_format=SS,value_format=Qu,columns=(uid,name,kind,value)'
-        )
-        self.session.create(
-            'index:tuples:index',
-            'columns=(name,kind,value,uid)'
-        )
-        self.tuples_cursors = list()
-        self.index_cursors = list()
-        self.count = 0
-
-    @contextmanager
-    def tuples(self):
-        if self.tuples_cursors:
-            cursor = self.tuples_cursors.pop()
-        else:
-            cursor = self.session.open_cursor('table:tuples')
-        try:
-            yield cursor
-        finally:
-            cursor.reset()
-            self.tuples_cursors.append(cursor)
-
-    @contextmanager
-    def index(self):
-        if self.index_cursors:
-            cursor = self.index_cursors.pop()
-        else:
-            cursor = self.session.open_cursor('index:tuples:index')
-        try:
-            yield cursor
-        finally:
-            cursor.reset()
-            self.index_cursors.append(cursor)
-
-    def _unpack_value(self, kind, value):
-        if kind == 1:
-            return unpack('Q', value)[0]
-        elif kind == 2:
-            return unpack('S', value)[0]
-        else:
-            return loads(unpack('S', value)[0])
-
-    def _pack_value(self, value):
-        # pack and set value
-        if type(value) is int:
-            return 1, pack('Q', value)
-        elif type(value) is str:
-            return 2, pack('S', value)
-        else:
-            return 3, pack('S', dumps(value))
-
-    def insert(self, uid, name, value):
-        # set key
-        with self.tuples() as cursor:
-            cursor.set_key(uid, name)
-            value = self._pack_value(value)
-            cursor.set_value(*value)
-            cursor.insert()
-
-    def get(self, uid):
-        def __get():
-            with self.tuples() as cursor:
-                cursor.set_key(uid, '')
-                ok = cursor.search_near()
-                if ok == WT_NOTFOUND:
-                    raise Exception('nothing found')
-                if ok == -1:
-                    cursor.next()
-                while True:
-                    other = cursor.get_key()
-                    ok = reduce(
-                        lambda x, y: (cmp(*y) == 0) and y,
-                        zip((uid,), other),
-                        True
-                    )
-                    if ok:
-                        _, key = other
-                        # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-                        # XXX: remove namespace!!!
-                        # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-                        key = key.split('/')[1]
-                        value = cursor.get_value()
-                        yield key, self._unpack_value(*value)
-
-                        if cursor.next() == WT_NOTFOUND:
-                            break
-                        else:
-                            continue
-                    else:
-                        break
-        return dict(__get())
-
-    def query(self, name, value, uid):
-        """Iterate a cursor over records matching `key`
-        starting near `key`. You *must* finish the iteration
-        before reusing `cursor`"""
-
-        with self.index() as cursor:
-            kind, value = self._pack_value(value)
-            key = name, kind, value, uid
-            cursor.set_key(*key)
-            match = [e for e in key if e]
-            ok = cursor.search_near()
-            if ok == WT_NOTFOUND:
-                raise Exception('nothing found')
-            if ok == -1:
-                cursor.next()
-            while True:
-                other = cursor.get_key()
-                ok = reduce(
-                    lambda x, y: (cmp(*y) == 0) and y,
-                    zip(match, other),
-                    True
-                )
-                if ok:
-                    yield other, cursor.get_value()
-                    if cursor.next() == WT_NOTFOUND:
-                        break
-                    else:
-                        continue
-                else:
-                    break
-
-    def close(self):
-        self.session.close()
-        self.connection.close()
-
-
 # load
 
-KEYS_TO_COERCE_TO_INT = [
-    'Score',
-    'FavoriteCount',
-]
+# to_datetime = lambda x: datetime.strptime(x[:-4], '%Y-%m-%dT%H:%M:%S')
 
 
 def load(dump, database):
-    # init database
-    os.makedirs(database)
-    db = TupleSpace(database)
+    db = AjguDB(database)
+    load_simple(db, os.path.join(dump, 'Tags.xml'))
+    # load_simple(db, os.path.join(dump, 'Badges.xml'))
+    load_simple(db, os.path.join(dump, 'Users.xml'))
 
-    # parse Posts
-    def to_db(filename):
-        name = filename.split('.')[0][:-1]
-        print 'loading :', name
-        xml = parse(os.path.join(dump, filename))
-        posts = xml.getroot()
-        for post in posts.iterchildren():
-            # make sure this is a unique identifier
-            uid = '%s:%s' % (name, post.attrib['Id'])
-            # populate post attributes
-            for key in post.keys():
-                value = post.attrib[key]
-                if key in KEYS_TO_COERCE_TO_INT:
-                    if value:
-                        value = int(value)
-                # XXX: namespace keys with slash `/`
-                key = '%s/%s' % (name, key)
-                db.insert(uid, key, value)
+    try:
+        load_posts(db, os.path.join(dump, 'Posts.xml'))
+    except Exception as exc:
+        print('failed')
+        print_exc(exc)
 
-    to_db('Posts.xml')
-    to_db('Comments.xml')
-    to_db('PostLinks.xml')
-    # tag dump doesn't provide useful information
-    # to_db('Tags.xml')
-    to_db('Users.xml')
+    try:
+        load_post_links(db, os.path.join(dump, 'PostLinks.xml'))
+    except Exception as exc:
+        print('failed')
+        print_exc(exc)
 
-    # generate tag informations
-    print 'load tag links'
-    for question in get_questions(db):
-        for tag in question['Tags']:
-            # add tag to the global list of tags anyway
-            db.insert('Tag:%s' % tag, 'name', tag)
-            # create TagLink
-            uid = 'TagLink/%s:%s' % (tag, question['Id'])
-            db.insert(uid, tag, question['Id'])
+    try:
+        load_comments(db, os.path.join(dump, 'Comments.xml'))
+    except Exception as exc:
+        print('failed')
+        print_exc(exc)
 
     db.close()
 
 
-# queries
+def load_simple(db, filepath):
+    filename = os.path.basename(filepath)
+    kind = filename.split('.')[0][:-1]
+
+    print '%s: load xml' % kind
+    xml = parse(filepath)
+    items = xml.getroot()
+
+    print '%s: populate database' % kind
+    for index, item in enumerate(items.iterchildren()):
+        properties = dict(item.attrib)
+        properties['kind'] = kind
+        db.vertex(**properties)
 
 
-def user(db, id):
-    record = next(db.query('User/Id', id, ''))
-    key, _ = record
-    name, kind, value, uid = key
-    return db.get(uid)
+def load_posts(db, filepath):
+    filename = os.path.basename(filepath)
+    kind = filename.split('.')[0][:-1]
 
+    print '%s: load xml' % kind
+    xml = parse(filepath)
+    items = xml.getroot()
 
-def get_post(db, id):
-    post = db.get(id)
-    # It's possible that there is no owner
-    try:
-        post['Author'] = user(db, post['OwnerUserId'])
-    except:
-        post['Author'] = None
-    # sanitize tags if any
-    try:
-        post['Tags'] = post['Tags'][1:-1].split('><')
-    except:
-        pass
+    questions = 0
 
-    return post
+    print '%s: populate database' % kind
+    for index, item in enumerate(items.iterchildren()):
+        properties = dict(item.attrib)
+        properties['kind'] = kind
 
-
-def related(db, id):
-    # get related questions
-    def __iter():
-        records = db.query('PostLink/PostId', id, '')
-        for key, _ in records:
-            name, kind, value, uid = key
-            link = db.get(uid)
-            uid = 'Post:' + link['RelatedPostId']
-            related = get_post(db, uid)
-            related['Kind'] = link['LinkTypeId']
-            yield related
-    # XXX: not sure why there is no score
-    out = sorted(list(__iter()), key=lambda x: x.get('Score', 0), reverse=True)
-    return out
-
-
-def comments(db, id):
-    def __iter():
-        records = db.query('Comment/PostId', id, '')
-        for key, _ in records:
-            name, kind, value, uid = key
-            comment = db.get(uid)
+        # Score and favorite might be empty
+        for key in ('Score', 'FavoriteCount'):
             try:
-                comment['Author'] = user(db, comment['UserId'])
-            except KeyError:
+                value = properties[key]
+            except:
+                properties[key] = None
+            else:
+                properties[key] = int(value)
+
+        # create post
+        post = db.vertex(**properties)
+
+        # link owner if any:
+        try:
+            owner = properties['OwnerUserId']
+        except KeyError:
+            print 'Post: no owner for post with Id', properties['Id']
+        else:
+            try:
+                owner = db.filter(
+                    kind='User',
+                    Id=owner
+                ).one()
+            except:
                 pass
             else:
-                yield comment
-    return sorted(list(__iter()), key=lambda x: x['CreationDate'])
+                post.link(owner, link="owner")
+
+        # link with tags
+        try:
+            tags = properties['Tags']
+        except KeyError:
+            pass
+        else:
+            tags = tags[1:-1].split('><')
+
+            for tag in tags:
+                tag = db.filter(kind='Tag', TagName=tag).one()
+                post.link(tag, link='tag')
+
+        # link with question if it's an answer
+        if properties['PostTypeId'] == '2':
+            # can't link answers to question since some answer come
+            # before their question, links are created in another
+            # step when all posts are loaded
+            try:
+                question = db.filter(kind='Post', Id=properties['ParentId']).one()
+                question.link(post, link='answer')
+            except:
+                print 'Post: no post %s' % properties['ParentId']
+        else:
+            questions += 1
+
+    print 'Post: there is %s questions' % questions
 
 
-def get_questions(db):
-    for item in db.query('Post/PostTypeId', '1', ''):
-        key, _ = item
-        name, kind, value, uid = key
-        yield get_post(db, uid)
+def load_post_links(db, filepath):
+    filename = os.path.basename(filepath)
+    kind = filename.split('.')[0][:-1]
+
+    print '%s: load xml' % kind
+    xml = parse(filepath)
+    items = xml.getroot()
+
+    print '%s: populate database' % kind
+    for index, item in enumerate(items.iterchildren()):
+        try:
+            properties = dict(item.attrib)
+            post = db.filter(kind='Post', Id=properties['PostId']).one()
+            related = db.filter(kind='Post', Id=properties['RelatedPostId']).one()
+            post.link(related, link='related', **properties)
+            print('ok')
+        except:
+            pass
 
 
-def answers(db, id):
-    # retrieve from `db` all tuples that have a key `ParentID`
-    # and a value that is a string ie. kind `2` and value `id`
-    def __iter():
-        records = db.query('Post/ParentID', id, '')
-        for key, _ in records:
-            name, kind, value, uid = key
-            answer = get_post(db, uid)
-            yield answer, comments(db, answer['Id'])
-    return sorted(list(__iter()), key=lambda x: x[0]['Score'], reverse=True)
+def link_posts(db):
+    print 'PostLink: link question to answers'
+    for index, question in enumerate(db.filter(kind='Post', PostTypeId='1')):
+        question_id = question['Id']
+        try:
+            answers = db.filter(
+                kind='Post',
+                PostTypeId='2',
+                ParentId=question_id
+            )
+            for answer in answers:
+                print '.'
+                question.link(answer, link='answer')
+        except:
+            pass
 
 
-# build
+def load_comments(db, filepath):
+    filename = os.path.basename(filepath)
+    kind = filename.split('.')[0][:-1]
+
+    print '%s: load xml' % kind
+    xml = parse(filepath)
+    items = xml.getroot()
+
+    print '%s: populate database' % kind
+    for index, item in enumerate(items.iterchildren()):
+        properties = dict(item.attrib)
+        properties['kind'] = kind
+
+        try:
+            value = properties['Score']
+        except:
+            properties['Score'] = None
+        else:
+            properties['Score'] = int(value)
+
+        comment = db.vertex(**properties)
+
+        # link post
+        post_id = properties['PostId']
+        try:
+            post = db.filter(kind='Post', Id=post_id).one()
+        except AjguDBException:
+            print 'Comment: no Post with id', post_id
+        else:
+            post.link(comment, link='comment')
+
+        # link author
+        try:
+            user_id = properties['UserId']
+        except:
+            # user was removed from this
+            continue
+        try:
+            user = db.filter(kind='User', Id=user_id).one()
+        except AjguDBException:
+            print 'Comment: no User with id', post_id
+        else:
+            comment.link(user, link='author')
 
 
 def build(templates, database, output):
-    db = TupleSpace(database)
-    os.makedirs(os.path.join(output, 'posts'))
-    questions = get_questions(db)
-    for num, question in enumerate(questions):
-        qs.append(question)  # debug
-        print 'render post', num
-        question_id = question['Id']
+    db = AjguDB(database)
+
+    print 'generate questions'
+    os.makedirs(os.path.join(output, 'question'))
+    questions = db.filter(kind='Post', PostTypeId='1')
+    for index, question in enumerate(questions):
+        print 'render post: ', question['Id']
+        filename = '%s.html' % question['Id']
+        filepath = os.path.join(output, 'question', filename)
         render(
-            os.path.join(output, 'posts', '%s.html' % question_id),
+            filepath,
             'post.html',
             templates,
-            post=question,
-            related=related(db, question_id),
-            comments=comments(db, question_id),
-            answers=answers(db, question_id)
+            question=question,
         )
-        if num == 100:
+        if index == 10:
             break
-    print 'render', 'index.html'
-    render(
-        os.path.join(output, 'index.html'),
-        'index.html',
-        templates
-    )
-    # print 'render', 'search.js'
-    # render(
-    #     os.path.join(output, 'search.js'),
-    #     'search.js',
-    #     templates,
-    #     questions=qs,  # debug
-    # )
+
+    print 'generate tags'
+    os.makedirs(os.path.join(output, 'tag'))
+    tags = db.filter(kind='Tag').all()
+    for index, tag in enumerate(tags):
+        print 'render tag: ', tag['TagName']
+        filename = '%s.html' % tag['TagName']
+        filepath = os.path.join(output, 'tag', filename)
+        render(
+            filepath,
+            'tag.html',
+            templates,
+            tag=tag,
+        )
+        if index == 10:
+            break
+
     print 'done'
 
 
