@@ -19,42 +19,46 @@
         </div>
       {% endif %}
     </div>
+    {# FIXME, remove the decode #}
     <div class="body">{{ post.Body | safe }}</div>
   </div>
   {% if post.Tags %}
     <div class="tags">
       <ul>
-        {% for tag in post.Tags %}
-          <li><a href="#">{{ tag }}</a></li>
+        {% for tag in post.outgoings(kind='tag') %}
+          <li><a href="/tag/{{ tag.end().TagName }}.html">{{ tag.end().TagName }}</a></li>
         {% endfor %}
     </div>
   {% endif %}
-  {% if post.Author %}
+  {% set author = post.outgoings(kind='owner').end().one(None) %}
+  {% if author %}
     <div class="author">
       <div>
-        <p>asked <span class="date" title="{{ post.CreationDate }}">{{ post.CreationDate }}</span></p>
+        <p>asked <span class="date" title="{{ question.CreationDate }}">{{ question.CreationDate }}</span></p>
         <div>
           <div>
             <img src="http://lorempixel.com/32/32/" />
           </div>
           <div>
-            <p><a href="">{{ post.Author.DisplayName }}</a></p>
-            <p>{{ post.Author.Reputation | intspace }}</p>
+            <p><a href="/user/{{ author.Id }}.html">{{ author.DisplayName }}</a></p>
+            <p>{{ author.Reputation | intspace }}</p>
           </div>
         </div>
       </div>
     </div>
   {% endif %}
 
+  {% set comments = post.outgoings(kind='comment').end().all() %}
   {% if comments %}
     <div class="comments">
       {% for comment in comments %}
+        {% set author = comment.outgoings(kind='author').end().one() %}
         <div class="comment">
           <p>
             <span class="score {{ comment.Score | scale }}">{{ comment.Score }}</span>
             <span class="text">{{ comment.Text | urlize | markdown }}</span>
             –
-            <a href="#">{{ comment.Author.DisplayName }}</a>
+            <a href="/user/{{ author.Id }}.html">{{ author.DisplayName }}</a>
             <span class="date" title="{{ post.CreationDate }}">{{ comment.CreationDate }}</span>
             </p>
         </div>

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block bodyclass %}tag{% endblock %}
+
+{% block body %}
+  <div class="row">
+    <h2 class="title">{{ tag.TagName }}</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      {% for question in question %}
+        <p class="question"><span class="score {{ question.Score | scale }}">{{ question.Score }}</span> <a href="/posts/{{ question.Id }}.html">{{ question.Title.decode('utf-8') }}</a> <span class="date" title="{{ question.CreationDate }}">{{ question.CreationDate }}</span></p>
+      {% endfor %}
+    </div>
+  </div>
+  <script src="/static/main.js"></script>
+{% endblock %}

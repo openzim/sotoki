@@ -4,17 +4,19 @@
 
 {% block body %}
   <div class="row">
-    <h2 class="title">{{ post.Title }}</h2>
+    <h2 class="title">{{ question.Title }}</h2>
   </div>
   <div class="row">
     <div class="col-md-6">
       <div id="question">
+        {% set post = question %}
         {% include "post.mixin.html" %}
       </div>
-      {% if answers %}
+      {% if question.outgoings(kind='answer').count() > 0%}
+        {% set answers = question.outgoings(kind='answer').end().order_by('Score', True) %}
         <h2>Answers</h2>
         <div id="answers">
-          {% for post, comments in answers %}
+          {% for post in answers %}
             {% include "post.mixin.html" %}
           {% endfor %}
         </div>
@@ -24,16 +26,16 @@
     </div>
     <div class="row col-md-3">
       <div class="row">
-        <p>asked: <span class="date" title="{{ post.CreationDate }}">{{ post.CreationDate }}</span></p>
-        <p>viewed: {{ post.ViewCount | intspace }} times</p>
-        <p>active: <span class="date" title="{{ post.LastActivityDate }}">u{{ post.LastActivityDate }}</span></p>
+        <p>asked: <span class="date" title="{{ question.CreationDate }}">{{ question.CreationDate }}</span></p>
+        <p>viewed: {{ question.ViewCount | intspace }} times</p>
+        <p>active: <span class="date" title="{{ question.LastActivityDate }}">{{ question.LastActivityDate }}</span></p>
       </div>
       {% if related %}
         <div class="row">
           <h3>Related</h3>
           <ul>
           {% for post in related %}
-            <li><a href="/posts/{}.html" {{post.Id }}>{{ post.Title }}<a></li>
+            <li><a href="/posts/{}.html" {{question.Id }}>{{ question.Title }}<a></li>
           {% endfor %}
           <ul>
         </div>
