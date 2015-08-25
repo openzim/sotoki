@@ -18,7 +18,7 @@ body.question h2 {
 
 .post .post-container {
     display: flex;
-    
+
 }
 
 /** reputation **/
@@ -34,7 +34,7 @@ body.question h2 {
 .post .reputation p {
     text-align: center;
     padding: 0px;
-    margin: 0px;    
+    margin: 0px;
     font-size: 22px;
 }
 
@@ -42,7 +42,7 @@ body.question h2 {
 
 .post .reputation .score .glyphicon {
     font-size: 36px;
-    margin: 0px;                   
+    margin: 0px;
 }
 
 .post .reputation .score .glyphicon.negative {
@@ -62,7 +62,7 @@ body.question h2 {
 }
 
 /*** reputation favorites ***/
- 
+
 .post .reputation .favorites .glyphicon {
     font-size: 36px;
     color: hsl(50, 100%, 50%);
@@ -167,4 +167,37 @@ body.question h2 {
 
 .post .comments .comment:last-child {
     margin-bottom: 0px;
+}
+
+/* tag */
+
+body.tag p.question {
+    padding: 15px;
+    border: 1px solid #eee;
+}
+
+body.tag p.question .score {
+    height: 2em;
+    width: 2em;
+    padding: 5px;
+    display: block;
+    float: left;
+    text-align: center;
+    margin-right: 15px;
+}
+
+body.tag p.question .score.negative {
+    background: hsl(10, 90%, 80%);
+}
+
+body.tag p.question .score.positive {
+    background: hsl(33, 97%, 76%);
+}
+
+body.tag p.question .score.good {
+    background: hsl(33, 97%, 66%);
+}
+
+body.tag p.question .score.verygood {
+    background: hsl(33, 97%, 56%);
 }
