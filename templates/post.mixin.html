@@ -25,12 +25,13 @@
   {% if post.Tags %}
     <div class="tags">
       <ul>
-        {% for tag in post.outgoings(kind='tag') %}
-          <li><a href="/tag/{{ tag.end().TagName }}.html">{{ tag.end().TagName }}</a></li>
+        {% for tag in post.outgoings().select(link='tag').end().get() %}
+          {{ tag }}
+          <li><a href="/tag/{{ tag.TagName }}/index.html">{{ tag.TagName }}</a></li>
         {% endfor %}
     </div>
   {% endif %}
-  {% set author = post.outgoings(kind='owner').end().one(None) %}
+  {% set author = post.outgoings().select(link='owner').end().one(None) %}
   {% if author %}
     <div class="author">
       <div>
@@ -48,11 +49,11 @@
     </div>
   {% endif %}
 
-  {% set comments = post.outgoings(kind='comment').end().all() %}
+  {% set comments = post.outgoings().select(link='comment').end().get() %}
   {% if comments %}
     <div class="comments">
       {% for comment in comments %}
-        {% set author = comment.outgoings(kind='author').end().one() %}
+        {% set author = comment.outgoings().select(link='author').end().one(None) %}
         <div class="comment">
           <p>
             <span class="score {{ comment.Score | scale }}">{{ comment.Score }}</span>

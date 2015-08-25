@@ -27,7 +27,6 @@ from jinja2 import FileSystemLoader
 from lxml.etree import parse
 
 from ajgudb import AjguDB
-from ajgudb import AjguDBException
 
 
 def intspace(value):
@@ -118,6 +117,9 @@ def load_simple(db, filepath):
     print '%s: populate database' % kind
     for index, item in enumerate(items.iterchildren()):
         properties = dict(item.attrib)
+        # make it faster to retrieve the object
+        identifier = properties.pop('Id')
+        properties['%sId' % kind] = identifier
         properties['kind'] = kind
         db.vertex(**properties)
 
@@ -136,6 +138,9 @@ def load_posts(db, filepath):
     for index, item in enumerate(items.iterchildren()):
         properties = dict(item.attrib)
         properties['kind'] = kind
+        # make it faster to retrieve the object
+        identifier = properties.pop('Id')
+        properties['%sId' % kind] = identifier
 
         # Score and favorite might be empty
         for key in ('Score', 'FavoriteCount'):
@@ -153,13 +158,10 @@ def load_posts(db, filepath):
         try:
             owner = properties['OwnerUserId']
         except KeyError:
-            print 'Post: no owner for post with Id', properties['Id']
+            pass
         else:
             try:
-                owner = db.filter(
-                    kind='User',
-                    Id=owner
-                ).one()
+                owner = db.select(UserId=owner).one()
             except:
                 pass
             else:
@@ -174,7 +176,7 @@ def load_posts(db, filepath):
             tags = tags[1:-1].split('><')
 
             for tag in tags:
-                tag = db.filter(kind='Tag', TagName=tag).one()
+                tag = db.select(TagName=tag).select(kind='Tag').one()
                 post.link(tag, link='tag')
 
         # link with question if it's an answer
@@ -183,13 +185,16 @@ def load_posts(db, filepath):
             # before their question, links are created in another
             # step when all posts are loaded
             try:
-                question = db.filter(kind='Post', Id=properties['ParentId']).one()
-                question.link(post, link='answer')
+                question = db.select(PostId=properties['ParentId']).one()
             except:
-                print 'Post: no post %s' % properties['ParentId']
+                pass
+            else:
+                question.link(post, link='answer')
         else:
             questions += 1
 
+        if index == 50000:
+            break
     print 'Post: there is %s questions' % questions
 
 
@@ -205,27 +210,10 @@ def load_post_links(db, filepath):
     for index, item in enumerate(items.iterchildren()):
         try:
             properties = dict(item.attrib)
-            post = db.filter(kind='Post', Id=properties['PostId']).one()
-            related = db.filter(kind='Post', Id=properties['RelatedPostId']).one()
+            post = db.select(PostId=properties['PostId']).one()
+            related = db.select(PostId=properties['RelatedPostId']).one()
             post.link(related, link='related', **properties)
             print('ok')
-        except:
-            pass
-
-
-def link_posts(db):
-    print 'PostLink: link question to answers'
-    for index, question in enumerate(db.filter(kind='Post', PostTypeId='1')):
-        question_id = question['Id']
-        try:
-            answers = db.filter(
-                kind='Post',
-                PostTypeId='2',
-                ParentId=question_id
-            )
-            for answer in answers:
-                print '.'
-                question.link(answer, link='answer')
         except:
             pass
 
@@ -253,24 +241,17 @@ def load_comments(db, filepath):
         comment = db.vertex(**properties)
 
         # link post
-        post_id = properties['PostId']
         try:
-            post = db.filter(kind='Post', Id=post_id).one()
-        except AjguDBException:
-            print 'Comment: no Post with id', post_id
+            post = db.select(PostId=properties['PostId']).one()
+        except Exception:
+            pass
         else:
             post.link(comment, link='comment')
 
-        # link author
         try:
-            user_id = properties['UserId']
-        except:
-            # user was removed from this
-            continue
-        try:
-            user = db.filter(kind='User', Id=user_id).one()
-        except AjguDBException:
-            print 'Comment: no User with id', post_id
+            user = db.select(UserId=properties['UserId']).one()
+        except Exception:
+            pass
         else:
             comment.link(user, link='author')
 
@@ -280,10 +261,10 @@ def build(templates, database, output):
 
     print 'generate questions'
     os.makedirs(os.path.join(output, 'question'))
-    questions = db.filter(kind='Post', PostTypeId='1')
+    questions = db.select(kind='Post', PostTypeId='1').get()
     for index, question in enumerate(questions):
-        print 'render post: ', question['Id']
-        filename = '%s.html' % question['Id']
+        print 'render post: ', question['PostId']
+        filename = '%s.html' % question['PostId']
         filepath = os.path.join(output, 'question', filename)
         render(
             filepath,
@@ -294,21 +275,21 @@ def build(templates, database, output):
         if index == 10:
             break
 
-    print 'generate tags'
-    os.makedirs(os.path.join(output, 'tag'))
-    tags = db.filter(kind='Tag').all()
-    for index, tag in enumerate(tags):
-        print 'render tag: ', tag['TagName']
-        filename = '%s.html' % tag['TagName']
-        filepath = os.path.join(output, 'tag', filename)
-        render(
-            filepath,
-            'tag.html',
-            templates,
-            tag=tag,
-        )
-        if index == 10:
-            break
+    # print 'generate tags'
+    # os.makedirs(os.path.join(output, 'tag'))
+    # tags = db.select(kind='Tag').all()
+    # for index, tag in enumerate(tags):
+    #     print 'render tag: ', tag['TagName']
+    #     filename = '%s.html' % tag['TagName']
+    #     filepath = os.path.join(output, 'tag', filename)
+    #     render(
+    #         filepath,
+    #         'tag.html',
+    #         templates,
+    #         tag=tag,
+    #     )
+    #     if index == 10:
+    #         break
 
     print 'done'
 
