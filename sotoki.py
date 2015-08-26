@@ -27,6 +27,7 @@ from jinja2 import FileSystemLoader
 from lxml.etree import parse
 
 from ajgudb import AjguDB
+from ajgudb import gremlin as g
 
 
 def intspace(value):
@@ -256,13 +257,57 @@ def load_comments(db, filepath):
             comment.link(user, link='author')
 
 
+class StackExchangeDB(object):
+    """Wrap AjguDB
+
+    Make it easy to do the required queries in particular in the
+    template. This serves as replacement for an ORM"""
+
+    def __init__(self, db):
+        self.db = db
+
+    def questions(self):
+        query = self.db.query(g.select(kind='Post', PostTypeId='1'), g.get)
+        return query()
+
+    def post_tags(self, post):
+        query = self.db.query(g.outgoings, g.select(link='tag'), g.end, g.get)
+        return query(post)
+
+    def post_author(self, post):
+        query = self.db.query(g.outgoings, g.select(link='owner'), g.end, g.get)
+        try:
+            return query(post)[0]
+        except IndexError:
+            return None
+
+    def post_comments(self, post):
+        query = self.db.query(g.outgoings, g.select(link='comment'), g.end, g.get)
+        return query(post)
+
+    def post_answers(self, post):
+        query = self.db.query(g.outgoings, g.select(link='answer'), g.end, g.get)
+        answers = query(post)
+        answers.sort(key=lambda x: x['Score'], reverse=True)
+        return answers
+
+    def comment_author(self, post):
+        query = self.db.query(g.outgoings, g.select(link='author'), g.end, g.get)
+        try:
+            return query(post)[0]
+        except IndexError:
+            return None
+
+
+
 def build(templates, database, output):
-    db = AjguDB(database)
+    # wrap the actual database
+    db = StackExchangeDB(AjguDB(database))
 
     print 'generate questions'
     os.makedirs(os.path.join(output, 'question'))
-    questions = db.select(kind='Post', PostTypeId='1').get()
-    for index, question in enumerate(questions):
+
+    for index, question in enumerate(db.questions()):
         print 'render post: ', question['PostId']
         filename = '%s.html' % question['PostId']
         filepath = os.path.join(output, 'question', filename)
@@ -271,6 +316,7 @@ def build(templates, database, output):
             'post.html',
             templates,
             question=question,
+            db=db,
         )
         if index == 10:
             break
