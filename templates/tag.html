@@ -8,10 +8,13 @@
   </div>
   <div class="row">
     <div class="col-md-6">
-      {% for question in question %}
-        <p class="question"><span class="score {{ question.Score | scale }}">{{ question.Score }}</span> <a href="/posts/{{ question.Id }}.html">{{ question.Title.decode('utf-8') }}</a> <span class="date" title="{{ question.CreationDate }}">{{ question.CreationDate }}</span></p>
+      {% for question in questions %}
+        <p class="question"><span class="score {{ question.Score | scale }}">{{ question.Score }}</span> <a href="/posts/{{ question.PostId }}.html">{{ question.Title }}</a> <span class="date" title="{{ question.CreationDate }}">{{ question.CreationDate }}</span></p>
       {% endfor %}
     </div>
+  </div>
+  <div class="row">
+    <p><a href="{{ index - 1}}.html">previous</a> <a href="{{ index + 1}}.html">next</a></p>
   </div>
   <script src="/static/main.js"></script>
 {% endblock %}

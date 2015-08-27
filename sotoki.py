@@ -210,7 +210,7 @@ def load_comments(db, filepath):
         else:
             properties['Score'] = int(value)
 
-        comment = db.vertex(**properties)
+        db.vertex(**properties)
 
 
 class StackExchangeDB(object):
@@ -256,6 +256,27 @@ class StackExchangeDB(object):
         except KeyError:
             return None
 
+    def tags(self):
+        query = self.db.query(g.select(kind='Tag'), g.get)
+        return query()
+
+    def tag_questions(self, tag):
+
+        def paginator(count, iterator):
+            counter = 0
+            page = list()
+            for item in iterator:
+                page.append(item)
+                counter += 1
+                if counter == count:
+                    yield page
+                    counter = 0
+                    page = list()
+            yield page
+
+        query = self.db.query(g.incomings, g.start, g.get, g.paginator(50))
+        return query(tag)
+
 
 def build(templates, database, output):
     # wrap the actual database
@@ -278,21 +299,24 @@ def build(templates, database, output):
         if index == 0:
             break
 
-    # print 'generate tags'
-    # os.makedirs(os.path.join(output, 'tag'))
-    # tags = db.select(kind='Tag').all()
-    # for index, tag in enumerate(tags):
-    #     print 'render tag: ', tag['TagName']
-    #     filename = '%s.html' % tag['TagName']
-    #     filepath = os.path.join(output, 'tag', filename)
-    #     render(
-    #         filepath,
-    #         'tag.html',
-    #         templates,
-    #         tag=tag,
-    #     )
-    #     if index == 10:
-    #         break
+    print 'generate tags'
+    os.makedirs(os.path.join(output, 'tag'))
+    for i, tag in enumerate(db.tags()):
+        print 'render tag: ', tag['TagName']
+        dirpath = os.path.join(output, 'tag', tag['TagName'])
+        os.makedirs(dirpath)
+        for index, questions in enumerate(db.tag_questions(tag)):
+            fullpath = os.path.join(dirpath, '%s.html' % index)
+            render(
+                fullpath,
+                'tag.html',
+                templates,
+                tag=tag,
+                questions=questions,
+                index=index,
+            )
+        if i == 10:
+            break
 
     print 'done'
 
