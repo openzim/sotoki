@@ -155,19 +155,6 @@ def load_posts(db, filepath):
         # create post
         post = db.vertex(**properties)
 
-        # link owner if any:
-        try:
-            owner = properties['OwnerUserId']
-        except KeyError:
-            pass
-        else:
-            try:
-                owner = db.select(UserId=owner).one()
-            except:
-                pass
-            else:
-                post.link(owner, link="owner")
-
         # link with tags
         try:
             tags = properties['Tags']
@@ -177,25 +164,15 @@ def load_posts(db, filepath):
             tags = tags[1:-1].split('><')
 
             for tag in tags:
-                tag = db.select(TagName=tag).select(kind='Tag').one()
+                query = db.query(g.select(TagName=tag, kind='Tag'), g.get)
+                tag = query()[0]
                 post.link(tag, link='tag')
 
-        # link with question if it's an answer
         if properties['PostTypeId'] == '2':
-            # can't link answers to question since some answer come
-            # before their question, links are created in another
-            # step when all posts are loaded
-            try:
-                question = db.select(PostId=properties['ParentId']).one()
-            except:
-                pass
-            else:
-                question.link(post, link='answer')
+            pass
         else:
             questions += 1
 
-        if index == 50000:
-            break
     print 'Post: there is %s questions' % questions
 
 
@@ -209,14 +186,8 @@ def load_post_links(db, filepath):
 
     print '%s: populate database' % kind
     for index, item in enumerate(items.iterchildren()):
-        try:
-            properties = dict(item.attrib)
-            post = db.select(PostId=properties['PostId']).one()
-            related = db.select(PostId=properties['RelatedPostId']).one()
-            post.link(related, link='related', **properties)
-            print('ok')
-        except:
-            pass
+        properties = dict(item.attrib)
+        db.vertex(**properties)
 
 
 def load_comments(db, filepath):
@@ -241,21 +212,6 @@ def load_comments(db, filepath):
 
         comment = db.vertex(**properties)
 
-        # link post
-        try:
-            post = db.select(PostId=properties['PostId']).one()
-        except Exception:
-            pass
-        else:
-            post.link(comment, link='comment')
-
-        try:
-            user = db.select(UserId=properties['UserId']).one()
-        except Exception:
-            pass
-        else:
-            comment.link(user, link='author')
-
 
 class StackExchangeDB(object):
     """Wrap AjguDB
@@ -275,29 +231,30 @@ class StackExchangeDB(object):
         return query(post)
 
     def post_author(self, post):
-        query = self.db.query(g.outgoings, g.select(link='owner'), g.end, g.get)
         try:
-            return query(post)[0]
-        except IndexError:
+            author_id = post['OwnerUserId']
+        except KeyError:
             return None
+        else:
+            return self.db.one(UserId=author_id)
 
     def post_comments(self, post):
-        query = self.db.query(g.outgoings, g.select(link='comment'), g.end, g.get)
-        return query(post)
+        query = self.db.query(g.select(kind='Comment', PostId=post['PostId']), g.get)
+        comments = query()
+        comments.sort(key=lambda x: x['CreationDate'])
+        return query()
 
     def post_answers(self, post):
-        query = self.db.query(g.outgoings, g.select(link='answer'), g.end, g.get)
-        answers = query(post)
+        query = self.db.query(g.select(kind='Post', ParentId=post['PostId']), g.get)
+        answers = query()
         answers.sort(key=lambda x: x['Score'], reverse=True)
         return answers
 
-    def comment_author(self, post):
-        query = self.db.query(g.outgoings, g.select(link='author'), g.end, g.get)
+    def comment_author(self, comment):
         try:
-            return query(post)[0]
-        except IndexError:
+            return self.db.one(kind='User', UserId=comment['UserId'])
+        except KeyError:
             return None
-
 
 
 def build(templates, database, output):
@@ -318,7 +275,7 @@ def build(templates, database, output):
             question=question,
             db=db,
         )
-        if index == 10:
+        if index == 0:
             break
 
     # print 'generate tags'
