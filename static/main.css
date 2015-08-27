@@ -145,24 +145,19 @@ body.question h2 {
 }
 
 .post .comments .comment .score.negative {
-    background: hsl(10, 90%, 80%);
-}
-
-.post .comments .comment .score.zero {
-    background: #eee;
+    color: hsl(10, 90%, 80%);
 }
 
 .post .comments .comment .score.positive {
-    background: hsla(99, 72%, 35%, 0.5);
+    color: hsl(33, 97%, 76%);
 }
 
 .post .comments .comment .score.good {
-    background: hsla(99, 72%, 35%, 0.7);
+    color: hsl(33, 97%, 66%);
 }
 
 .post .comments .comment .score.verygood {
-    background: hsla(99, 72%, 35%, 1);
-    color: hsl(0, 0%, 0%);
+    color: hsl(33, 97%, 56%);
 }
 
 .post .comments .comment:last-child {
