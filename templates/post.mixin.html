@@ -25,13 +25,13 @@
   {% if post.Tags %}
     <div class="tags">
       <ul>
-        {% for tag in post.outgoings().select(link='tag').end().get() %}
+        {% for tag in db.post_tags(post) %}
           {{ tag }}
           <li><a href="/tag/{{ tag.TagName }}/index.html">{{ tag.TagName }}</a></li>
         {% endfor %}
     </div>
   {% endif %}
-  {% set author = post.outgoings().select(link='owner').end().one(None) %}
+  {% set author = db.post_author(post) %}
   {% if author %}
     <div class="author">
       <div>
@@ -49,14 +49,14 @@
     </div>
   {% endif %}
 
-  {% set comments = post.outgoings().select(link='comment').end().get() %}
+  {% set comments = db.post_comments(post) %}
   {% if comments %}
     <div class="comments">
       {% for comment in comments %}
-        {% set author = comment.outgoings().select(link='author').end().one(None) %}
+        {% set author = db.comment_author(comment) %}
         <div class="comment">
           <p>
-            <span class="score {{ comment.Score | scale }}">{{ comment.Score }}</span>
+            <span class="score {{ comment.Score | scale }}">{% if comment.Score != 0 %}{{ comment.Score }}{% endif %}</span>
             <span class="text">{{ comment.Text | urlize | markdown }}</span>
             –
             <a href="/user/{{ author.Id }}.html">{{ author.DisplayName }}</a>
