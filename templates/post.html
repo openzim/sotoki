@@ -12,8 +12,8 @@
         {% set post = question %}
         {% include "post.mixin.html" %}
       </div>
-      {% if question.outgoings().select(link='answer').count() > 0 %}
-        {% set answers = question.outgoings().select(link='answer').end().property('Score').sort(reverse=True).back().get() %}
+      {% set answers = db.post_answers(post) %}
+      {% if answers %}
         <h2>Answers</h2>
         <div id="answers">
           {% for post in answers %}
