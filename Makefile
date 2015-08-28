@@ -3,8 +3,7 @@ all:
 
 
 copy-static:
-	cp -r static build/
-
+	cp -rf static build/
 
 build-html:
 	rm build -rf || true
@@ -12,9 +11,8 @@ build-html:
 
 build-all: build-html copy-static
 
-
 load:
-	rm -r db/superuser || true
+	rm -rf db/superuser || true
 	python sotoki.py load dumps/superuser/ db/superuser
 
 serve:
