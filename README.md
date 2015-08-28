@@ -1,21 +1,24 @@
-# sotoki
+# Sotoki
 
-*StackOverflow to Kiwix*
+*Stack Overflow to Kiwix*
 
 The goal of this project is to create a suite of tools to create
-zim files required by [kiwix](http://kiwix.org/) reader to make
-available stackoverflow offline.
-
-Download the [stackexchange dumps using bittorrent](https://archive.org/details/stackexchange) right now. You can to download only `superusers.com.7z`
-in your favorite bittorrent client to do the tests.
-
+[zim](http://www.openzim.rog) files required by
+[kiwix](http://kiwix.org/) reader to make available [Stack Overflow](https://stackoverflow.com/)
+offline (without access to Internet).
 
 ## Getting started
 
-First clone this repository:
+Download the last [stackexchange
+ dump](https://archive.org/details/stackexchange) using BitTorrent
+ (only "superusers.com.7z" is necessary) and put it in the Sotoki
+ source code root.
+
+
+Clone this repository:
 
 ```
-git clone https://git.framasoft.org/amz3/sotoki.git
+git clone https://github.com/kiwix/sotoki.git
 ```
 
 Install leveldb using you system packages:
@@ -24,27 +27,50 @@ Install leveldb using you system packages:
 sudo apt-get install libleveldb1 libleveldb-dev
 ```
 
-To install python dependencies use a virtualenv that has
-access to system python packages. Using virtualenvwrapper you can
-create one with the following command:
+Install pip:
 
 ```
-mkvirtualenv sotoki --system-site-packages
+sudo apt-get install python-setuptools python-dev
 ```
 
-Then install requirements:
+Install virtualenv installed:
+```
+sudo pip install virtualenv
+```
+
+Create a virtual enviroment in the sokopi source code root dir:
+```
+virtualenv --no-site-packages venv
+```
+
+Activate the virtual enviroment:
+```
+source venv/bin/activate
+```
+
+Install the python requirements:
 
 ```
 pip install -r requirements.txt
 ```
 
-Then you can run the builder. Prepare a directory with all the files for a given
-StackOverflow website inside a directory and run the following commands:
+Copy superusers.com.7z and unzip it to dumps/superuser/:
 
 ```
+cp superusers.com.7z dumps/superuser/
+cd dumps/superuser/
+7z e superusers.com.7z
+```
+
+Create wiredtiger database with all the info found in the dump:
+
+```
+cd ../..
 make load
+```
+
+Build the html pages:
+
+```
 make build-all
 ```
-
-The first will create a wiredtiger database with all the info found in the dump.
-The second will build the html pages.
