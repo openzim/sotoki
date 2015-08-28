@@ -3,3 +3,4 @@ Markdown==2.6.2
 lxml==3.4.4
 plyvel==0.9
 AjguDB==0.4.1
+docopt
