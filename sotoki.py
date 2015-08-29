@@ -173,13 +173,14 @@ def load_posts(db, filepath):
         else:
             questions += 1
 
+        if index == 10000:
+            break
     print 'Post: there is %s questions' % questions
 
 
 def load_post_links(db, filepath):
     filename = os.path.basename(filepath)
     kind = filename.split('.')[0][:-1]
-
     print '%s: load xml' % kind
     xml = parse(filepath)
     items = xml.getroot()
@@ -187,6 +188,9 @@ def load_post_links(db, filepath):
     print '%s: populate database' % kind
     for index, item in enumerate(items.iterchildren()):
         properties = dict(item.attrib)
+        identifier = properties.pop('Id')
+        properties['kind'] = kind
+        properties['%sId' % kind] = identifier
         db.vertex(**properties)
 
 
@@ -250,6 +254,10 @@ class StackExchangeDB(object):
         answers.sort(key=lambda x: x['Score'], reverse=True)
         return answers
 
+    def post_related(self, post):
+        query = self.db.query(g.select(kind='PostLink', PostId=post['PostId']), g.get)
+        return query()
+    
     def comment_author(self, comment):
         try:
             return self.db.one(kind='User', UserId=comment['UserId'])
@@ -296,8 +304,6 @@ def build(templates, database, output):
             question=question,
             db=db,
         )
-        if index == 0:
-            break
 
     print 'generate tags'
     os.makedirs(os.path.join(output, 'tag'))

@@ -30,6 +30,7 @@
         <p>viewed: {{ question.ViewCount | intspace }} times</p>
         <p>active: <span class="date" title="{{ question.LastActivityDate }}">{{ question.LastActivityDate }}</span></p>
       </div>
+      {% set related = db.post_related(question) %}
       {% if related %}
         <div class="row">
           <h3>Related</h3>
