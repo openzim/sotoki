@@ -26,9 +26,6 @@ from jinja2 import FileSystemLoader
 
 from lxml.etree import parse
 
-from ajgudb import AjguDB
-from ajgudb import gremlin as g
-
 
 def intspace(value):
     orig = str(value)
@@ -75,215 +72,209 @@ def render(output, template, templates, **context):
         f.write(page.encode('utf-8'))
 
 
-# load
+# database
 
 # to_datetime = lambda x: datetime.strptime(x[:-4], '%Y-%m-%dT%H:%M:%S')
 
+from sqlalchemy import ForeignKey
+from sqlalchemy import create_engine
+from sqlalchemy.orm import backref
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import relationship
+from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+
+Base = declarative_base()
+
+
+class Tag(Base):
+
+    __tablename__ = 'tags'
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+
+
+class QuestionTag(Base):
+
+    __tablename__ = 'quetiontag'
+    id = Column(Integer, primary_key=True)
+
+    tag_id = Column(Integer, ForeignKey('tags.id'), index=True)
+    tag = relationship("Tag", backref=backref('questions',))
+
+    question_id = Column(Integer, ForeignKey('posts.id'), index=True)
+    question = relationship("Post", backref=backref('tags',))
+
+
+class User(Base):
+
+    __tablename__ = 'users'
+
+    id = Column(Integer, primary_key=True)
+    reputation = Column(Integer)
+    created_at = Column(String)
+    name = Column(String)
+    website = Column(String)
+    location = Column(String)
+    bio = Column(String)
+    views = Column(Integer)
+    up_votes = Column(Integer)
+    down_votes = Column(Integer)
+
+
+class Post(Base):
+
+    __tablename__ = 'posts'
+
+    id = Column(Integer, primary_key=True)
+    type = Column(Integer)
+
+    score = Column(Integer)
+    title = Column(String)
+    body = Column(String)
+
+    created_at = Column(String)
+    closed_at = Column(String)
+
+    view_count = Column(Integer)
+    favorite_count = Column(Integer)
+
+    owner_id = Column(Integer, ForeignKey('users.id'), nullable=True)
+    owner = relationship("User", backref=backref('questions', order_by=id))
+
+    answer_id = Column(Integer, ForeignKey('posts.id'), nullable=True)
+
+    parent_id = Column(Integer, ForeignKey('posts.id'), nullable=True, index=True)
+    question = relationship("Post", remote_side=id, backref=backref('answers', order_by=id), foreign_keys='Post.parent_id')  # noqa
+
+
+class Comment(Base):
+
+    __tablename__ = 'comments'
+
+    id = Column(Integer, primary_key=True)
+    score = Column(Integer)
+    text = Column(String)
+    created_at = Column(String)
+
+    post_id = Column(Integer, ForeignKey('posts.id'), index=True)
+    post = relationship("Post", backref=backref('comments', order_by=created_at))
+
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
+    user = relationship("User")
+
+
+class PostLink(Base):
+
+    __tablename__ = 'post_links'
+
+    id = Column(Integer, primary_key=True)
+
+    type = Column(Integer)
+
+    post_id = Column(Integer, ForeignKey('posts.id'), index=True)
+    post = relationship("Post", foreign_keys='PostLink.post_id', backref=backref('links'))  # noqa
+
+    related_id = Column(Integer, ForeignKey('posts.id'))
+    related = relationship("Post", foreign_keys='PostLink.related_id')
+
+
+def iterate(filepath):
+    xml = parse(filepath)
+    items = xml.getroot()
+    for index, item in enumerate(items.iterchildren()):
+        yield item.attrib
+
+
+def make_session(database):
+    engine = create_engine('sqlite:///db/superuser/db.sqlite')
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    return session
+
 
 def load(dump, database):
-    db = AjguDB(database)
-    load_simple(db, os.path.join(dump, 'Tags.xml'))
-    # load_simple(db, os.path.join(dump, 'Badges.xml'))
-    load_simple(db, os.path.join(dump, 'Users.xml'))
+    session = make_session(database)
+    Base.metadata.create_all(session.bind)
 
-    try:
-        load_posts(db, os.path.join(dump, 'Posts.xml'))
-    except Exception as exc:
-        print('failed')
-        print_exc(exc)
+    print 'load tags'
+    for tag in iterate(os.path.join(dump, 'Tags.xml')):
+        tag = Tag(id=int(tag['Id']), name=tag['TagName'])
+        session.add(tag)
+        session.commit()
 
-    try:
-        load_post_links(db, os.path.join(dump, 'PostLinks.xml'))
-    except Exception as exc:
-        print('failed')
-        print_exc(exc)
+    print 'load users'
+    for user in iterate(os.path.join(dump, 'Users.xml')):
+        user = User(
+            id=user['Id'],
+            name=user['DisplayName'],
+            reputation=user['Reputation'],
+            created_at=user['CreationDate'],
+            website=user.get('WebsiteUrl'),
+            location=user.get('Location'),
+            bio=user.get('AboutMe'),
+            views=user.get('Views'),
+            up_votes=user.get('UpVotes'),
+            down_votes=user.get('DownVotes'),
+        )
+        session.add(user)
+        session.commit()
 
-    try:
-        load_comments(db, os.path.join(dump, 'Comments.xml'))
-    except Exception as exc:
-        print('failed')
-        print_exc(exc)
+    print 'load posts'
+    for properties in iterate(os.path.join(dump, 'Posts.xml')):
+        post = Post(
+            id=properties['Id'],
+            type=properties.get('PostTypeId', 3),
+            parent_id=properties.get('ParentId', None),
+            answer_id=properties.get('AcceptedAnswerId', None),
+            created_at=properties['CreationDate'],
+            score=properties['Score'],
+            view_count=properties.get('ViewCount', 0),
+            body=properties['Body'],
+            owner_id=properties.get('OwnerUserId', None),
+            closed_at=properties.get('ClosedDate', None),
+            title=properties.get('Title', ''),
+            favorite_count=properties.get('FavoriteCount', 0),
+        )
+        session.add(post)
+        session.commit()
+        tags = properties.get('Tags', '')
+        tags = tags[1:-1].split('><')
 
-    db.close()
-
-
-def load_simple(db, filepath):
-    filename = os.path.basename(filepath)
-    kind = filename.split('.')[0][:-1]
-
-    print '%s: load xml' % kind
-    xml = parse(filepath)
-    items = xml.getroot()
-
-    print '%s: populate database' % kind
-    for index, item in enumerate(items.iterchildren()):
-        properties = dict(item.attrib)
-        # make it faster to retrieve the object
-        identifier = properties.pop('Id')
-        properties['%sId' % kind] = identifier
-        properties['kind'] = kind
-        db.vertex(**properties)
-
-
-def load_posts(db, filepath):
-    filename = os.path.basename(filepath)
-    kind = filename.split('.')[0][:-1]
-
-    print '%s: load xml' % kind
-    xml = parse(filepath)
-    items = xml.getroot()
-
-    questions = 0
-
-    print '%s: populate database' % kind
-    for index, item in enumerate(items.iterchildren()):
-        properties = dict(item.attrib)
-        properties['kind'] = kind
-        # make it faster to retrieve the object
-        identifier = properties.pop('Id')
-        properties['%sId' % kind] = identifier
-
-        # Score and favorite might be empty
-        for key in ('Score', 'FavoriteCount'):
+        for tag in tags:
             try:
-                value = properties[key]
-            except:
-                properties[key] = None
+                tag = session.query(Tag).filter(Tag.name == tag).one()
+            except NoResultFound:
+                pass
             else:
-                properties[key] = int(value)
+                link = QuestionTag(tag_id=tag.id, question_id=post.id)
+                session.add(link)
+        session.commit()
 
-        # create post
-        post = db.vertex(**properties)
+    print 'load post links'
+    for properties in iterate(os.path.join(dump, 'PostLinks.xml')):
+        post_link = PostLink(
+            id=properties['Id'],
+            post_id=properties['PostId'],
+            related_id=properties['RelatedPostId'],
+            type=properties['LinkTypeId']
+        )
+        session.add(post_link)
+        session.commit()
 
-        # link with tags
-        try:
-            tags = properties['Tags']
-        except KeyError:
-            pass
-        else:
-            tags = tags[1:-1].split('><')
-
-            for tag in tags:
-                query = db.query(g.select(TagName=tag, kind='Tag'), g.get)
-                tag = query()[0]
-                post.link(tag, link='tag')
-
-        if properties['PostTypeId'] == '2':
-            pass
-        else:
-            questions += 1
-
-        if index == 10000:
-            break
-    print 'Post: there is %s questions' % questions
-
-
-def load_post_links(db, filepath):
-    filename = os.path.basename(filepath)
-    kind = filename.split('.')[0][:-1]
-    print '%s: load xml' % kind
-    xml = parse(filepath)
-    items = xml.getroot()
-
-    print '%s: populate database' % kind
-    for index, item in enumerate(items.iterchildren()):
-        properties = dict(item.attrib)
-        identifier = properties.pop('Id')
-        properties['kind'] = kind
-        properties['%sId' % kind] = identifier
-        db.vertex(**properties)
-
-
-def load_comments(db, filepath):
-    filename = os.path.basename(filepath)
-    kind = filename.split('.')[0][:-1]
-
-    print '%s: load xml' % kind
-    xml = parse(filepath)
-    items = xml.getroot()
-
-    print '%s: populate database' % kind
-    for index, item in enumerate(items.iterchildren()):
-        properties = dict(item.attrib)
-        properties['kind'] = kind
-
-        try:
-            value = properties['Score']
-        except:
-            properties['Score'] = None
-        else:
-            properties['Score'] = int(value)
-
-        db.vertex(**properties)
-
-
-class StackExchangeDB(object):
-    """Wrap AjguDB
-
-    Make it easy to do the required queries in particular in the
-    template. This serves as replacement for an ORM"""
-
-    def __init__(self, db):
-        self.db = db
-
-    def questions(self):
-        query = self.db.query(g.select(kind='Post', PostTypeId='1'), g.get)
-        return query()
-
-    def post_tags(self, post):
-        query = self.db.query(g.outgoings, g.select(link='tag'), g.end, g.get)
-        return query(post)
-
-    def post_author(self, post):
-        try:
-            author_id = post['OwnerUserId']
-        except KeyError:
-            return None
-        else:
-            return self.db.one(UserId=author_id)
-
-    def post_comments(self, post):
-        query = self.db.query(g.select(kind='Comment', PostId=post['PostId']), g.get)
-        comments = query()
-        comments.sort(key=lambda x: x['CreationDate'])
-        return query()
-
-    def post_answers(self, post):
-        query = self.db.query(g.select(kind='Post', ParentId=post['PostId']), g.get)
-        answers = query()
-        answers.sort(key=lambda x: x['Score'], reverse=True)
-        return answers
-
-    def post_related(self, post):
-        query = self.db.query(g.select(kind='PostLink', PostId=post['PostId']), g.get)
-        return query()
-    
-    def comment_author(self, comment):
-        try:
-            return self.db.one(kind='User', UserId=comment['UserId'])
-        except KeyError:
-            return None
-
-    def tags(self):
-        query = self.db.query(g.select(kind='Tag'), g.get)
-        return query()
-
-    def tag_questions(self, tag):
-
-        def paginator(count, iterator):
-            counter = 0
-            page = list()
-            for item in iterator:
-                page.append(item)
-                counter += 1
-                if counter == count:
-                    yield page
-                    counter = 0
-                    page = list()
-            yield page
-
-        query = self.db.query(g.incomings, g.start, g.get, g.paginator(50))
-        return query(tag)
+    print 'load comments'
+    for properties in iterate(os.path.join(dump, 'Comments.xml')):
+        comment = Comment(
+            id=properties['Id'],
+            post_id=properties['PostId'],
+            score=properties['Score'],
+            text=properties['Text'],
+            created_at=properties['CreationDate'],
+            user_id=properties.get('UserId'),
+        )
+        session.add(comment)
+        session.commit()
 
 
 def build(templates, database, output):
