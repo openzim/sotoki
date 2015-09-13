@@ -298,8 +298,6 @@ def build(templates, database, output):
             templates,
             question=question,
         )
-        if index == 10:
-            break
 
     print 'generate tags'
     # index page
@@ -326,8 +324,6 @@ def build(templates, database, output):
             index=index,
             questions=questions
         )
-        if index == 10:
-            break
     print 'done'
 
 
