@@ -147,8 +147,8 @@ class Post(Base):
 
     answer_id = Column(Integer, ForeignKey('posts.id'), nullable=True)
 
-    parent_id = Column(Integer, ForeignKey('posts.id'), nullable=True, index=True)
-    question = relationship("Post", remote_side=id, backref=backref('answers', order_by=id), foreign_keys='Post.parent_id')  # noqa
+    parent_id = Column(Integer, ForeignKey('posts.id'), nullable=True, index=True)  # noqa
+    question = relationship("Post", remote_side=id, backref=backref('answers', order_by=score.desc()), foreign_keys='Post.parent_id', order_by=score.desc())  # noqa
 
 
 class Comment(Base):
@@ -298,6 +298,8 @@ def build(templates, database, output):
             templates,
             question=question,
         )
+        if index == 10:
+            break
 
     print 'generate tags'
     # index page
@@ -324,7 +326,8 @@ def build(templates, database, output):
             index=index,
             questions=questions
         )
-    print 'done'
+        if index == 10:
+            break
 
 
 if __name__ == '__main__':
