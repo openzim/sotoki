@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block bodyclass %}tags{% endblock %}
+
+{% block body %}
+  <div class="row">
+    <h2 class="title">Tags</h2>
+  </div>
+  <div class="row">
+    <ul>
+      {% for tag in tags %}
+        <li><a href="tag/t{{ tag.name }}.html">{{ tag.name }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  <script src="/static/main.js"></script>
+{% endblock %}

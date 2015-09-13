@@ -4,7 +4,7 @@
 
 {% block body %}
   <div class="row">
-    <h2 class="title">{{ question.Title }}</h2>
+    <h2 class="title">{{ question.title }}</h2>
   </div>
   <div class="row">
     <div class="col-md-6">
@@ -12,11 +12,10 @@
         {% set post = question %}
         {% include "post.mixin.html" %}
       </div>
-      {% set answers = db.post_answers(post) %}
-      {% if answers %}
+      {% if question.answers %}
         <h2>Answers</h2>
         <div id="answers">
-          {% for post in answers %}
+          {% for post in question.answers %}
             {% include "post.mixin.html" %}
           {% endfor %}
         </div>
@@ -26,21 +25,29 @@
     </div>
     <div class="row col-md-3">
       <div class="row">
-        <p>asked: <span class="date" title="{{ question.CreationDate }}">{{ question.CreationDate }}</span></p>
-        <p>viewed: {{ question.ViewCount | intspace }} times</p>
-        <p>active: <span class="date" title="{{ question.LastActivityDate }}">{{ question.LastActivityDate }}</span></p>
+        <p>asked: <span class="date" title="{{ question.created_at }}">{{ question.created_at }}</span></p>
+        <p>viewed: {{ question.view_count | intspace }} times</p>
+        <p>active: <span class="date" title="{{ question.last_active_date }}">{{ question.last_active_date }}</span></p>
       </div>
-      {% set related = db.post_related(question) %}
-      {% if related %}
+      {% if question.links %}
         <div class="row">
           <h3>Related</h3>
           <ul>
-          {% for post in related %}
-            <li><a href="/posts/{}.html" {{question.Id }}>{{ question.Title }}<a></li>
-          {% endfor %}
-          <ul>
+            {% for links in question.links %}
+              <li><a href="/posts/{{ related.postu.id }}.html" >{{ related.post.title }}<a></li>
+            {% endfor %}
+            <ul>
         </div>
-      {% endif %}
+      {% else %}
+        <div class="row">
+          <h3>Related</h3>
+          <ul>
+            {% for related in question.relateds %}
+              <li><a href="/posts/{{ related.post.id }}.html" >{{ related.post.title }}<a></li>
+            {% endfor %}
+            <ul>
+        </div>
+    {% endif %}
     </div>
   </div>
   <script src="/static/main.js"></script>

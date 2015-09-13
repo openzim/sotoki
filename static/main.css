@@ -196,3 +196,16 @@ body.tag p.question .score.good {
 body.tag p.question .score.verygood {
     background: hsl(33, 97%, 56%);
 }
+
+/* tags.html */
+
+body.tags ul {
+    list-style: none;
+}
+
+body.tags > div.container ul > li {
+    display: inline-block;
+    padding: 15px;
+    margin: 5px;
+    border: 1px solid hsl(208, 56%, 46%);
+}

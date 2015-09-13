@@ -1,66 +1,62 @@
 <div class="post">
   <div class="post-container">
     <div class="reputation">
-      {% if post.Score >= 0 %}
+      {% if post.score >= 0 %}
         <div class="score">
-          <p><span class="glyphicon glyphicon-triangle-top {{ post.Score | scale }}"></span></p>
-          <p>{{ post.Score | intspace }}</p>
+          <p><span class="glyphicon glyphicon-triangle-top {{ post.score | scale }}"></span></p>
+          <p>{{ post.score | intspace }}</p>
         </div>
       {% else %}
         <div class="score">
-          <p>{{ post.Score | intspace }}</p>
-          <p><span class="glyphicon glyphicon-triangle-bottom {{ post.Score | scale }}"></span></p>
+          <p>{{ post.score | intspace }}</p>
+          <p><span class="glyphicon glyphicon-triangle-bottom {{ post.score | scale }}"></span></p>
         </div>
       {% endif %}
-      {% if post.FavoriteCount %}
+      {% if post.favorite_count %}
         <div>
-          <p class="favorites {{ post.FavoriteCount | scale }}"><span class="glyphicon glyphicon-star"></span></p>
-          <p><span>{{ post.FavoriteCount | intspace }}</span></p>
+          <p class="favorites {{ post.favorite_count | scale }}"><span class="glyphicon glyphicon-star"></span></p>
+          <p><span>{{ post.favorite_count | intspace }}</span></p>
         </div>
       {% endif %}
     </div>
     {# FIXME, remove the decode #}
-    <div class="body">{{ post.Body | safe }}</div>
+    <div class="body">{{ post.body | safe }}</div>
   </div>
-  {% if post.Tags %}
+  {% if post.tags %}
     <div class="tags">
       <ul>
-        {% for tag in db.post_tags(post) %}
-          {{ tag }}
-          <li><a href="/tag/{{ tag.TagName }}/index.html">{{ tag.TagName }}</a></li>
+        {% for tag in post.tags %}
+          <li><a href="/tag/{{ tag.tag.name }}.html">{{ tag.tag.name }}</a></li>
         {% endfor %}
     </div>
   {% endif %}
-  {% set author = db.post_author(post) %}
-  {% if author %}
+  {% if post.user %}
     <div class="author">
       <div>
-        <p>asked <span class="date" title="{{ question.CreationDate }}">{{ question.CreationDate }}</span></p>
+        <p>asked <span class="date" title="{{ question.created_at }}">{{ question.created_at }}</span></p>
         <div>
           <div>
             <img src="http://lorempixel.com/32/32/" />
           </div>
           <div>
-            <p><a href="/user/{{ author.Id }}.html">{{ author.DisplayName }}</a></p>
-            <p>{{ author.Reputation | intspace }}</p>
+            <p><a href="/user/{{ post.id }}.html">{{ author.name }}</a></p>
+            <p>{{ author.reputation | intspace }}</p>
           </div>
         </div>
       </div>
     </div>
   {% endif %}
 
-  {% set comments = db.post_comments(post) %}
-  {% if comments %}
+  {% if post.comments %}
     <div class="comments">
-      {% for comment in comments %}
-        {% set author = db.comment_author(comment) %}
+      {% for comment in post.comments %}
         <div class="comment">
           <p>
-            <span class="score {{ comment.Score | scale }}">{% if comment.Score != 0 %}{{ comment.Score }}{% endif %}</span>
-            <span class="text">{{ comment.Text | urlize | markdown }}</span>
+            <span class="score {{ comment.score | scale }}">{% if comment.score != 0 %}{{ comment.score }}{% endif %}</span>
+            <span class="text">{{ comment.text | urlize | markdown }}</span>
             –
-            <a href="/user/{{ author.Id }}.html">{{ author.DisplayName }}</a>
-            <span class="date" title="{{ post.CreationDate }}">{{ comment.CreationDate }}</span>
+            <a href="/user/{{ comment.user.id }}.html">{{ comment.user.name }}</a>
+            <span class="date" title="{{ comment.created_at }}">{{ comment.created_at }}</span>
             </p>
         </div>
       {% endfor %}

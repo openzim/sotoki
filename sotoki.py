@@ -14,6 +14,7 @@ Options:
 """
 import os
 import re
+from operator import attrgetter
 from traceback import print_exc
 from string import punctuation
 
@@ -136,6 +137,7 @@ class Post(Base):
 
     created_at = Column(String)
     closed_at = Column(String)
+    last_active_date = Column(String)
 
     view_count = Column(Integer)
     favorite_count = Column(Integer)
@@ -177,7 +179,7 @@ class PostLink(Base):
     post = relationship("Post", foreign_keys='PostLink.post_id', backref=backref('links'))  # noqa
 
     related_id = Column(Integer, ForeignKey('posts.id'))
-    related = relationship("Post", foreign_keys='PostLink.related_id')
+    related = relationship("Post", foreign_keys='PostLink.related_id', backref=backref('relateds'))
 
 
 def iterate(filepath):
@@ -188,7 +190,8 @@ def iterate(filepath):
 
 
 def make_session(database):
-    engine = create_engine('sqlite:///db/superuser/db.sqlite')
+    uri = 'sqlite:///%s/db.sqlite' % database
+    engine = create_engine(uri)
     Session = sessionmaker(bind=engine)
     session = Session()
     return session
@@ -236,6 +239,7 @@ def load(dump, database):
             closed_at=properties.get('ClosedDate', None),
             title=properties.get('Title', ''),
             favorite_count=properties.get('FavoriteCount', 0),
+            last_active_date=properties['LastActivityDate'],
         )
         session.add(post)
         session.commit()
@@ -279,42 +283,51 @@ def load(dump, database):
 
 def build(templates, database, output):
     # wrap the actual database
-    db = StackExchangeDB(AjguDB(database))
+    session = make_session(database)
 
     print 'generate questions'
     os.makedirs(os.path.join(output, 'question'))
-
-    for index, question in enumerate(db.questions()):
-        print 'render post: ', question['PostId']
-        filename = '%s.html' % question['PostId']
+    questions = session.query(Post).filter(Post.type == 1)
+    for index, question in enumerate(questions):
+        print 'render post: ', question.id
+        filename = '%s.html' % question.id
         filepath = os.path.join(output, 'question', filename)
         render(
             filepath,
             'post.html',
             templates,
             question=question,
-            db=db,
         )
-
-    print 'generate tags'
-    os.makedirs(os.path.join(output, 'tag'))
-    for i, tag in enumerate(db.tags()):
-        print 'render tag: ', tag['TagName']
-        dirpath = os.path.join(output, 'tag', tag['TagName'])
-        os.makedirs(dirpath)
-        for index, questions in enumerate(db.tag_questions(tag)):
-            fullpath = os.path.join(dirpath, '%s.html' % index)
-            render(
-                fullpath,
-                'tag.html',
-                templates,
-                tag=tag,
-                questions=questions,
-                index=index,
-            )
-        if i == 10:
+        if index == 10:
             break
 
+    print 'generate tags'
+    # index page
+    tags = session.query(Tag).order_by(Tag.name)
+    render(
+        os.path.join(output, 'tags.html'),
+        'tags.html',
+        templates,
+        tags=tags,
+    )
+    # tag page
+    os.makedirs(os.path.join(output, 'tag'))
+    for index, tag in enumerate(tags):
+        print 'render tag: ', tag.name
+        dirpath = os.path.join(output, 'tag')
+        fullpath = os.path.join(dirpath, '%s.html' % tag.name)
+        questions = map(lambda x: x.question, tag.questions)
+        questions.sort(key=attrgetter('score'), reverse=True)
+        render(
+            fullpath,
+            'tag.html',
+            templates,
+            tag=tag,
+            index=index,
+            questions=questions
+        )
+        if index == 10:
+            break
     print 'done'
 
 
