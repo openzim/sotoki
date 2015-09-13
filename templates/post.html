@@ -7,7 +7,7 @@
     <h2 class="title">{{ question.title }}</h2>
   </div>
   <div class="row">
-    <div class="col-md-6">
+    <div class="col-md-7">
       <div id="question">
         {% set post = question %}
         {% include "post.mixin.html" %}
@@ -33,8 +33,8 @@
         <div class="row">
           <h3>Related</h3>
           <ul>
-            {% for links in question.links %}
-              <li><a href="/posts/{{ related.postu.id }}.html" >{{ related.post.title }}<a></li>
+            {% for link in question.links %}
+              <li><a href="/posts/{{ link.post.id }}.html" >{{ link.post.title }}<a></li>
             {% endfor %}
             <ul>
         </div>
