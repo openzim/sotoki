@@ -13,6 +13,7 @@ build-all: build-html copy-static
 
 load:
 	rm -rf db/superuser/* || true
+	mkdir -p db/superuser/
 	python sotoki.py load dumps/superuser/ db/superuser
 
 serve:
