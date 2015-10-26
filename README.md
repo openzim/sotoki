@@ -47,7 +47,7 @@ Install the python requirements:
 pip install -r requirements.txt
 ```
 
-Copy superusers.com.7z and unzip it to dumps/superuser/:
+Copy superusers.com.7z and unzip it to `dumps/superuser/`:
 
 ```
 mkdir -p dumps/superuser/

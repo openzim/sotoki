@@ -285,13 +285,13 @@ def build(templates, database, output):
     # wrap the actual database
     session = make_session(database)
 
-    print 'generate questions'
+    print 'render questions'
     os.makedirs(os.path.join(output, 'question'))
     questions = session.query(Post).filter(Post.type == 1)
     for index, question in enumerate(questions):
-        print 'render post: ', question.id
         filename = '%s.html' % question.id
         filepath = os.path.join(output, 'question', filename)
+        print filepath
         render(
             filepath,
             'post.html',
@@ -301,11 +301,11 @@ def build(templates, database, output):
         if index == 10:
             break
 
-    print 'generate tags'
+    print 'render tags'
     # index page
     tags = session.query(Tag).order_by(Tag.name)
     render(
-        os.path.join(output, 'tags.html'),
+        os.path.join(output, 'index.html'),
         'tags.html',
         templates,
         tags=tags,
@@ -313,11 +313,11 @@ def build(templates, database, output):
     # tag page
     os.makedirs(os.path.join(output, 'tag'))
     for index, tag in enumerate(tags):
-        print 'render tag: ', tag.name
         dirpath = os.path.join(output, 'tag')
         fullpath = os.path.join(dirpath, '%s.html' % tag.name)
         questions = map(lambda x: x.question, tag.questions)
         questions.sort(key=attrgetter('score'), reverse=True)
+        print fullpath
         render(
             fullpath,
             'tag.html',

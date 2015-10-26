@@ -9,7 +9,7 @@
   <div class="row">
     <div class="col-md-6">
       {% for question in questions %}
-        <p class="question"><span class="score {{ question.score | scale }}">{{ question.score }}</span> <a href="/posts/{{ question.id }}.html">{{ question.title }}</a> <span class="date" title="{{ question.created_at }}">{{ question.created_at }}</span></p>
+        <p class="question"><span class="score {{ question.score | scale }}">{{ question.score }}</span> <a href="/question/{{ question.id }}.html">{{ question.title }}</a> <span class="date" title="{{ question.created_at }}">{{ question.created_at }}</span></p>
       {% endfor %}
     </div>
   </div>

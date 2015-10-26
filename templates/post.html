@@ -30,20 +30,24 @@
         <p>active: <span class="date" title="{{ question.last_active_date }}">{{ question.last_active_date }}</span></p>
       </div>
       {% if question.links %}
-        <div class="row">
+        <div id="related" class="row">
           <h3>Related</h3>
           <ul>
             {% for link in question.links %}
-              <li><a href="/posts/{{ link.post.id }}.html" >{{ link.post.title }}<a></li>
+              {% if link.post.title %}
+                <li><a href="/posts/{{ link.post.id }}.html" >{{ link.post.title }}<a></li>
+              {% endif %}
             {% endfor %}
             <ul>
         </div>
       {% else %}
-        <div class="row">
+        <div id="related" class="row">
           <h3>Related</h3>
           <ul>
             {% for related in question.relateds %}
-              <li><a href="/posts/{{ related.post.id }}.html" >{{ related.post.title }}<a></li>
+              {% if related.post.title %}
+                <li><a href="/posts/{{ related.post.id }}.html" >{{ related.post.title }}<a></li>
+              {% endif %}
             {% endfor %}
             <ul>
         </div>

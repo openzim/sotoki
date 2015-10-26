@@ -4,6 +4,19 @@ body.question h2 {
     margin-bottom: 15px;
 }
 
+/* related */
+
+#related ul {
+    list-style: none;
+    padding: 0px;
+}
+
+#related ul li {
+    margin: 5px;
+    padding: 10px;
+    border: 1px solid #B2CCD7;
+}
+
 /* post */
 
 .post {
@@ -201,6 +214,7 @@ body.tag p.question .score.verygood {
 
 body.tags ul {
     list-style: none;
+    text-align: justify;
 }
 
 body.tags > div.container ul > li {
