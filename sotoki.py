@@ -3,7 +3,7 @@
 
 Usage:
   sotoki.py load <dump-directory> <database-directory>
-  sotoki.py build <templates> <database> <output>
+  sotoki.py build <templates> <database> <output> [--root-url=URL]
   sotoki.py (-h | --help)
   sotoki.py --version
 
@@ -281,7 +281,7 @@ def load(dump, database):
         session.commit()
 
 
-def build(templates, database, output):
+def build(templates, database, output, rooturl):
     # wrap the actual database
     session = make_session(database)
 
@@ -297,6 +297,7 @@ def build(templates, database, output):
             'post.html',
             templates,
             question=question,
+            rooturl=rooturl,
         )
         if index == 10:
             break
@@ -309,6 +310,7 @@ def build(templates, database, output):
         'tags.html',
         templates,
         tags=tags,
+        rooturl=rooturl,
     )
     # tag page
     os.makedirs(os.path.join(output, 'tag'))
@@ -324,7 +326,8 @@ def build(templates, database, output):
             templates,
             tag=tag,
             index=index,
-            questions=questions
+            questions=questions,
+            rooturl=rooturl,
         )
         if index == 10:
             break
@@ -335,4 +338,5 @@ if __name__ == '__main__':
     if arguments['load']:
         load(arguments['<dump-directory>'], arguments['<database-directory>'])
     elif arguments['build']:
-        build(arguments['<templates>'], arguments['<database>'], arguments['<output>'])
+        rooturl = arguments.get('--root-url', '')
+        build(arguments['<templates>'], arguments['<database>'], arguments['<output>'], rooturl)

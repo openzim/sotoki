@@ -26,7 +26,7 @@
     <div class="tags">
       <ul>
         {% for tag in post.tags %}
-          <li><a href="/tag/{{ tag.tag.name }}.html">{{ tag.tag.name }}</a></li>
+          <li><a href="{{ rooturl }}/tag/{{ tag.tag.name }}.html">{{ tag.tag.name }}</a></li>
         {% endfor %}
     </div>
   {% endif %}
@@ -39,14 +39,13 @@
             <img src="http://lorempixel.com/32/32/" />
           </div>
           <div>
-            <p><a href="/user/{{ post.id }}.html">{{ author.name }}</a></p>
+            <p><a href="{{ rooturl }}/user/{{ post.id }}.html">{{ author.name }}</a></p>
             <p>{{ author.reputation | intspace }}</p>
           </div>
         </div>
       </div>
     </div>
   {% endif %}
-
   {% if post.comments %}
     <div class="comments">
       {% for comment in post.comments %}
@@ -55,7 +54,7 @@
             <span class="score {{ comment.score | scale }}">{% if comment.score != 0 %}{{ comment.score }}{% endif %}</span>
             <span class="text">{{ comment.text | urlize | markdown }}</span>
             –
-            <a href="/user/{{ comment.user.id }}.html">{{ comment.user.name }}</a>
+            <a href="{{ rooturl }}/user/{{ comment.user.id }}.html">{{ comment.user.name }}</a>
             <span class="date" title="{{ comment.created_at }}">{{ comment.created_at }}</span>
             </p>
         </div>
