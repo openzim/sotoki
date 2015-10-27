@@ -338,5 +338,6 @@ if __name__ == '__main__':
     if arguments['load']:
         load(arguments['<dump-directory>'], arguments['<database-directory>'])
     elif arguments['build']:
-        rooturl = arguments.get('--root-url', '')
+        rooturl = arguments['--root-url']
+        rooturl = rooturl if rooturl else ''re
         build(arguments['<templates>'], arguments['<database>'], arguments['<output>'], rooturl)
