@@ -4,3 +4,4 @@ db/
 dumps/
 \.#*
 build/
+db.backup/
