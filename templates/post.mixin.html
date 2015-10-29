@@ -46,6 +46,13 @@
       </div>
     </div>
   {% endif %}
+  {% if post.closed_at %}
+    <div class="closed-banner">
+      {% if post.closed_at %}
+        <p>Question was closed <span class="date" title="{{ post.closed_at }}">{{ post.closed_at }}</span></p>
+      {% endif %}
+    </div>
+  {% endif %}
   {% if post.comments %}
     <div class="comments">
       {% for comment in post.comments %}

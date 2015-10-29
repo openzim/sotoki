@@ -128,6 +128,17 @@ body.question h2 {
     margin: 0px;
 }
 
+.post .closed-banner {
+    background: #CCC;
+    border: 1px solid #AAA;
+    padding: 15px;
+}
+
+.post .closed-banner p {
+    margin: 0px;
+    padding: 0px;
+}
+
 /* comments */
 
 .post .comments {

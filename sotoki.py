@@ -291,7 +291,7 @@ def build(templates, database, output, rooturl):
     for index, question in enumerate(questions):
         filename = '%s.html' % question.id
         filepath = os.path.join(output, 'question', filename)
-        print filepath
+        print filepath, question.closed_at
         render(
             filepath,
             'question.html',
@@ -299,7 +299,7 @@ def build(templates, database, output, rooturl):
             question=question,
             rooturl=rooturl,
         )
-        if index == 10:
+        if index == 100:
             break
 
     print 'render tags'
