@@ -68,3 +68,10 @@ Build the html pages:
 ```
 make build-all
 ```
+
+Now you can have a look at the results in your browser, just run the following
+command to start the server:
+
+```
+make serve
+```
