@@ -294,7 +294,7 @@ def build(templates, database, output, rooturl):
         print filepath
         render(
             filepath,
-            'post.html',
+            'question.html',
             templates,
             question=question,
             rooturl=rooturl,
