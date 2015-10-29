@@ -30,7 +30,7 @@
         {% endfor %}
     </div>
   {% endif %}
-  {% if post.user %}
+  {% if post.owner %}
     <div class="author">
       <div>
         <p>asked <span class="date" title="{{ question.created_at }}">{{ question.created_at }}</span></p>
@@ -39,8 +39,8 @@
             <img src="http://lorempixel.com/32/32/" />
           </div>
           <div>
-            <p><a href="{{ rooturl }}/user/{{ post.id }}.html">{{ author.name }}</a></p>
-            <p>{{ author.reputation | intspace }}</p>
+            <p><a href="{{ rooturl }}/user/{{ post.id }}.html">{{ post.owner.name }}</a></p>
+            <p>{{ post.owner.reputation | intspace }}</p>
           </div>
         </div>
       </div>

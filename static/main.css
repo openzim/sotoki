@@ -106,6 +106,7 @@ body.question h2 {
 
 .post .author {
     text-align: right;
+    padding: 15px;
 }
 
 .post .author > div {
