@@ -3,6 +3,7 @@
 {% block bodyclass %}question{% endblock %}
 
 {% block title %}{{ question.title }}{% endblock %}
+{% block keywords %}{% for tag in question.tags %}{{ tag.tag.name }} {% endfor %}{% endblock %}
 
 {% block body %}
   <div class="row">
