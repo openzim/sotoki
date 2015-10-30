@@ -321,9 +321,9 @@ def build(templates, database, output, rooturl):
         print tagpath
         # build page using pagination
         offset = 0
-        index = 1
+        page = 1
         while offset is not None:
-            fullpath = os.path.join(tagpath, '%s.html' % index)
+            fullpath = os.path.join(tagpath, '%s.html' % page)
             questions = session.query(QuestionTag)
             questions = questions.filter(QuestionTag.tag_id == tag.id)
             questions = questions.limit(11).offset(offset).all()
@@ -340,13 +340,13 @@ def build(templates, database, output, rooturl):
                 'tag.html',
                 templates,
                 tag=tag,
-                index=index,
+                index=page,
                 questions=questions,
                 rooturl=rooturl,
                 hasnext=bool(offset),
-                next=index + 1,
+                next=page + 1,
             )
-            index += 1
+            page += 1
         if index == 10:
             break
 
