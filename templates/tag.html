@@ -11,6 +11,11 @@
       {% for question in questions %}
         <p class="question"><span class="score {{ question.score | scale }}">{{ question.score }}</span> <a href="{{ rooturl }}/question/{{ question.id }}.html">{{ question.title }}</a> <span class="date" title="{{ question.created_at }}">{{ question.created_at }}</span></p>
       {% endfor %}
+      {% if hasnext %}
+        <div class="pagination">
+          <p><a href="{{next}}.html">Next</a></p>
+        </div>
+      {% endif %}
     </div>
   </div>
   <script src="/static/main.js"></script>
