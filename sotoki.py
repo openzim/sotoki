@@ -15,8 +15,16 @@ Options:
 import os
 import re
 from operator import attrgetter
-from traceback import print_exc
 from string import punctuation
+
+from sqlalchemy import ForeignKey
+from sqlalchemy import create_engine
+from sqlalchemy.orm import backref
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import relationship
+from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
 
 from docopt import docopt
 
@@ -77,14 +85,6 @@ def render(output, template, templates, **context):
 
 # to_datetime = lambda x: datetime.strptime(x[:-4], '%Y-%m-%dT%H:%M:%S')
 
-from sqlalchemy import ForeignKey
-from sqlalchemy import create_engine
-from sqlalchemy.orm import backref
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm import relationship
-from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy import Column, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
@@ -299,8 +299,8 @@ def build(templates, database, output, rooturl):
             question=question,
             rooturl=rooturl,
         )
-        if index == 100:
-            break
+        # if index == 100:
+        #     break
 
     print 'render tags'
     # index page
@@ -329,8 +329,8 @@ def build(templates, database, output, rooturl):
             questions=questions,
             rooturl=rooturl,
         )
-        if index == 10:
-            break
+        # if index == 10:
+        #     break
 
 
 if __name__ == '__main__':
