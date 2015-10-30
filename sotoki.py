@@ -299,8 +299,8 @@ def build(templates, database, output, rooturl):
             question=question,
             rooturl=rooturl,
         )
-        # if index == 100:
-        #     break
+        if index == 10:
+            break
 
     print 'render tags'
     # index page
@@ -316,21 +316,39 @@ def build(templates, database, output, rooturl):
     os.makedirs(os.path.join(output, 'tag'))
     for index, tag in enumerate(tags):
         dirpath = os.path.join(output, 'tag')
-        fullpath = os.path.join(dirpath, '%s.html' % tag.name)
-        questions = map(lambda x: x.question, tag.questions)
-        questions.sort(key=attrgetter('score'), reverse=True)
-        print fullpath
-        render(
-            fullpath,
-            'tag.html',
-            templates,
-            tag=tag,
-            index=index,
-            questions=questions,
-            rooturl=rooturl,
-        )
-        # if index == 10:
-        #     break
+        tagpath = os.path.join(dirpath, '%s' % tag.name)
+        os.makedirs(tagpath)
+        print tagpath
+        # build page using pagination
+        offset = 0
+        index = 1
+        while offset is not None:
+            fullpath = os.path.join(tagpath, '%s.html' % index)
+            questions = session.query(QuestionTag)
+            questions = questions.filter(QuestionTag.tag_id == tag.id)
+            questions = questions.limit(11).offset(offset).all()
+            questions = map(lambda x: x.question, questions)
+            try:
+                questions[10]
+            except IndexError:
+                offset = None
+            else:
+                offset += 10
+            questions = questions[:10]
+            render(
+                fullpath,
+                'tag.html',
+                templates,
+                tag=tag,
+                index=index,
+                questions=questions,
+                rooturl=rooturl,
+                hasnext=bool(offset),
+                next=index + 1,
+            )
+            index += 1
+        if index == 10:
+            break
 
 
 if __name__ == '__main__':
