@@ -14,7 +14,6 @@ Options:
 """
 import os
 import re
-from operator import attrgetter
 from string import punctuation
 
 from sqlalchemy import ForeignKey
