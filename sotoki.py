@@ -35,6 +35,9 @@ from jinja2 import FileSystemLoader
 from lxml.etree import parse
 
 
+DEBUG = os.environ.get('DEBUG', False)
+
+
 def intspace(value):
     orig = str(value)
     new = re.sub("^(-?\d+)(\d{3})", '\g<1> \g<2>', orig)
@@ -298,7 +301,7 @@ def build(templates, database, output):
             question=question,
             rooturl="..",
         )
-        if index == 10:
+        if index == 10 and DEBUG:
             break
 
     print 'render tags'
@@ -346,7 +349,7 @@ def build(templates, database, output):
                 next=page + 1,
             )
             page += 1
-        if index == 10:
+        if index == 10 and DEBUG:
             break
 
 
