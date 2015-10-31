@@ -25,14 +25,14 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 
-from docopt import docopt
-
-from markdown import markdown as md
-
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
 
+from docopt import docopt
+from slugify import slugify
 from lxml.etree import parse
+from markdown import markdown as md
+
 
 
 DEBUG = os.environ.get('DEBUG', False)
@@ -74,7 +74,8 @@ def render(output, template, templates, **context):
         markdown=markdown,
         intspace=intspace,
         scale=scale,
-        clean=lambda y: filter(lambda x: x not in punctuation, y)
+        clean=lambda y: filter(lambda x: x not in punctuation, y),
+        slugify=slugify,
     )
     env.filters.update(filters)
     template = env.get_template(template)
@@ -291,7 +292,7 @@ def build(templates, database, output):
     os.makedirs(os.path.join(output, 'question'))
     questions = session.query(Post).filter(Post.type == 1)
     for index, question in enumerate(questions):
-        filename = '%s.html' % question.id
+        filename = '%s.html' % slugify(question.title)
         filepath = os.path.join(output, 'question', filename)
         print filepath, question.closed_at
         render(

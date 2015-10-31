@@ -38,7 +38,7 @@
           <ul>
             {% for link in question.links %}
               {% if link.post.title %}
-                <li><a href="{{ rooturl }}/posts/{{ link.post.id }}.html" >{{ link.post.title }}<a></li>
+                <li><a href="{{ rooturl }}/question/{{ link.post.title | slugify }}.html" >{{ link.post.title }}<a></li>
               {% endif %}
             {% endfor %}
             <ul>
@@ -49,7 +49,7 @@
           <ul>
             {% for related in question.relateds %}
               {% if related.post.title %}
-                <li><a href="{{ rooturl }}/posts/{{ related.post.id }}.html" >{{ related.post.title }}<a></li>
+                <li><a href="{{ rooturl }}/question/{{ related.post.title | slugify }}.html" >{{ related.post.title }}<a></li>
               {% endif %}
             {% endfor %}
             <ul>
