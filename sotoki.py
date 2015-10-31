@@ -309,7 +309,7 @@ def build(templates, database, output):
         'tags.html',
         templates,
         tags=tags,
-        rooturl="",
+        rooturl=".",
     )
     # tag page
     os.makedirs(os.path.join(output, 'tag'))
