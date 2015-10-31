@@ -296,7 +296,7 @@ def build(templates, database, output):
             'question.html',
             templates,
             question=question,
-            rooturl="../",
+            rooturl="..",
         )
         if index == 10:
             break
@@ -341,7 +341,7 @@ def build(templates, database, output):
                 tag=tag,
                 index=page,
                 questions=questions,
-                rooturl="../../",
+                rooturl="../..",
                 hasnext=bool(offset),
                 next=page + 1,
             )
