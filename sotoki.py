@@ -280,7 +280,7 @@ def load(dump, database):
         session.commit()
 
 
-def build(templates, database, output, rooturl):
+def build(templates, database, output):
     # wrap the actual database
     session = make_session(database)
 
@@ -296,7 +296,7 @@ def build(templates, database, output, rooturl):
             'question.html',
             templates,
             question=question,
-            rooturl=rooturl,
+            rooturl="../",
         )
         if index == 10:
             break
@@ -309,7 +309,7 @@ def build(templates, database, output, rooturl):
         'tags.html',
         templates,
         tags=tags,
-        rooturl=rooturl,
+        rooturl="",
     )
     # tag page
     os.makedirs(os.path.join(output, 'tag'))
@@ -341,7 +341,7 @@ def build(templates, database, output, rooturl):
                 tag=tag,
                 index=page,
                 questions=questions,
-                rooturl=rooturl,
+                rooturl="../../",
                 hasnext=bool(offset),
                 next=page + 1,
             )
@@ -355,6 +355,4 @@ if __name__ == '__main__':
     if arguments['load']:
         load(arguments['<dump-directory>'], arguments['<database-directory>'])
     elif arguments['build']:
-        rooturl = arguments['--root-url']
-        rooturl = rooturl if rooturl else ''
-        build(arguments['<templates>'], arguments['<database>'], arguments['<output>'], rooturl)
+        build(arguments['<templates>'], arguments['<database>'], arguments['<output>'])
