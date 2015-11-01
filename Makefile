@@ -7,7 +7,7 @@ copy-static:
 
 build-html:
 	rm build -rf || true
-	python sotoki.py build templates/ db/superuser/ build/
+	python sotoki.py render templates/ db/superuser/ build/
 
 build-all: build-html copy-static
 
