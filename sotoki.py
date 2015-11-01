@@ -3,7 +3,8 @@
 
 Usage:
   sotoki.py load <dump-directory> <database-directory>
-  sotoki.py build <templates> <database> <output> [--root-url=URL]
+  sotoki.py offline
+  sotoki.py render <templates> <database> <output>
   sotoki.py (-h | --help)
   sotoki.py --version
 
@@ -32,7 +33,6 @@ from docopt import docopt
 from slugify import slugify
 from lxml.etree import parse
 from markdown import markdown as md
-
 
 
 DEBUG = os.environ.get('DEBUG', False)
@@ -67,7 +67,7 @@ def scale(number):
     return 'verygood'
 
 
-def render(output, template, templates, **context):
+def jinja(output, template, templates, **context):
     templates = os.path.abspath(templates)
     env = Environment(loader=FileSystemLoader((templates,)))
     filters = dict(
@@ -284,7 +284,11 @@ def load(dump, database):
         session.commit()
 
 
-def build(templates, database, output):
+def offline():
+    print 'offlining'
+
+
+def render(templates, database, output):
     # wrap the actual database
     session = make_session(database)
 
@@ -295,7 +299,7 @@ def build(templates, database, output):
         filename = '%s.html' % slugify(question.title)
         filepath = os.path.join(output, 'question', filename)
         print filepath, question.closed_at
-        render(
+        jinja(
             filepath,
             'question.html',
             templates,
@@ -308,7 +312,7 @@ def build(templates, database, output):
     print 'render tags'
     # index page
     tags = session.query(Tag).order_by(Tag.name)
-    render(
+    jinja(
         os.path.join(output, 'index.html'),
         'tags.html',
         templates,
@@ -338,7 +342,7 @@ def build(templates, database, output):
             else:
                 offset += 10
             questions = questions[:10]
-            render(
+            jinja(
                 fullpath,
                 'tag.html',
                 templates,
@@ -358,5 +362,7 @@ if __name__ == '__main__':
     arguments = docopt(__doc__, version='sotoki 0.1')
     if arguments['load']:
         load(arguments['<dump-directory>'], arguments['<database-directory>'])
-    elif arguments['build']:
-        build(arguments['<templates>'], arguments['<database>'], arguments['<output>'])
+    elif arguments['render']:
+        render(arguments['<templates>'], arguments['<database>'], arguments['<output>'])  # noqa
+    elif arguments['offline']:
+        offline()
