@@ -289,30 +289,33 @@ def load(dump, database):
 
 
 def offline(database, output):
-    print 'offlining images of %s in %s...' % (database, output)
+    print 'offline images of %s in %s...' % (database, output)
     output = os.path.join(output, 'static', 'images')
-    os.makedirs(output)
+    if not os.path.exists(output):
+        os.makedirs(output)
     session = make_session(database)
     # FIXME: lazily iterate over all posts
     for index, post in enumerate(session.query(Post)):
-        print 'processing post id=%s (%s)' % (post.id, index)
+        print 'offline image of post database=%s id=%s (%s)' % (database, post.id, index)  # noqa
         try:
             body = string2html(post.body)
-        except:  # error during parse
+        except:  # error during xml parsing
             continue
         else:
             imgs = body.xpath('//img')
             if imgs:
                 for img in imgs:
                     src = img.attrib['src']
-                    try:
-                        download(src, output)
-                    except IOError:
-                        img.attrib['src'] = '../static/missingimage.png'
-                    else:
-                        url = urlparse(src)
-                        filename = url.path.split('/')[-1]
-                        img.attrib['src'] = '../static/images/' + filename
+                    url = urlparse(src)
+                    filename = url.path.split('/')[-1]
+                    # download the image only if it's not already downloaded
+                    if not os.path.exists(os.path.join(output, filename)):
+                        try:
+                            download(src, output)
+                        except IOError:
+                            img.attrib['src'] = '../static/missingimage.png'
+                        else:
+                            img.attrib['src'] = '../static/images/' + filename
                 post.body = html2string(body)
                 session.add(post)
                 session.commit()
