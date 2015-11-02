@@ -296,22 +296,26 @@ def offline(database, output):
     # FIXME: lazily iterate over all posts
     for index, post in enumerate(session.query(Post)):
         print 'processing post id=%s (%s)' % (post.id, index)
-        body = string2html(post.body)
-        imgs = body.xpath('//img')
-        if imgs:
-            for img in imgs:
-                src = img.attrib['src']
-                try:
-                    download(src, output)
-                except IOError:
-                    img.attrib['src'] = '../static/missingimage.png'
-                else:
-                    url = urlparse(src)
-                    filename = url.path.split('/')[-1]
-                    img.attrib['src'] = '../static/images/' + filename
-            post.body = html2string(body)
-            session.add(post)
-            session.commit()
+        try:
+            body = string2html(post.body)
+        except:  # error during parse
+            continue
+        else:
+            imgs = body.xpath('//img')
+            if imgs:
+                for img in imgs:
+                    src = img.attrib['src']
+                    try:
+                        download(src, output)
+                    except IOError:
+                        img.attrib['src'] = '../static/missingimage.png'
+                    else:
+                        url = urlparse(src)
+                        filename = url.path.split('/')[-1]
+                        img.attrib['src'] = '../static/images/' + filename
+                post.body = html2string(body)
+                session.add(post)
+                session.commit()
         if DEBUG and index == 20:
             break
 
