@@ -3,7 +3,7 @@
 
 Usage:
   sotoki.py load <dump-directory> <database-directory>
-  sotoki.py offline
+  sotoki.py offline <database> <output>
   sotoki.py render <templates> <database> <output>
   sotoki.py (-h | --help)
   sotoki.py --version
@@ -15,6 +15,7 @@ Options:
 """
 import os
 import re
+from urlparse import urlparse
 from string import punctuation
 
 from sqlalchemy import ForeignKey
@@ -29,13 +30,20 @@ from sqlalchemy.ext.declarative import declarative_base
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
 
+from lxml.etree import parse as string2xml
+from lxml.html import fromstring as string2html
+from lxml.html import tostring as html2string
+
+from wget import download
 from docopt import docopt
 from slugify import slugify
-from lxml.etree import parse
 from markdown import markdown as md
 
 
 DEBUG = os.environ.get('DEBUG', False)
+
+
+# templating
 
 
 def intspace(value):
@@ -84,10 +92,7 @@ def jinja(output, template, templates, **context):
         f.write(page.encode('utf-8'))
 
 
-# database
-
-# to_datetime = lambda x: datetime.strptime(x[:-4], '%Y-%m-%dT%H:%M:%S')
-
+# database models
 
 Base = declarative_base()
 
@@ -164,7 +169,7 @@ class Comment(Base):
     created_at = Column(String)
 
     post_id = Column(Integer, ForeignKey('posts.id'), index=True)
-    post = relationship("Post", backref=backref('comments', order_by=created_at))
+    post = relationship("Post", backref=backref('comments', order_by=created_at))  # noqa
 
     user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
     user = relationship("User")
@@ -182,12 +187,11 @@ class PostLink(Base):
     post = relationship("Post", foreign_keys='PostLink.post_id', backref=backref('links'))  # noqa
 
     related_id = Column(Integer, ForeignKey('posts.id'))
-    related = relationship("Post", foreign_keys='PostLink.related_id', backref=backref('relateds'))
+    related = relationship("Post", foreign_keys='PostLink.related_id', backref=backref('relateds'))  # noqa
 
 
 def iterate(filepath):
-    xml = parse(filepath)
-    items = xml.getroot()
+    items = string2xml(filepath).getroot()
     for index, item in enumerate(items.iterchildren()):
         yield item.attrib
 
@@ -284,8 +288,32 @@ def load(dump, database):
         session.commit()
 
 
-def offline():
-    print 'offlining'
+def offline(database, output):
+    print 'offlining images of %s in %s...' % (database, output)
+    output = os.path.join(output, 'static', 'images')
+    os.makedirs(output)
+    session = make_session(database)
+    # FIXME: lazily iterate over all posts
+    for index, post in enumerate(session.query(Post)):
+        print 'processing post id=%s (%s)' % (post.id, index)
+        body = string2html(post.body)
+        imgs = body.xpath('//img')
+        if imgs:
+            for img in imgs:
+                src = img.attrib['src']
+                try:
+                    download(src, output)
+                except IOError:
+                    img.attrib['src'] = '../static/missingimage.png'
+                else:
+                    url = urlparse(src)
+                    filename = url.path.split('/')[-1]
+                    img.attrib['src'] = '../static/images/' + filename
+            post.body = html2string(body)
+            session.add(post)
+            session.commit()
+        if DEBUG and index == 20:
+            break
 
 
 def render(templates, database, output):
@@ -306,7 +334,7 @@ def render(templates, database, output):
             question=question,
             rooturl="..",
         )
-        if index == 10 and DEBUG:
+        if DEBUG and index == 10:
             break
 
     print 'render tags'
@@ -354,7 +382,7 @@ def render(templates, database, output):
                 next=page + 1,
             )
             page += 1
-        if index == 10 and DEBUG:
+        if DEBUG and index == 10:
             break
 
 
@@ -365,4 +393,4 @@ if __name__ == '__main__':
     elif arguments['render']:
         render(arguments['<templates>'], arguments['<database>'], arguments['<output>'])  # noqa
     elif arguments['offline']:
-        offline()
+        offline(arguments['<database>'], arguments['<output>'])

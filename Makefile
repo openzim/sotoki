@@ -5,11 +5,14 @@ all:
 copy-static:
 	cp -rf static build/
 
-build-html:
+clean:
 	rm build -rf || true
+
+build-html:
+	python sotoki.py offline db/superuser build/
 	python sotoki.py render templates/ db/superuser/ build/
 
-build-all: build-html copy-static
+build-all: clean build-html copy-static
 
 load:
 	rm -rf db/superuser/* || true
