@@ -3,7 +3,7 @@
 
 Usage:
   sotoki.py load <dump-directory> <database-directory>
-  sotoki.py offline <database> <output>
+  sotoki.py offline <output> <cores>
   sotoki.py render <templates> <database> <output>
   sotoki.py (-h | --help)
   sotoki.py --version
@@ -17,6 +17,7 @@ import os
 import re
 from urlparse import urlparse
 from string import punctuation
+from multiprocessing import Pool
 
 from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
@@ -31,7 +32,7 @@ from jinja2 import Environment
 from jinja2 import FileSystemLoader
 
 from lxml.etree import parse as string2xml
-from lxml.html import fromstring as string2html
+from lxml.html import parse as html
 from lxml.html import tostring as html2string
 
 from wget import download
@@ -288,19 +289,15 @@ def load(dump, database):
         session.commit()
 
 
-def offline(database, output):
-    print 'offline images of %s in %s...' % (database, output)
-    output = os.path.join(output, 'static', 'images')
-    if not os.path.exists(output):
-        os.makedirs(output)
-    session = make_session(database)
-    # FIXME: lazily iterate over all posts
-    for index, post in enumerate(session.query(Post)):
-        print 'offline image of post database=%s id=%s (%s)' % (database, post.id, index)  # noqa
+def offliner(args):
+    images, filepaths = args
+    count = len(filepaths)
+    for index, filepath in enumerate(filepaths):
+        print 'offline %s/%s' % (index, count)
         try:
-            body = string2html(post.body)
-        except:  # error during xml parsing
-            continue
+            body = html(filepath)
+        except Exception as exc:  # error during xml parsing
+            print exc
         else:
             imgs = body.xpath('//img')
             if imgs:
@@ -308,19 +305,40 @@ def offline(database, output):
                     src = img.attrib['src']
                     url = urlparse(src)
                     filename = url.path.split('/')[-1]
-                    # download the image only if it's not already downloaded
-                    if not os.path.exists(os.path.join(output, filename)):
+                    # download the image only
+                    # if it's not already downloaded
+                    if not os.path.exists(os.path.join(images, filename)):
                         try:
-                            download(src, output)
+                            download(src, images)
                         except IOError:
                             img.attrib['src'] = '../static/missingimage.png'
                         else:
                             img.attrib['src'] = '../static/images/' + filename
-                post.body = html2string(body)
-                session.add(post)
-                session.commit()
-        if DEBUG and index == 20:
-            break
+                post = html2string(body)
+                with open(filepath, 'w') as f:
+                    f.write(post)
+
+
+def chunks(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in xrange(0, len(l), n):
+        yield l[i:i+n]
+
+
+def offline(output, cores):
+    print 'offline images of %s...' % (output)
+    images = os.path.join(output, 'static', 'images')
+    if not os.path.exists(images):
+        os.makedirs(images)
+
+    filepaths = os.path.join(output, 'question')
+    filepaths = map(lambda x: os.path.join(output, 'question', x), os.listdir(filepaths))  # noqa
+    filepaths = chunks(filepaths, len(filepaths) / cores)
+    filepaths = list(filepaths)
+
+    # start offlining
+    pool = Pool(cores)
+    pool.map(offliner, zip([images]*cores, filepaths))
 
 
 def render(templates, database, output):
@@ -400,4 +418,4 @@ if __name__ == '__main__':
     elif arguments['render']:
         render(arguments['<templates>'], arguments['<database>'], arguments['<output>'])  # noqa
     elif arguments['offline']:
-        offline(arguments['<database>'], arguments['<output>'])
+        offline(arguments['<output>'], int(arguments['<cores>']))

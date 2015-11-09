@@ -9,7 +9,6 @@ clean:
 	rm build -rf || true
 
 build-html:
-	python sotoki.py offline db/superuser build/
 	python sotoki.py render templates/ db/superuser/ build/
 
 build-all: clean build-html copy-static
