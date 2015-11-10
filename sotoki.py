@@ -13,9 +13,10 @@ Options:
   --version     Show version.
 
 """
-import os
 import re
-from urlparse import urlparse
+import os
+import os.path
+from hashlib import sha1
 from string import punctuation
 from multiprocessing import Pool
 
@@ -289,11 +290,11 @@ def load(dump, database):
         session.commit()
 
 
-def offliner(args):
-    images, filepaths = args
+def process(args):
+    images, filepaths, uid = args
     count = len(filepaths)
     for index, filepath in enumerate(filepaths):
-        print 'offline %s/%s' % (index, count)
+        print 'offline %s/%s (%s)' % (index, count, uid)
         try:
             body = html(filepath)
         except Exception as exc:  # error during xml parsing
@@ -303,17 +304,19 @@ def offliner(args):
             if imgs:
                 for img in imgs:
                     src = img.attrib['src']
-                    url = urlparse(src)
-                    filename = url.path.split('/')[-1]
-                    # download the image only
-                    # if it's not already downloaded
-                    if not os.path.exists(os.path.join(images, filename)):
+                    ext = os.path.splitext(src)[1]
+                    filename = sha1(src).hexdigest() + ext
+                    out = os.path.join(images, filename)
+                    # download the image only if it's not already downloaded
+                    if not os.path.exists(out):
                         try:
-                            download(src, images)
+                            download(src, out)
                         except IOError:
-                            img.attrib['src'] = '../static/missingimage.png'
+                            # do nothing
+                            pass
                         else:
-                            img.attrib['src'] = '../static/images/' + filename
+                            src = '../static/images/' + filename
+                            img.attrib['src'] = src
                 post = html2string(body)
                 with open(filepath, 'w') as f:
                     f.write(post)
@@ -326,7 +329,7 @@ def chunks(l, n):
 
 
 def offline(output, cores):
-    print 'offline images of %s...' % (output)
+    print 'offline images of %s using %s process...' % (output, cores)
     images = os.path.join(output, 'static', 'images')
     if not os.path.exists(images):
         os.makedirs(images)
@@ -338,7 +341,7 @@ def offline(output, cores):
 
     # start offlining
     pool = Pool(cores)
-    pool.map(offliner, zip([images]*cores, filepaths))
+    pool.map(process, zip([images]*cores, filepaths, range(cores)))
 
 
 def render(templates, database, output):
