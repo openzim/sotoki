@@ -354,6 +354,17 @@ def offline(output, cores):
     pool.map(process, zip([images]*cores, filepaths, range(cores)))
 
 
+def lazy(query):
+    offset = 0
+    while True:
+        try:
+            yield query.limit(1).offset(offset).one()
+        except:
+            raise StopIteration
+        else:
+            offset += 1
+
+
 def render(templates, database, output):
     # wrap the actual database
     session = make_session(database)
@@ -361,7 +372,7 @@ def render(templates, database, output):
     print 'render questions'
     os.makedirs(os.path.join(output, 'question'))
     questions = session.query(Post).filter(Post.type == 1)
-    for index, question in enumerate(questions):
+    for index, question in enumerate(lazy(questions)):
         filename = '%s.html' % slugify(question.title)
         filepath = os.path.join(output, 'question', filename)
         print filepath, question.closed_at
