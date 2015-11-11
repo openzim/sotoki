@@ -2,9 +2,10 @@
 """sotoki.
 
 Usage:
+  sotoki.py run <work-directory>
   sotoki.py load <dump-directory> <database-directory>
-  sotoki.py offline <output> <cores>
   sotoki.py render <templates> <database> <output>
+  sotoki.py offline <output> <cores>
   sotoki.py (-h | --help)
   sotoki.py --version
 
@@ -17,8 +18,11 @@ import re
 import os
 import os.path
 from hashlib import sha1
+from shutil import copytree
+from urllib2 import urlopen
 from string import punctuation
 from multiprocessing import Pool
+from multiprocessing import cpu_count
 
 from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
@@ -36,7 +40,6 @@ from lxml.etree import parse as string2xml
 from lxml.html import parse as html
 from lxml.html import tostring as html2string
 
-from wget import download
 from docopt import docopt
 from slugify import slugify
 from markdown import markdown as md
@@ -290,6 +293,13 @@ def load(dump, database):
         session.commit()
 
 
+def download(url, output):
+    response = urlopen(url)
+    output = response.read()
+    with open(output, 'b') as f:
+        f.write(output)
+
+
 def process(args):
     images, filepaths, uid = args
     count = len(filepaths)
@@ -311,7 +321,7 @@ def process(args):
                     if not os.path.exists(out):
                         try:
                             download(src, out)
-                        except IOError:
+                        except:
                             # do nothing
                             pass
                         else:
@@ -422,3 +432,17 @@ if __name__ == '__main__':
         render(arguments['<templates>'], arguments['<database>'], arguments['<output>'])  # noqa
     elif arguments['offline']:
         offline(arguments['<output>'], int(arguments['<cores>']))
+    elif arguments['run']:
+        # load dump into database
+        database = os.path.join('work', 'db')
+        dump = os.path.join('work', 'dump')
+        load(dump, database)
+        # render templates into `output`
+        templates = 'templates'
+        output = os.path.join('work', 'output')
+        render(templates, database, output)
+        # offline images
+        cores = cpu_count() / 2
+        offline(output, cores)
+        # copy static
+        copytree('static', os.path.join('work', 'output'))
