@@ -19,6 +19,12 @@ Clone this repository:
 git clone https://github.com/kiwix/sotoki.git
 ```
 
+Install non python dependencies:
+
+```
+sudo apt-get install jpegoptim pngquant gifsicle
+```
+
 Install pip:
 
 ```
@@ -47,31 +53,18 @@ Install the python requirements:
 pip install -r requirements.txt
 ```
 
-Copy superusers.com.7z and unzip it to `dumps/superuser/`:
+Copy `superusers.com.7z` and `unzip` it to `work/dump/`:
 
 ```
-mkdir -p dumps/superuser/
-cp superusers.com.7z dumps/superuser/
-cd dumps/superuser/
+mkdir -p work/dump/
+cp superusers.com.7z work/dump/
+cd work/dump
 7z e superusers.com.7z
 ```
 
-Go back at the sotoki root and load the superuser dump inside sqlite database:
+Go back at the sotoki root and run the pipeline:
 
 ```
-cd ../..
-make load
+python sotoki.py run
 ```
 
-Build the html pages:
-
-```
-make build-all
-```
-
-Now you can have a look at the results in your browser, just run the following
-command to start the server:
-
-```
-make serve
-```
