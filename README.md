@@ -22,7 +22,7 @@ git clone https://github.com/kiwix/sotoki.git
 Install non python dependencies:
 
 ```
-sudo apt-get install jpegoptim pngquant gifsicle
+sudo apt-get install jpegoptim pngquant gifsicle advancecomp
 ```
 
 Install pip:
