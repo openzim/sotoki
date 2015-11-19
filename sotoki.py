@@ -416,7 +416,7 @@ def render(templates, database, output):
     for index, question in enumerate(lazy(questions)):
         filename = '%s.html' % slugify(question.title)
         filepath = os.path.join(output, 'question', filename)
-        print filepath, question.closed_at
+        print filepath
         jinja(
             filepath,
             'question.html',
