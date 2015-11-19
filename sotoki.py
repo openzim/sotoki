@@ -2,7 +2,7 @@
 """sotoki.
 
 Usage:
-  sotoki.py run <work-directory>
+  sotoki.py run
   sotoki.py load <dump-directory> <database-directory>
   sotoki.py render <templates> <database> <output>
   sotoki.py offline <output> <cores>
@@ -12,15 +12,17 @@ Usage:
 Options:
   -h --help     Show this screen.
   --version     Show version.
-
 """
 import re
 import os
+import shlex
 import os.path
 from hashlib import sha1
 from shutil import copytree
 from urllib2 import urlopen
 from string import punctuation
+from subprocess import check_output
+
 from multiprocessing import Pool
 from multiprocessing import cpu_count
 
@@ -39,6 +41,9 @@ from jinja2 import FileSystemLoader
 from lxml.etree import parse as string2xml
 from lxml.html import parse as html
 from lxml.html import tostring as html2string
+
+from PIL import Image
+from resizeimage import resizeimage
 
 from docopt import docopt
 from slugify import slugify
@@ -300,6 +305,37 @@ def download(url, output):
         f.write(output)
 
 
+def resize(filepath):
+    fd = open(filepath, 'r')
+    img = Image.open(fd)
+    # hardcoded size based on website layyout
+    img = resizeimage.resize_width(img, 540)
+    img.save(filepath, img.format)
+    fd.close()
+
+
+def system(command):
+    check_output(shlex.split(command))
+
+
+def optimize(filepath):
+    # based on mwoffliner code http://bit.ly/1HZgZeP
+    ext = os.path.splitext(filepath)[1]
+    if ext in ('.jpg', '.jpeg', '.JPG', '.JPEG'):
+        system('jpegoptim --strip-all -m50 "%s"' % filepath)
+    elif ext in ('.png', '.PNG'):
+        # run pngquant
+        cmd = 'pngquant --verbose --nofs --force --ext="%s" "%s"'
+        cmd = cmd % (ext, filepath)
+        system(cmd)
+        # run advancecomp
+        system('advdef -q -z -4 -i 5 "%s"' % filepath)
+    elif ext in ('.gif', '.GIF'):
+        system('gifsicle -O3 "%s" -o "%s"' % (filepath, filepath))
+    else:
+        print('* unknown file extension %s' % filepath)
+
+
 def process(args):
     images, filepaths, uid = args
     count = len(filepaths)
@@ -325,8 +361,13 @@ def process(args):
                             # do nothing
                             pass
                         else:
+                            # update post's html
                             src = '../static/images/' + filename
                             img.attrib['src'] = src
+                            # resize image
+                            resize(out)
+                            # resize 
+                            
                 post = html2string(body)
                 with open(filepath, 'w') as f:
                     f.write(post)
@@ -445,7 +486,7 @@ if __name__ == '__main__':
         offline(arguments['<output>'], int(arguments['<cores>']))
     elif arguments['run']:
         # load dump into database
-        database = os.path.join('work', 'db')
+        database = 'work'
         dump = os.path.join('work', 'dump')
         load(dump, database)
         # render templates into `output`
