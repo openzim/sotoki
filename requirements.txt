@@ -1,8 +1,9 @@
 Jinja2==2.8
 Markdown==2.6.2
 lxml==3.4.4
-docopt
-sqlalchemy
-slugify
-python-image-resize
-Pillow
+MarkupSafe==0.23
+Pillow==3.0.0
+SQLAlchemy==1.0.9
+docopt==0.6.2
+python-resize-image==1.1.10
+slugify==0.0.1
