@@ -347,27 +347,27 @@ def process(args):
             print exc
         else:
             imgs = body.xpath('//img')
+            for img in imgs:
+                src = img.attrib['src']
+                ext = os.path.splitext(src)[1]
+                filename = sha1(src).hexdigest() + ext
+                out = os.path.join(images, filename)
+                # download the image only if it's not already downloaded
+                if not os.path.exists(out):
+                    try:
+                        download(src, out)
+                    except:
+                        # do nothing
+                        pass
+                    else:
+                        # update post's html
+                        src = '../static/images/' + filename
+                        img.attrib['src'] = src
+                        # resize image
+                        resize(out)
+                        # optmize
+                        optimize(out)
             if imgs:
-                for img in imgs:
-                    src = img.attrib['src']
-                    ext = os.path.splitext(src)[1]
-                    filename = sha1(src).hexdigest() + ext
-                    out = os.path.join(images, filename)
-                    # download the image only if it's not already downloaded
-                    if not os.path.exists(out):
-                        try:
-                            download(src, out)
-                        except:
-                            # do nothing
-                            pass
-                        else:
-                            # update post's html
-                            src = '../static/images/' + filename
-                            img.attrib['src'] = src
-                            # resize image
-                            resize(out)
-                            # resize
-                            optimize(out)
                 post = html2string(body)
                 with open(filepath, 'w') as f:
                     f.write(post)
