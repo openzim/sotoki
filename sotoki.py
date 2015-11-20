@@ -366,8 +366,8 @@ def process(args):
                             img.attrib['src'] = src
                             # resize image
                             resize(out)
-                            # resize 
-                            
+                            # resize
+                            optimize(out)
                 post = html2string(body)
                 with open(filepath, 'w') as f:
                     f.write(post)
