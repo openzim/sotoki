@@ -26,13 +26,16 @@ from subprocess import check_output
 from multiprocessing import Pool
 from multiprocessing import cpu_count
 
+from sqlalchemy import Column
+from sqlalchemy import Integer
+from sqlalchemy import String
 from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
 from sqlalchemy.orm import backref
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import relationship
+from sqlalchemy.schema import Sequence
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 
 from jinja2 import Environment
@@ -110,6 +113,7 @@ Base = declarative_base()
 class Tag(Base):
 
     __tablename__ = 'tags'
+
     id = Column(Integer, primary_key=True)
     name = Column(String)
 
@@ -117,6 +121,7 @@ class Tag(Base):
 class QuestionTag(Base):
 
     __tablename__ = 'quetiontag'
+
     id = Column(Integer, primary_key=True)
 
     tag_id = Column(Integer, ForeignKey('tags.id'), index=True)
@@ -140,6 +145,16 @@ class User(Base):
     views = Column(Integer)
     up_votes = Column(Integer)
     down_votes = Column(Integer)
+
+
+class Badge(Base):
+
+    __tablename__ = 'badges'
+
+    id = Column(Integer, Sequence('badges_id_seq'), primary_key=True)
+    name = Column(String)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
+    user = relationship("User")
 
 
 class Post(Base):
@@ -237,6 +252,15 @@ def load(dump, database):
             views=user.get('Views'),
             up_votes=user.get('UpVotes'),
             down_votes=user.get('DownVotes'),
+        )
+        session.add(user)
+        session.commit()
+
+    print 'load badges'
+    for badge in iterate(os.path.join(dump, 'Badges.xml')):
+        badge = Badge(
+            user_id=badge['UserId'],
+            name=badge['Name']
         )
         session.add(user)
         session.commit()
