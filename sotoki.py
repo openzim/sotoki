@@ -387,10 +387,11 @@ def process(args):
                         # update post's html
                         src = '../static/images/' + filename
                         img.attrib['src'] = src
-                        # resize image
+                        # finalize offlining
                         resize(out)
-                        # optmize
                         optimize(out)
+            # does the post contain images? if so, we surely modified
+            # its content so save it.
             if imgs:
                 post = html2string(body)
                 with open(filepath, 'w') as f:
@@ -404,19 +405,23 @@ def chunks(l, n):
 
 
 def offline(output, cores):
+    """offline, resize and reduce size of images"""
     print 'offline images of %s using %s process...' % (output, cores)
-    images = os.path.join(output, 'static', 'images')
-    if not os.path.exists(images):
-        os.makedirs(images)
+    images_path = os.path.join(output, 'static', 'images')
+    if not os.path.exists(images_path):
+        os.makedirs(images_path)
 
     filepaths = os.path.join(output, 'question')
     filepaths = map(lambda x: os.path.join(output, 'question', x), os.listdir(filepaths))  # noqa
-    filepaths = chunks(filepaths, len(filepaths) / cores)
-    filepaths = list(filepaths)
+    filepaths_chunks = chunks(filepaths, len(filepaths) / cores)
+    filepaths_chunks = list(filepaths_chunks)
 
     # start offlining
     pool = Pool(cores)
-    pool.map(process, zip([images]*cores, filepaths, range(cores)))
+    # prepare a list of (images_path, filepaths_chunck) to feed
+    # `process` function via pool.map
+    args = zip([images_path]*cores, filepaths, range(cores))
+    pool.map(process, args)
 
 
 def lazy(query):
