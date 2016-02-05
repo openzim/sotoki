@@ -363,6 +363,7 @@ def optimize(filepath):
 def process(args):
     images, filepaths, uid = args
     count = len(filepaths)
+    print 'offlining start', uid
     for index, filepath in enumerate(filepaths):
         print 'offline %s/%s (%s)' % (index, count, uid)
         try:
@@ -396,7 +397,7 @@ def process(args):
                 post = html2string(body)
                 with open(filepath, 'w') as f:
                     f.write(post)
-
+    print 'offlining finished', uid
 
 def chunks(l, n):
     """Yield successive n-sized chunks from l."""
