@@ -423,6 +423,7 @@ def offline(output, cores):
     # prepare a list of (images_path, filepaths_chunck) to feed
     # `process` function via pool.map
     args = zip([images_path]*cores, filepaths, range(cores))
+    print 'start offline process with', cores, 'cores'
     pool.map(process, args)
 
 
