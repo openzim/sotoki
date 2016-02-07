@@ -239,3 +239,14 @@ body.tags > div.container ul > li {
     margin: 5px;
     border: 1px solid hsl(208, 56%, 46%);
 }
+
+/* user page */
+
+body.user .col-md-3 {
+    text-align: center;
+}
+
+body.user .reputation span {
+    font-size: 2em;
+    font-weight: bold;
+}

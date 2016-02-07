@@ -5,3 +5,5 @@ dumps/
 \.#*
 build/
 db.backup/
+_work
+work

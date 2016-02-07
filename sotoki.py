@@ -5,6 +5,7 @@ Usage:
   sotoki.py run
   sotoki.py load <dump-directory> <database-directory>
   sotoki.py render <templates> <database> <output>
+  sotoki.py render-users <templates> <database> <output>
   sotoki.py offline <output> <cores>
   sotoki.py (-h | --help)
   sotoki.py --version
@@ -507,12 +508,32 @@ def render(templates, database, output):
             break
 
 
+def render_users(templates, database, output):
+    print 'render users'
+    session = make_session(database)
+    os.makedirs(os.path.join(output, 'users'))
+    users = session.query(User)
+    for index, user in enumerate(lazy(users)):
+        filename = '%s.html' % slugify(user.name)
+        fullpath = os.path.join(output, 'users', filename)
+        jinja(
+            fullpath,
+            'user.html',
+            templates,
+            user=user,
+        )
+        if DEBUG and index == 10:
+            break
+
+
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='sotoki 0.1')
     if arguments['load']:
         load(arguments['<dump-directory>'], arguments['<database-directory>'])
     elif arguments['render']:
         render(arguments['<templates>'], arguments['<database>'], arguments['<output>'])  # noqa
+    elif arguments['render-users']:
+        render_users(arguments['<templates>'], arguments['<database>'], arguments['<output>'])  # noqa
     elif arguments['offline']:
         offline(arguments['<output>'], int(arguments['<cores>']))
     elif arguments['run']:
@@ -524,6 +545,7 @@ if __name__ == '__main__':
         templates = 'templates'
         output = os.path.join('work', 'output')
         render(templates, database, output)
+        render_users(templates, database, output)
         # offline images
         cores = cpu_count() / 2
         offline(output, cores)
