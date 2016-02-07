@@ -36,7 +36,7 @@
         <p>asked <span class="date" title="{{ question.created_at }}">{{ question.created_at }}</span></p>
         <a class="profile" href="../user/{{ post.owner.name | slugify  }}.html">
           <div> 
-            <img src="http://lorempixel.com/32/32/" /> 
+            <img src="../static/identicon/{{ post.owner.name | slugify }}.small.png" /> 
           </div> 
           <div>
             <p>{{ post.owner.name }}</p>

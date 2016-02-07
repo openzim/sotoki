@@ -52,6 +52,7 @@ from resizeimage import resizeimage
 from docopt import docopt
 from slugify import slugify
 from markdown import markdown as md
+import pydenticon
 
 
 DEBUG = os.environ.get('DEBUG', False)
@@ -510,11 +511,51 @@ def render(templates, database, output):
 
 def render_users(templates, database, output):
     print 'render users'
-    session = make_session(database)
     os.makedirs(os.path.join(output, 'user'))
+    session = make_session(database)
     users = session.query(User)
+
+    # Prepare identicon generation
+    identicon_path = os.path.join(output, 'static', 'identicon')
+    os.makedirs(identicon_path)
+    # Set-up a list of foreground colours (taken from Sigil).
+    foreground = [
+        "rgb(45,79,255)",
+        "rgb(254,180,44)",
+        "rgb(226,121,234)",
+        "rgb(30,179,253)",
+        "rgb(232,77,65)",
+        "rgb(49,203,115)",
+        "rgb(141,69,170)"
+    ]
+    # Set-up a background colour (taken from Sigil).
+    background = "rgb(224,224,224)"
+
+    # Instantiate a generator that will create 5x5 block identicons
+    # using SHA1 digest.
+    generator = pydenticon.Generator(5, 5, foreground=foreground, background=background)  # noqa
+
     for index, user in enumerate(lazy(users)):
-        filename = '%s.html' % slugify(user.name)
+        username = slugify(user.name)
+
+        # Generate big identicon
+        padding = (20, 20, 20, 20)
+        identicon = generator.generate(username, 164, 164, padding=padding, output_format="png")  # noqa
+        filename = username + '.png'
+        fullpath = os.path.join(output, 'static', 'identicon', filename)
+        with open(fullpath, "wb") as f:
+            f.write(identicon)
+
+        # Generate small identicon
+        padding = [0] * 4  # no padding
+        identicon = generator.generate(username, 32, 32, padding=padding, output_format="png")  # noqa
+        filename = username + '.small.png'
+        fullpath = os.path.join(output, 'static', 'identicon', filename)
+        with open(fullpath, "wb") as f:
+            f.write(identicon)
+
+        # generate user profile page
+        filename = '%s.html' % username
         fullpath = os.path.join(output, 'user', filename)
         jinja(
             fullpath,
