@@ -119,7 +119,7 @@ a[href*="//"]:after {  /* all external links are absolute */
     background: #eee;
 }
 
-.post .author > div > div {
+.post .author .profile {
     text-align: left;
     display: flex;
     justify-content: flex-begin;

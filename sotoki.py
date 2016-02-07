@@ -511,11 +511,11 @@ def render(templates, database, output):
 def render_users(templates, database, output):
     print 'render users'
     session = make_session(database)
-    os.makedirs(os.path.join(output, 'users'))
+    os.makedirs(os.path.join(output, 'user'))
     users = session.query(User)
     for index, user in enumerate(lazy(users)):
         filename = '%s.html' % slugify(user.name)
-        fullpath = os.path.join(output, 'users', filename)
+        fullpath = os.path.join(output, 'user', filename)
         jinja(
             fullpath,
             'user.html',

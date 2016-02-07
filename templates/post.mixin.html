@@ -34,7 +34,7 @@
     <div class="author">
       <div>
         <p>asked <span class="date" title="{{ question.created_at }}">{{ question.created_at }}</span></p>
-        <div>
+        <a class="profile" href="../user/{{ post.owner.name | slugify  }}.html">
           <div> 
             <img src="http://lorempixel.com/32/32/" /> 
           </div> 
@@ -42,7 +42,7 @@
             <p>{{ post.owner.name }}</p>
             <p>{{ post.owner.reputation | intspace }}</p>
           </div>
-        </div>
+        </a>
       </div>
     </div>
   {% endif %}
