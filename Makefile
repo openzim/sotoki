@@ -3,20 +3,10 @@ all:
 
 
 copy-static:
-	cp -rf static build/
+	cp -rf static work/output
 
 clean:
-	rm build -rf || true
-
-build-html:
-	python sotoki.py render templates/ db/superuser/ build/
-
-build-all: clean build-html copy-static
-
-load:
-	rm -rf db/superuser/* || true
-	mkdir -p db/superuser/
-	python sotoki.py load dumps/superuser/ db/superuser
+	rm work/output -rf || true
 
 serve:
-	cd build/ && python3 -m http.server
+	cd work/output && python3 -m http.server
