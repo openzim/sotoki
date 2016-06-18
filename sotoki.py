@@ -264,7 +264,7 @@ def load(dump, database):
             user_id=badge['UserId'],
             name=badge['Name']
         )
-        session.add(user)
+        session.add(badge)
         session.commit()
 
     print 'load posts'
