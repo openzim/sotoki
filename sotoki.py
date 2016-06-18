@@ -19,7 +19,7 @@ import os
 import shlex
 import os.path
 from hashlib import sha1
-from shutil import copytree
+from distutils.dir_util import copy_tree
 from urllib2 import urlopen
 from string import punctuation
 from subprocess import check_output
@@ -424,7 +424,7 @@ def offline(output, cores):
     pool = Pool(cores)
     # prepare a list of (images_path, filepaths_chunck) to feed
     # `process` function via pool.map
-    args = zip([images_path]*cores, filepaths, range(cores))
+    args = zip([images_path]*cores, filepaths_chunks, range(cores))
     print 'start offline process with', cores, 'cores'
     pool.map(process, args)
 
@@ -591,4 +591,4 @@ if __name__ == '__main__':
         cores = cpu_count() / 2
         offline(output, cores)
         # copy static
-        copytree('static', os.path.join('work', 'output'))
+        copy_tree('static', os.path.join('work', 'output', 'static'))
