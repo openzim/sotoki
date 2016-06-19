@@ -2,7 +2,7 @@
 """sotoki.
 
 Usage:
-  sotoki.py run
+  sotoki.py run <url> <publisher>
   sotoki.py load <dump-directory> <database-directory>
   sotoki.py render <templates> <database> <output>
   sotoki.py render-users <templates> <database> <output>
@@ -14,12 +14,18 @@ Options:
   -h --help     Show this screen.
   --version     Show version.
 """
+import bs4 as BeautifulSoup
+import envoy
+import codecs
+import sys
+import datetime
+import subprocess
 import re
 import os
 import shlex
 import os.path
 from hashlib import sha1
-from shutil import copytree
+from distutils.dir_util import copy_tree
 from urllib2 import urlopen
 from string import punctuation
 from subprocess import check_output
@@ -326,18 +332,18 @@ def load(dump, database):
 
 def download(url, output):
     response = urlopen(url)
-    output = response.read()
-    with open(output, 'b') as f:
-        f.write(output)
+    output_file = response.read()
+    with open(output, 'w') as f:
+        f.write(output_file)
 
 
 def resize(filepath):
-    fd = open(filepath, 'r')
-    img = Image.open(fd)
+    img = Image.open(filepath)
+    w, h = img.size
+    if w >= 540:
     # hardcoded size based on website layyout
-    img = resizeimage.resize_width(img, 540)
+        img = resizeimage.resize_width(img, 540)
     img.save(filepath, img.format)
-    fd.close()
 
 
 def system(command):
@@ -391,6 +397,7 @@ def process(args):
                         src = '../static/images/' + filename
                         img.attrib['src'] = src
                         # finalize offlining
+			print out
                         resize(out)
                         optimize(out)
             # does the post contain images? if so, we surely modified
@@ -424,7 +431,7 @@ def offline(output, cores):
     pool = Pool(cores)
     # prepare a list of (images_path, filepaths_chunck) to feed
     # `process` function via pool.map
-    args = zip([images_path]*cores, filepaths, range(cores))
+    args = zip([images_path]*cores, filepaths_chunks, range(cores))
     print 'start offline process with', cores, 'cores'
     pool.map(process, args)
 
@@ -566,6 +573,78 @@ def render_users(templates, database, output):
         if DEBUG and index == 10:
             break
 
+def exec_cmd(cmd):
+	return envoy.run(str(cmd.encode('utf-8')))
+
+def create_zims(title, publisher, description):
+        print 'Creating ZIM files'
+        # Check, if the folder exists. Create it, if it doesn't.
+	lang_input="en"
+        html_dir = os.path.join("work", "output")
+	zim_path = os.path.join("work/", "{title}_{lang}_all_{date}.zim".format(title=title.lower(),lang=lang_input,date=datetime.datetime.now().strftime('%Y-%m')))
+	title = title.replace("-", " ")
+	creator = title
+        create_zim(html_dir, zim_path, title, description, lang_input, publisher, creator)
+
+def create_zim(static_folder, zim_path, title, description, lang_input, publisher, creator):
+
+    print "\tWritting ZIM for {}".format(title)
+    context = {
+        'languages': lang_input,
+        'title': title,
+        'description': description,
+        'creator': creator,
+        'publisher': publisher,
+        'home': 'index.html',
+        'favicon': 'favicon.png',
+        'static': static_folder,
+        'zim': zim_path
+    }
+
+    cmd = ('zimwriterfs --welcome="{home}" --favicon="{favicon}" '
+           '--language="{languages}" --title="{title}" '
+           '--description="{description}" '
+           '--creator="{creator}" --publisher="{publisher}" "{static}" "{zim}"'
+           .format(**context))
+    print cmd
+
+    if exec_cmd(cmd):
+        print "Successfuly created ZIM file at {}".format(zim_path)
+    else:
+        print "Unable to create ZIM file :("
+
+def bin_is_present(binary):
+    try:
+        subprocess.Popen(binary,
+                         universal_newlines=True,
+                         shell=False,
+                         stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE,
+                         bufsize=0)
+    except OSError:
+        return False
+    else:
+        return True
+
+def grab_title_description_favicon(url):
+    output = urlopen(url).read()
+    soup = BeautifulSoup.BeautifulSoup(output)
+    title = soup.find('meta',attrs={"name":u"twitter:title"})['content']
+    description = soup.find('meta',attrs={"name":u"twitter:description"})['content']
+    favicon = soup.find('link',attrs={"rel":u"image_src"})['href']
+    if favicon[:2] == "//":
+	favicon = "http:" + favicon
+    favicon_out = os.path.join('work', 'output', 'favicon.png')
+    download(favicon, favicon_out)
+    resize_image_profile(favicon_out)
+    return [ title , description ]
+
+def resize_image_profile(image_path):
+    image = Image.open(image_path)
+    w, h = image.size
+    image = image.resize((48, 48), Image.ANTIALIAS)
+    image.save(image_path)
 
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='sotoki 0.1')
@@ -578,6 +657,10 @@ if __name__ == '__main__':
     elif arguments['offline']:
         offline(arguments['<output>'], int(arguments['<cores>']))
     elif arguments['run']:
+	if not bin_is_present("zimwriterfs"):
+		sys.exit("zimwriterfs is not available, please install it.")
+        url = arguments['<url>']
+        publisher = arguments['<publisher>']
         # load dump into database
         database = 'work'
         dump = os.path.join('work', 'dump')
@@ -591,4 +674,6 @@ if __name__ == '__main__':
         cores = cpu_count() / 2
         offline(output, cores)
         # copy static
-        copytree('static', os.path.join('work', 'output'))
+	copy_tree('static', os.path.join('work', 'output', 'static'))
+	title, description = grab_title_description_favicon(url)
+	create_zims(title, publisher, description)
