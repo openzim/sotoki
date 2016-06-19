@@ -326,16 +326,17 @@ def load(dump, database):
 
 def download(url, output):
     response = urlopen(url)
-    output = response.read()
+    output_content = response.read()
     with open(output, 'b') as f:
-        f.write(output)
+        f.write(output_content)
 
 
 def resize(filepath):
     fd = open(filepath, 'r')
     img = Image.open(fd)
+    if w >= 540:
     # hardcoded size based on website layyout
-    img = resizeimage.resize_width(img, 540)
+        img = resizeimage.resize_width(img, 540)
     img.save(filepath, img.format)
     fd.close()
 
