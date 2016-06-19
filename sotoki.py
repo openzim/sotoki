@@ -247,7 +247,7 @@ def load(dump, database):
     for tag in iterate(os.path.join(dump, 'Tags.xml')):
         tag = Tag(id=int(tag['Id']), name=tag['TagName'])
         session.add(tag)
-        session.commit()
+    session.commit()
 
     print 'load users'
     for user in iterate(os.path.join(dump, 'Users.xml')):
@@ -264,7 +264,7 @@ def load(dump, database):
             down_votes=user.get('DownVotes'),
         )
         session.add(user)
-        session.commit()
+    session.commit()
 
     print 'load badges'
     for badge in iterate(os.path.join(dump, 'Badges.xml')):
@@ -273,7 +273,7 @@ def load(dump, database):
             name=badge['Name']
         )
         session.add(badge)
-        session.commit()
+    session.commit()
 
     print 'load posts'
     for properties in iterate(os.path.join(dump, 'Posts.xml')):
@@ -293,7 +293,7 @@ def load(dump, database):
             last_active_date=properties['LastActivityDate'],
         )
         session.add(post)
-        session.commit()
+        #session.commit()
         tags = properties.get('Tags', '')
         tags = tags[1:-1].split('><')
 
@@ -305,7 +305,7 @@ def load(dump, database):
             else:
                 link = QuestionTag(tag_id=tag.id, question_id=post.id)
                 session.add(link)
-        session.commit()
+    session.commit()
 
     print 'load post links'
     for properties in iterate(os.path.join(dump, 'PostLinks.xml')):
@@ -316,7 +316,7 @@ def load(dump, database):
             type=properties['LinkTypeId']
         )
         session.add(post_link)
-        session.commit()
+    session.commit()
 
     print 'load comments'
     for properties in iterate(os.path.join(dump, 'Comments.xml')):
@@ -329,7 +329,7 @@ def load(dump, database):
             user_id=properties.get('UserId'),
         )
         session.add(comment)
-        session.commit()
+    session.commit()
 
 
 def download(url, output):
