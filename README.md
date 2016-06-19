@@ -55,6 +55,6 @@ cd work/dump
 Go back at the sotoki root and run the pipeline:
 
 ```
-python sotoki.py run
+python sotoki.py run [url of stackechange website] [publisher]
 ```
 
