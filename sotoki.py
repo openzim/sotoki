@@ -448,7 +448,7 @@ def lazy(query):
             offset += 1
 
 
-def render(templates, database, output):
+def render(templates, database, output, title, publisher):
     # wrap the actual database
     session = make_session(database)
 
@@ -477,6 +477,8 @@ def render(templates, database, output):
         templates,
         tags=tags,
         rooturl=".",
+        title=title,
+        publisher=publisher,
     )
     # tag page
     os.makedirs(os.path.join(output, 'tag'))
@@ -671,7 +673,7 @@ if __name__ == '__main__':
         output = os.path.join('work', 'output')
         os.makedirs(output)
         title, description = grab_title_description_favicon(url, output)
-        render(templates, database, output)
+        render(templates, database, output, title, publisher)
         render_users(templates, database, output)
         # offline images
         cores = cpu_count() / 2
