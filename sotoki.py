@@ -2,7 +2,7 @@
 """sotoki.
 
 Usage:
-  sotoki.py run
+  sotoki.py run <url> <publisher>
   sotoki.py load <dump-directory> <database-directory>
   sotoki.py render <templates> <database> <output>
   sotoki.py render-users <templates> <database> <output>
@@ -54,6 +54,8 @@ from slugify import slugify
 from markdown import markdown as md
 import pydenticon
 
+
+import bs4 as BeautifulSoup
 
 DEBUG = os.environ.get('DEBUG', False)
 
@@ -327,18 +329,17 @@ def load(dump, database):
 def download(url, output):
     response = urlopen(url)
     output_content = response.read()
-    with open(output, 'b') as f:
+    with open(output, 'w') as f:
         f.write(output_content)
 
 
 def resize(filepath):
-    fd = open(filepath, 'r')
-    img = Image.open(fd)
+    img = Image.open(filepath)
+    w, h = img.size
     if w >= 540:
     # hardcoded size based on website layyout
         img = resizeimage.resize_width(img, 540)
     img.save(filepath, img.format)
-    fd.close()
 
 
 def system(command):
@@ -567,6 +568,26 @@ def render_users(templates, database, output):
         if DEBUG and index == 10:
             break
 
+def grab_title_description_favicon(url, output_dir):
+    output = urlopen(url).read()
+    soup = BeautifulSoup.BeautifulSoup(output)
+    title = soup.find('meta',attrs={"name":u"twitter:title"})['content']
+    description = soup.find('meta',attrs={"name":u"twitter:description"})['content']
+    favicon = soup.find('link',attrs={"rel":u"image_src"})['href']
+    if favicon[:2] == "//":
+	favicon = "http:" + favicon
+    favicon_out = os.path.join(output_dir, 'favicon.png')
+    download(favicon, favicon_out)
+    resize_image_profile(favicon_out)
+    return [ title , description ]
+
+def resize_image_profile(image_path):
+    image = Image.open(image_path)
+    w, h = image.size
+    image = image.resize((48, 48), Image.ANTIALIAS)
+    image.save(image_path)
+
+
 
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='sotoki 0.1')
@@ -580,12 +601,16 @@ if __name__ == '__main__':
         offline(arguments['<output>'], int(arguments['<cores>']))
     elif arguments['run']:
         # load dump into database
-        database = 'work'
+        url = arguments['<url>']
+        publisher = arguments['<publisher>']
         dump = os.path.join('work', 'dump')
+        database = 'work'
         load(dump, database)
         # render templates into `output`
         templates = 'templates'
         output = os.path.join('work', 'output')
+        os.makedirs(output)
+        title, description = grab_title_description_favicon(url, output)
         render(templates, database, output)
         render_users(templates, database, output)
         # offline images
