@@ -56,6 +56,12 @@ import pydenticon
 
 
 import bs4 as BeautifulSoup
+import envoy
+import sys
+import datetime
+import subprocess
+
+
 
 DEBUG = os.environ.get('DEBUG', False)
 
@@ -587,7 +593,59 @@ def resize_image_profile(image_path):
     image = image.resize((48, 48), Image.ANTIALIAS)
     image.save(image_path)
 
+def exec_cmd(cmd):
+	return envoy.run(str(cmd.encode('utf-8')))
 
+def create_zims(title, publisher, description):
+        print 'Creating ZIM files'
+        # Check, if the folder exists. Create it, if it doesn't.
+	lang_input="en"
+        html_dir = os.path.join("work", "output")
+	zim_path = os.path.join("work/", "{title}_{lang}_all_{date}.zim".format(title=title.lower(),lang=lang_input,date=datetime.datetime.now().strftime('%Y-%m')))
+	title = title.replace("-", " ")
+	creator = title
+        create_zim(html_dir, zim_path, title, description, lang_input, publisher, creator)
+
+def create_zim(static_folder, zim_path, title, description, lang_input, publisher, creator):
+
+    print "\tWritting ZIM for {}".format(title)
+    context = {
+        'languages': lang_input,
+        'title': title,
+        'description': description,
+        'creator': creator,
+        'publisher': publisher,
+        'home': 'index.html',
+        'favicon': 'favicon.png',
+        'static': static_folder,
+        'zim': zim_path
+    }
+
+    cmd = ('zimwriterfs --welcome="{home}" --favicon="{favicon}" '
+           '--language="{languages}" --title="{title}" '
+           '--description="{description}" '
+           '--creator="{creator}" --publisher="{publisher}" "{static}" "{zim}"'
+           .format(**context))
+    print cmd
+
+    if exec_cmd(cmd):
+        print "Successfuly created ZIM file at {}".format(zim_path)
+    else:
+        print "Unable to create ZIM file :("
+
+def bin_is_present(binary):
+    try:
+        subprocess.Popen(binary,
+                         universal_newlines=True,
+                         shell=False,
+                         stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE,
+                         bufsize=0)
+    except OSError:
+        return False
+    else:
+	return True
 
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='sotoki 0.1')
@@ -600,6 +658,8 @@ if __name__ == '__main__':
     elif arguments['offline']:
         offline(arguments['<output>'], int(arguments['<cores>']))
     elif arguments['run']:
+        if not bin_is_present("zimwriterfs"):
+            sys.exit("zimwriterfs is not available, please install it.")
         # load dump into database
         url = arguments['<url>']
         publisher = arguments['<publisher>']
@@ -618,3 +678,4 @@ if __name__ == '__main__':
         offline(output, cores)
         # copy static
         copy_tree('static', os.path.join('work', 'output', 'static'))
+        create_zims(title, publisher, description)
