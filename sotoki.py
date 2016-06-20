@@ -2,7 +2,7 @@
 """sotoki.
 
 Usage:
-  sotoki.py run <url> <publisher>
+  sotoki.py run <url> <publisher> [--directory=<dir>]
   sotoki.py load <dump-directory> <database-directory>
   sotoki.py render <templates> <database> <output>
   sotoki.py render-users <templates> <database> <output>
@@ -13,6 +13,7 @@ Usage:
 Options:
   -h --help     Show this screen.
   --version     Show version.
+  --directory=<dir>   Specify a directory for xml files [default: work/dump/]
 """
 import re
 import os
@@ -665,7 +666,7 @@ if __name__ == '__main__':
         # load dump into database
         url = arguments['<url>']
         publisher = arguments['<publisher>']
-        dump = os.path.join('work', 'dump')
+        dump = arguments['--directory']
         database = 'work'
         load(dump, database)
         # render templates into `output`
