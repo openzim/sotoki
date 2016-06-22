@@ -4,8 +4,8 @@
 Usage:
   sotoki.py run <url> <publisher> [--directory=<dir>]
   sotoki.py load <dump-directory> <database-directory>
-  sotoki.py render <templates> <database> <output>
-  sotoki.py render-users <templates> <database> <output>
+  sotoki.py render <templates> <database> <output> <title> <publisher> [--directory=<dir>]
+  sotoki.py render-users <templates> <database> <output> <title> <publisher> [--directory=<dir>]
   sotoki.py offline <output> <cores>
   sotoki.py (-h | --help)
   sotoki.py --version
@@ -621,7 +621,9 @@ if __name__ == '__main__':
     if arguments['load']:
         load(arguments['<dump-directory>'], arguments['<database-directory>'])
     elif arguments['render']:
-        render(arguments['<templates>'], arguments['<database>'], arguments['<output>'])  # noqa
+        render_questions(arguments['<templates>'], arguments['<database>'], arguments['<output>'], arguments['<title>'] , arguments['<publisher>'], arguments['    --directory'])
+        render_tags(arguments['<templates>'], arguments['<database>'], arguments['<output>'], arguments['<title>'] , arguments['<publisher>'], arguments['--directory'])
+
     elif arguments['render-users']:
         render_users(arguments['<templates>'], arguments['<database>'], arguments['<output>'])  # noqa
     elif arguments['offline']:
