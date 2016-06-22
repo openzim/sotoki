@@ -328,7 +328,7 @@ def offline(output, cores):
 
 
 
-def render_questions(templates, database, output, title, publisher, dump):
+def render_questions(templates, database, output, title, publisher, dump, cores):
     # wrap the actual database
     print 'render questions'
     db = os.path.join(dump, 'se-dump.db')
@@ -336,11 +336,11 @@ def render_questions(templates, database, output, title, publisher, dump):
     conn.row_factory = dict_factory
     cursor = conn.cursor()
     #create table tags-questions
-#    
     cursor.execute("""CREATE TABLE IF NOT EXISTS questiontag(id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, Score INTEGER, Title TEXT, CreationDate TEXT, Tag TEXT )""")
     conn.commit()
     questions = cursor.execute("""SELECT * FROM posts WHERE PostTypeId == 1""").fetchall()
     os.makedirs(os.path.join(output, 'question'))
+    all_q = [ ]
     for question in questions:
             question["Tags"] = question["Tags"][1:-1].split('><')
             for t in question["Tags"]:
@@ -366,6 +366,17 @@ def render_questions(templates, database, output, title, publisher, dump):
             for links in tmp:
                 name =  cursor.execute("SELECT Title FROM posts WHERE Id == ? " ,( links["RelatedPostId"],) ).fetchone()
                 question["relateds"].append( name["Title"] )
+            conn.commit()
+            all_q.append(question)
+    args=zip([templates]*len(questions),[database]*len(questions),[output]*len(questions),[title]*len(questions),[publisher]*len(questions),[dump]*len(questions), all_q)
+    pool = Pool(cores)
+    pool.map(some_questions, args)
+    pool.close() 
+    pool.join() 
+    conn.close()
+
+def some_questions(args):
+            templates, database, output, title, publisher, dump, question = args
             filename = '%s.html' % slugify(question["Title"])
             print filename
             filepath = os.path.join(output, 'question', filename)
@@ -378,8 +389,6 @@ def render_questions(templates, database, output, title, publisher, dump):
                 title=title,
                 publisher=publisher,
             )
-    conn.commit()
-    conn.close()
 def render_tags(templates, database, output, title, publisher, dump):
     print 'render tags'
     # index page
@@ -641,12 +650,12 @@ if __name__ == '__main__':
         templates = 'templates'
         output = os.path.join('work', 'output')
         os.makedirs(output)
+        cores = cpu_count() / 2
         title, description = grab_title_description_favicon(url, output)
-        render_questions(templates, database, output, title, publisher, dump)
+        render_questions(templates, database, output, title, publisher, dump, cores)
         render_tags(templates, database, output, title, publisher, dump)
         render_users(templates, database, output, title, publisher, dump)
         # offline images
-        cores = cpu_count() / 2
         offline(output, cores)
         # copy static
         copy_tree('static', os.path.join('work', 'output', 'static'))
