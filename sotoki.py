@@ -32,6 +32,8 @@ from subprocess import check_output
 
 from multiprocessing import Pool
 from multiprocessing import cpu_count
+from multiprocessing import Queue
+from multiprocessing import Process
 
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
@@ -54,6 +56,19 @@ import envoy
 import sys
 import datetime
 import subprocess
+
+
+class Worker(Process):
+    def __init__(self, queue):
+        super(Worker, self).__init__()
+        self.queue= queue
+
+    def run(self):
+        print 'Computing things!'
+        for data in iter( self.queue.get, None ):
+            # Use data
+            some_questions(data)
+
 
 
 
@@ -164,6 +179,9 @@ ANATHOMY = {
     }
 }
 # templating
+
+
+
 
 
 def intspace(value):
@@ -340,7 +358,9 @@ def render_questions(templates, database, output, title, publisher, dump, cores)
     conn.commit()
     questions = cursor.execute("""SELECT * FROM posts WHERE PostTypeId == 1""").fetchall()
     os.makedirs(os.path.join(output, 'question'))
-    all_q = [ ]
+    request_queue = Queue()
+    for i in range(cores):
+            Worker( request_queue ).start()
     for question in questions:
             question["Tags"] = question["Tags"][1:-1].split('><')
             for t in question["Tags"]:
@@ -366,14 +386,13 @@ def render_questions(templates, database, output, title, publisher, dump, cores)
             for links in tmp:
                 name =  cursor.execute("SELECT Title FROM posts WHERE Id == ? " ,( links["RelatedPostId"],) ).fetchone()
                 question["relateds"].append( name["Title"] )
-            conn.commit()
-            all_q.append(question)
-    args=zip([templates]*len(questions),[database]*len(questions),[output]*len(questions),[title]*len(questions),[publisher]*len(questions),[dump]*len(questions), all_q)
-    pool = Pool(cores)
-    pool.map(some_questions, args)
-    pool.close() 
-    pool.join() 
-    conn.close()
+            #c'est stupide de tout reconstruire, faut mieux envoyer a une fonc qui repartie selon les threads 
+            #donc ici on renvoie questions 
+            data_send = [ templates, database, output, title, publisher, dump, question ]
+            request_queue.put( data_send )
+    conn.commit()
+    for i in range(cores):
+            request_queue.put( None )
 
 def some_questions(args):
             templates, database, output, title, publisher, dump, question = args
