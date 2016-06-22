@@ -375,6 +375,8 @@ def render_questions(templates, database, output, title, publisher, dump):
                 templates,
                 question=question,
                 rooturl="..",
+                title=title,
+                publisher=publisher,
             )
     conn.commit()
     conn.close()
@@ -428,10 +430,12 @@ def render_tags(templates, database, output, title, publisher, dump):
                 rooturl="../..",
                 hasnext=bool(offset),
                 next=page + 1,
+                title=title,
+                publisher=publisher,
             )
             page += 1
     conn.close()
-def render_users(templates, database, output, dump):
+def render_users(templates, database, output, title, publisher, dump):
     print 'render users'
     os.makedirs(os.path.join(output, 'user'))
     db = os.path.join(dump, 'se-dump.db')
@@ -487,6 +491,8 @@ def render_users(templates, database, output, dump):
             'user.html',
             templates,
             user=user,
+            title=title,
+            publisher=publisher,
         )
         if DEBUG and index == 10:
             break
@@ -636,7 +642,7 @@ if __name__ == '__main__':
         title, description = grab_title_description_favicon(url, output)
         render_questions(templates, database, output, title, publisher, dump)
         render_tags(templates, database, output, title, publisher, dump)
-        render_users(templates, database, output, dump)
+        render_users(templates, database, output, title, publisher, dump)
         # offline images
         cores = cpu_count() / 2
         offline(output, cores)
