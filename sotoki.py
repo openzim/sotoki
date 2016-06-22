@@ -385,9 +385,8 @@ def render_questions(templates, database, output, title, publisher, dump, cores)
             question["relateds"] = [ ]
             for links in tmp:
                 name =  cursor.execute("SELECT Title FROM posts WHERE Id == ? " ,( links["RelatedPostId"],) ).fetchone()
-                question["relateds"].append( name["Title"] )
-            #c'est stupide de tout reconstruire, faut mieux envoyer a une fonc qui repartie selon les threads 
-            #donc ici on renvoie questions 
+                if name != None:
+                    question["relateds"].append( name["Title"] )
             data_send = [ templates, database, output, title, publisher, dump, question ]
             request_queue.put( data_send )
     conn.commit()
