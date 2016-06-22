@@ -290,7 +290,7 @@ def process(args):
                         img.attrib['src'] = src
                         # finalize offlining
                         resize(out)
-                        #optimize(out)
+                        optimize(out)
             # does the post contain images? if so, we surely modified
             # its content so save it.
             if imgs:
@@ -388,7 +388,7 @@ def render_tags(templates, database, output, title, publisher, dump):
     conn.row_factory = dict_factory
     cursor = conn.cursor()
 
-    tags = cursor.execute("""SELECT TagName FROM tags""").fetchall()
+    tags = cursor.execute("""SELECT TagName FROM tags ORDER BY TagName""").fetchall()
     jinja(
         os.path.join(output, 'index.html'),
         'tags.html',
