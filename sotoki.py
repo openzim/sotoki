@@ -15,6 +15,11 @@ Options:
   --version     Show version.
   --directory=<dir>   Specify a directory for xml files [default: work/dump/]
 """
+import sqlite3
+import os
+import xml.etree.cElementTree as etree
+import logging
+
 import re
 import os
 import shlex
@@ -27,18 +32,6 @@ from subprocess import check_output
 
 from multiprocessing import Pool
 from multiprocessing import cpu_count
-
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import String
-from sqlalchemy import ForeignKey
-from sqlalchemy import create_engine
-from sqlalchemy.orm import backref
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm import relationship
-from sqlalchemy.schema import Sequence
-from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.ext.declarative import declarative_base
 
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
@@ -55,7 +48,7 @@ from slugify import slugify
 from markdown import markdown as md
 import pydenticon
 
-
+import sqlite3
 import bs4 as BeautifulSoup
 import envoy
 import sys
@@ -66,7 +59,110 @@ import subprocess
 
 DEBUG = os.environ.get('DEBUG', False)
 
-
+ANATHOMY = {
+    'badges': {
+        'Id': 'INTEGER',
+        'UserId': 'INTEGER',
+        'Name': 'TEXT',
+        'Date': 'DATETIME',
+    },
+    'comments': {
+        'Id': 'INTEGER',
+        'PostId': 'INTEGER',
+        'Score': 'INTEGER',
+        'Text': 'TEXT',
+        'CreationDate': 'DATETIME',
+        'UserId': 'INTEGER',
+        'UserDisplayName': 'TEXT'
+    },
+    'posts': {
+        'Id': 'INTEGER',
+        'PostTypeId': 'INTEGER',  # 1: Question, 2: Answer
+        'ParentID': 'INTEGER',  # (only present if PostTypeId is 2)
+        'AcceptedAnswerId': 'INTEGER',  # (only present if PostTypeId is 1)
+        'CreationDate': 'DATETIME',
+        'Score': 'INTEGER',
+        'ViewCount': 'INTEGER',
+        'Body': 'TEXT',
+        'OwnerUserId': 'INTEGER',  # (present only if user has not been deleted)
+        'OwnerDisplayName': 'TEXT',
+        'LastEditorUserId': 'INTEGER',
+        'LastEditorDisplayName': 'TEXT',  # ="Rich B"
+        'LastEditDate': 'DATETIME',  #="2009-03-05T22:28:34.823"
+        'LastActivityDate': 'DATETIME',  #="2009-03-11T12:51:01.480"
+        'CommunityOwnedDate': 'DATETIME',  #(present only if post is community wikied)
+        'Title': 'TEXT',
+        'Tags': 'TEXT',
+        'AnswerCount': 'INTEGER',
+        'CommentCount': 'INTEGER',
+        'FavoriteCount': 'INTEGER',
+        'ClosedDate': 'DATETIME'
+    },
+    'votes': {
+        'Id': 'INTEGER',
+        'PostId': 'INTEGER',
+        'UserId': 'INTEGER',
+        'VoteTypeId': 'INTEGER',
+        # -   1: AcceptedByOriginator
+        # -   2: UpMod
+        # -   3: DownMod
+        # -   4: Offensive
+        # -   5: Favorite
+        # -   6: Close
+        # -   7: Reopen
+        # -   8: BountyStart
+        # -   9: BountyClose
+        # -  10: Deletion
+        # -  11: Undeletion
+        # -  12: Spam
+        # -  13: InformModerator
+        'CreationDate': 'DATETIME',
+        'BountyAmount': 'INTEGER'
+    },
+    'posthistory': {
+        'Id': 'INTEGER',
+        'PostHistoryTypeId': 'INTEGER',
+        'PostId': 'INTEGER',
+        'RevisionGUID': 'INTEGER',
+        'CreationDate': 'DATETIME',
+        'UserId': 'INTEGER',
+        'UserDisplayName': 'TEXT',
+        'Comment': 'TEXT',
+        'Text': 'TEXT'
+    },
+    'postlinks': {
+        'Id': 'INTEGER',
+        'CreationDate': 'DATETIME',
+        'PostId': 'INTEGER',
+        'RelatedPostId': 'INTEGER',
+        'PostLinkTypeId': 'INTEGER',
+        'LinkTypeId': 'INTEGER'
+    },
+    'users': {
+        'Id': 'INTEGER',
+        'Reputation': 'INTEGER',
+        'CreationDate': 'DATETIME',
+        'DisplayName': 'TEXT',
+        'LastAccessDate': 'DATETIME',
+        'WebsiteUrl': 'TEXT',
+        'Location': 'TEXT',
+        'Age': 'INTEGER',
+        'AboutMe': 'TEXT',
+        'Views': 'INTEGER',
+        'UpVotes': 'INTEGER',
+        'DownVotes': 'INTEGER',
+        'EmailHash': 'TEXT',
+        'AccountId': 'INTEGER',
+        'ProfileImageUrl': 'TEXT'
+    },
+    'tags': {
+        'Id': 'INTEGER',
+        'TagName': 'TEXT',
+        'Count': 'INTEGER',
+        'ExcerptPostId': 'INTEGER',
+        'WikiPostId': 'INTEGER'
+    }
+}
 # templating
 
 
@@ -83,6 +179,12 @@ def markdown(text):
     # FIXME: add postprocess step to transform 'http://' into a link
     # strip p tags
     return md(text)[3:-4]
+
+def dict_factory(cursor, row):
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d
 
 
 def scale(number):
@@ -116,221 +218,10 @@ def jinja(output, template, templates, **context):
         f.write(page.encode('utf-8'))
 
 
-# database models
-
-Base = declarative_base()
-
-
-class Tag(Base):
-
-    __tablename__ = 'tags'
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-
-
-class QuestionTag(Base):
-
-    __tablename__ = 'quetiontag'
-
-    id = Column(Integer, primary_key=True)
-
-    tag_id = Column(Integer, ForeignKey('tags.id'), index=True)
-    tag = relationship("Tag", backref=backref('questions',))
-
-    question_id = Column(Integer, ForeignKey('posts.id'), index=True)
-    question = relationship("Post", backref=backref('tags',))
-
-
-class User(Base):
-
-    __tablename__ = 'users'
-
-    id = Column(Integer, primary_key=True)
-    reputation = Column(Integer)
-    created_at = Column(String)
-    name = Column(String)
-    website = Column(String)
-    location = Column(String)
-    bio = Column(String)
-    views = Column(Integer)
-    up_votes = Column(Integer)
-    down_votes = Column(Integer)
-
-
-class Badge(Base):
-
-    __tablename__ = 'badges'
-
-    id = Column(Integer, Sequence('badges_id_seq'), primary_key=True)
-    name = Column(String)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
-    user = relationship("User")
-
-
-class Post(Base):
-
-    __tablename__ = 'posts'
-
-    id = Column(Integer, primary_key=True)
-    type = Column(Integer)
-
-    score = Column(Integer)
-    title = Column(String)
-    body = Column(String)
-
-    created_at = Column(String)
-    closed_at = Column(String)
-    last_active_date = Column(String)
-
-    view_count = Column(Integer)
-    favorite_count = Column(Integer)
-
-    owner_id = Column(Integer, ForeignKey('users.id'), nullable=True)
-    owner = relationship("User", backref=backref('questions', order_by=id))
-
-    answer_id = Column(Integer, ForeignKey('posts.id'), nullable=True)
-
-    parent_id = Column(Integer, ForeignKey('posts.id'), nullable=True, index=True)  # noqa
-    question = relationship("Post", remote_side=id, backref=backref('answers', order_by=score.desc()), foreign_keys='Post.parent_id', order_by=score.desc())  # noqa
-
-
-class Comment(Base):
-
-    __tablename__ = 'comments'
-
-    id = Column(Integer, primary_key=True)
-    score = Column(Integer)
-    text = Column(String)
-    created_at = Column(String)
-
-    post_id = Column(Integer, ForeignKey('posts.id'), index=True)
-    post = relationship("Post", backref=backref('comments', order_by=created_at))  # noqa
-
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
-    user = relationship("User")
-
-
-class PostLink(Base):
-
-    __tablename__ = 'post_links'
-
-    id = Column(Integer, primary_key=True)
-
-    type = Column(Integer)
-
-    post_id = Column(Integer, ForeignKey('posts.id'), index=True)
-    post = relationship("Post", foreign_keys='PostLink.post_id', backref=backref('links'))  # noqa
-
-    related_id = Column(Integer, ForeignKey('posts.id'))
-    related = relationship("Post", foreign_keys='PostLink.related_id', backref=backref('relateds'))  # noqa
-
-
 def iterate(filepath):
     items = string2xml(filepath).getroot()
     for index, item in enumerate(items.iterchildren()):
         yield item.attrib
-
-
-def make_session(database):
-    uri = 'sqlite:///%s/db.sqlite' % database
-    engine = create_engine(uri)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    return session
-
-
-def load(dump, database):
-    session = make_session(database)
-    Base.metadata.create_all(session.bind)
-
-    print 'load tags'
-    for tag in iterate(os.path.join(dump, 'Tags.xml')):
-        tag = Tag(id=int(tag['Id']), name=tag['TagName'])
-        session.add(tag)
-    session.commit()
-
-    print 'load users'
-    for user in iterate(os.path.join(dump, 'Users.xml')):
-        user = User(
-            id=user['Id'],
-            name=user['DisplayName'],
-            reputation=user['Reputation'],
-            created_at=user['CreationDate'],
-            website=user.get('WebsiteUrl'),
-            location=user.get('Location'),
-            bio=user.get('AboutMe'),
-            views=user.get('Views'),
-            up_votes=user.get('UpVotes'),
-            down_votes=user.get('DownVotes'),
-        )
-        session.add(user)
-    session.commit()
-
-    print 'load badges'
-    for badge in iterate(os.path.join(dump, 'Badges.xml')):
-        badge = Badge(
-            user_id=badge['UserId'],
-            name=badge['Name']
-        )
-        session.add(badge)
-    session.commit()
-
-    print 'load posts'
-    for properties in iterate(os.path.join(dump, 'Posts.xml')):
-        post = Post(
-            id=properties['Id'],
-            type=properties.get('PostTypeId', 3),
-            parent_id=properties.get('ParentId', None),
-            answer_id=properties.get('AcceptedAnswerId', None),
-            created_at=properties['CreationDate'],
-            score=properties['Score'],
-            view_count=properties.get('ViewCount', 0),
-            body=properties['Body'],
-            owner_id=properties.get('OwnerUserId', None),
-            closed_at=properties.get('ClosedDate', None),
-            title=properties.get('Title', ''),
-            favorite_count=properties.get('FavoriteCount', 0),
-            last_active_date=properties['LastActivityDate'],
-        )
-        session.add(post)
-        #session.commit()
-        tags = properties.get('Tags', '')
-        tags = tags[1:-1].split('><')
-
-        for tag in tags:
-            try:
-                tag = session.query(Tag).filter(Tag.name == tag).one()
-            except NoResultFound:
-                pass
-            else:
-                link = QuestionTag(tag_id=tag.id, question_id=post.id)
-                session.add(link)
-    session.commit()
-
-    print 'load post links'
-    for properties in iterate(os.path.join(dump, 'PostLinks.xml')):
-        post_link = PostLink(
-            id=properties['Id'],
-            post_id=properties['PostId'],
-            related_id=properties['RelatedPostId'],
-            type=properties['LinkTypeId']
-        )
-        session.add(post_link)
-    session.commit()
-
-    print 'load comments'
-    for properties in iterate(os.path.join(dump, 'Comments.xml')):
-        comment = Comment(
-            id=properties['Id'],
-            post_id=properties['PostId'],
-            score=properties['Score'],
-            text=properties['Text'],
-            created_at=properties['CreationDate'],
-            user_id=properties.get('UserId'),
-        )
-        session.add(comment)
-    session.commit()
 
 
 def download(url, output):
@@ -338,7 +229,6 @@ def download(url, output):
     output_content = response.read()
     with open(output, 'w') as f:
         f.write(output_content)
-
 
 def resize(filepath):
     img = Image.open(filepath)
@@ -351,7 +241,6 @@ def resize(filepath):
 
 def system(command):
     check_output(shlex.split(command))
-
 
 def optimize(filepath):
     # based on mwoffliner code http://bit.ly/1HZgZeP
@@ -401,7 +290,7 @@ def process(args):
                         img.attrib['src'] = src
                         # finalize offlining
                         resize(out)
-                        optimize(out)
+                        #optimize(out)
             # does the post contain images? if so, we surely modified
             # its content so save it.
             if imgs:
@@ -438,40 +327,66 @@ def offline(output, cores):
     pool.map(process, args)
 
 
-def lazy(query):
-    offset = 0
-    while True:
-        try:
-            yield query.limit(1).offset(offset).one()
-        except:
-            raise StopIteration
-        else:
-            offset += 1
 
-
-def render(templates, database, output, title, publisher):
+def render_questions(templates, database, output, title, publisher, dump):
     # wrap the actual database
-    session = make_session(database)
-
     print 'render questions'
+    db = os.path.join(dump, 'se-dump.db')
+    conn = sqlite3.connect(db)
+    conn.row_factory = dict_factory
+    cursor = conn.cursor()
+    #create table tags-questions
+#    
+    cursor.execute("""CREATE TABLE IF NOT EXISTS questiontag(id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, Score INTEGER, Title TEXT, CreationDate TEXT, Tag TEXT )""")
+    conn.commit()
+    questions = cursor.execute("""SELECT * FROM posts WHERE PostTypeId == 1""").fetchall()
     os.makedirs(os.path.join(output, 'question'))
-    questions = session.query(Post).filter(Post.type == 1)
-    for index, question in enumerate(lazy(questions)):
-        filename = '%s.html' % slugify(question.title)
-        filepath = os.path.join(output, 'question', filename)
-        jinja(
-            filepath,
-            'question.html',
-            templates,
-            question=question,
-            rooturl="..",
-        )
-        if DEBUG and index == 10:
-            break
-
+    for question in questions:
+            question["Tags"] = question["Tags"][1:-1].split('><')
+            for t in question["Tags"]:
+                cursor.execute("INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)""", (question["Score"], question["Title"], question["CreationDate"], t ))
+            user = cursor.execute("SELECT DisplayName, Reputation  FROM users WHERE Id == ? ",( str(question["OwnerUserId"]),) ).fetchone()
+            question["OwnerUserId"]=user 
+            question["comments"] = cursor.execute("SELECT * FROM comments WHERE Id == ? ",( str(question["Id"]), )).fetchall()
+            for u in question["comments"]:
+                tmp = cursor.execute("SELECT DisplayName  FROM users WHERE Id == ?", ( str(u["UserId"]),) ).fetchone()
+                if tmp != None:
+                    u["UserDisplayName"] = tmp["DisplayName"]
+            question["answers"] = cursor.execute("SELECT * FROM posts WHERE PostTypeId == 2 AND ParentID == ? ",( str(question["Id"]),)).fetchall()
+            for q in question["answers"]:
+                user = cursor.execute("SELECT DisplayName, Reputation  FROM users WHERE Id == ? ", ( str(q["OwnerUserId"]),) ).fetchone()
+                q["OwnerUserId"]=user
+                q["comments"] = cursor.execute("SELECT * FROM comments WHERE Id == ? ",( str(q["Id"]),)).fetchall()
+                for u in q["comments"]:
+                    tmp = cursor.execute("SELECT DisplayName FROM users WHERE Id == ? " ,( str(u["UserId"]),) ).fetchone()
+                    if tmp != None:
+                        u["UserDisplayName"] = tmp["DisplayName"]
+            tmp = cursor.execute("SELECT RelatedPostId FROM postlinks WHERE PostId == ? " ,( str(u["Id"]),) ).fetchall()
+            question["relateds"] = [ ]
+            for links in tmp:
+                name =  cursor.execute("SELECT Title FROM posts WHERE Id == ? " ,( links["RelatedPostId"],) ).fetchone()
+                question["relateds"].append( name["Title"] )
+            filename = '%s.html' % slugify(question["Title"])
+            print filename
+            filepath = os.path.join(output, 'question', filename)
+            jinja(
+                filepath,
+                'question.html',
+                templates,
+                question=question,
+                rooturl="..",
+            )
+    conn.commit()
+    conn.close()
+def render_tags(templates, database, output, title, publisher, dump):
     print 'render tags'
     # index page
-    tags = session.query(Tag).order_by(Tag.name)
+    db = os.path.join(dump, 'se-dump.db')
+    conn = sqlite3.connect(db)
+    conn.row_factory = dict_factory
+    cursor = conn.cursor()
+
+    tags = cursor.execute("""SELECT TagName FROM tags""").fetchall()
     jinja(
         os.path.join(output, 'index.html'),
         'tags.html',
@@ -482,10 +397,12 @@ def render(templates, database, output, title, publisher):
         publisher=publisher,
     )
     # tag page
+    print "Render tag page"
+    list_tag = map(lambda d: d['TagName'], tags)
     os.makedirs(os.path.join(output, 'tag'))
-    for index, tag in enumerate(tags):
+    for tag in list(set(list_tag)):
         dirpath = os.path.join(output, 'tag')
-        tagpath = os.path.join(dirpath, '%s' % tag.name)
+        tagpath = os.path.join(dirpath, '%s' % tag)
         os.makedirs(tagpath)
         print tagpath
         # build page using pagination
@@ -493,10 +410,7 @@ def render(templates, database, output, title, publisher):
         page = 1
         while offset is not None:
             fullpath = os.path.join(tagpath, '%s.html' % page)
-            questions = session.query(QuestionTag)
-            questions = questions.filter(QuestionTag.tag_id == tag.id)
-            questions = questions.limit(11).offset(offset).all()
-            questions = map(lambda x: x.question, questions)
+            questions = cursor.execute("SELECT * FROM questiontag WHERE Tag = ? LIMIT 11 OFFSET ? ", ( str(tag), offset, ) ).fetchall()
             try:
                 questions[10]
             except IndexError:
@@ -516,15 +430,15 @@ def render(templates, database, output, title, publisher):
                 next=page + 1,
             )
             page += 1
-        if DEBUG and index == 10:
-            break
-
-
-def render_users(templates, database, output):
+    conn.close()
+def render_users(templates, database, output, dump):
     print 'render users'
     os.makedirs(os.path.join(output, 'user'))
-    session = make_session(database)
-    users = session.query(User)
+    db = os.path.join(dump, 'se-dump.db')
+    conn = sqlite3.connect(db)
+    conn.row_factory = dict_factory
+    cursor = conn.cursor()
+    users = cursor.execute("""SELECT * FROM users""").fetchall()
 
     # Prepare identicon generation
     identicon_path = os.path.join(output, 'static', 'identicon')
@@ -546,8 +460,8 @@ def render_users(templates, database, output):
     # using SHA1 digest.
     generator = pydenticon.Generator(5, 5, foreground=foreground, background=background)  # noqa
 
-    for index, user in enumerate(lazy(users)):
-        username = slugify(user.name)
+    for user in users:
+        username = slugify(user["DisplayName"])
 
         # Generate big identicon
         padding = (20, 20, 20, 20)
@@ -650,6 +564,52 @@ def bin_is_present(binary):
     else:
 	return True
 
+
+def dump_files(file_names, anathomy,dump_path,
+	    dump_database_name='se-dump.db',
+	    create_query='CREATE TABLE IF NOT EXISTS {table} ({fields})',
+	    insert_query='INSERT INTO {table} ({columns}) VALUES ({values})',
+	    log_filename='se-parser.log'):
+    logging.basicConfig(filename=os.path.join(dump_path, log_filename), level=logging.INFO)
+    db = sqlite3.connect(os.path.join(dump_path, dump_database_name))
+    for file in file_names:
+        print
+        "Opening {0}.xml".format(file)
+        with open(os.path.join(dump_path, file + '.xml')) as xml_file:
+            tree = etree.iterparse(xml_file)
+            table_name = file
+
+            sql_create = create_query.format(
+                table=table_name,
+                fields=", ".join(['{0} {1}'.format(name, type) for name, type in anathomy[table_name].items()]))
+            print('Creating table {0}'.format(table_name))
+
+            try:
+                logging.info(sql_create)
+                db.execute(sql_create)
+            except Exception, e:
+                logging.warning(e)
+
+            for events, row in tree:
+                try:
+                    if row.attrib.values():
+                        logging.debug(row.attrib.keys())
+                        query = insert_query.format(
+                            table=table_name,
+                            columns=', '.join(row.attrib.keys()),
+                            values=('?, ' * len(row.attrib.keys()))[:-2])
+                        db.execute(query, row.attrib.values())
+                        print ".",
+                except Exception, e:
+                    logging.warning(e)
+                    print "x",
+                finally:
+                    row.clear()
+            print "\n"
+            db.commit()
+	    del (tree) 
+
+
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='sotoki 0.1')
     if arguments['load']:
@@ -668,14 +628,15 @@ if __name__ == '__main__':
         publisher = arguments['<publisher>']
         dump = arguments['--directory']
         database = 'work'
-        load(dump, database)
+        dump_files(ANATHOMY.keys(), ANATHOMY, dump)
         # render templates into `output`
         templates = 'templates'
         output = os.path.join('work', 'output')
         os.makedirs(output)
         title, description = grab_title_description_favicon(url, output)
-        render(templates, database, output, title, publisher)
-        render_users(templates, database, output)
+        render_questions(templates, database, output, title, publisher, dump)
+        render_tags(templates, database, output, title, publisher, dump)
+        render_users(templates, database, output, dump)
         # offline images
         cores = cpu_count() / 2
         offline(output, cores)

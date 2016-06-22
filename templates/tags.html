@@ -9,7 +9,7 @@
   <div class="row">
     <ul>
       {% for tag in tags %}
-        <li><a href="{{ rooturl }}/tag/{{ tag.name }}/1.html">{{ tag.name }}</a></li>
+        <li><a href="{{ rooturl }}/tag/{{ tag["TagName"] }}/1.html">{{ tag["TagName"] }}</a></li>
       {% endfor %}
     </ul>
   </div>

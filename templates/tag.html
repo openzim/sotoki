@@ -4,12 +4,12 @@
 
 {% block body %}
   <div class="row">
-    <h2 class="title">{{ tag.name }}</h2>
+    <h2 class="title">{{ tag }}</h2>
   </div>
   <div class="row">
     <div class="col-md-6">
       {% for question in questions %}
-        <p class="question"><span class="score {{ question.score | scale }}">{{ question.score }}</span> <a href="{{ rooturl }}/question/{{ question.title | slugify }}.html">{{ question.title }}</a> <span class="date" title="{{ question.created_at }}">{{ question.created_at }}</span></p>
+        <p class="question"><span class="score {{ question["Score"] | scale }}">{{ question["Score"] }}</span> <a href="{{ rooturl }}/question/{{ question["Title"] | slugify }}.html">{{ question["Title"] }}</a> <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
       {% endfor %}
       {% if hasnext %}
         <div class="pagination">

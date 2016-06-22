@@ -2,24 +2,24 @@
 
 {% block bodyclass %}question{% endblock %}
 
-{% block title %}{{ question.title }}{% endblock %}
-{% block keywords %}{% for tag in question.tags %}{{ tag.tag.name }} {% endfor %}{% endblock %}
+{% block title %}{{ question["Title"] }}{% endblock %}
+{% block keywords %}{% for tag in question["Tags"] %}{{ tag }} {% endfor %}{% endblock %} 
 
 {% block body %}
   <div class="row">
-    <h2 class="title">{{ question.title }}</h2>
+    <h2 class="title">{{ question["Title"] }}</h2>
   </div>
   <div class="row">
     <div class="col-md-7">
       <div id="question">
         {% set post = question %}
-        {% include "post.mixin.html" %}
+        {% include "post.mixin.html" %} 
       </div>
-      {% if question.answers %}
+      {% if question["answers"] %}
         <h2>Answers</h2>
         <div id="answers">
-          {% for post in question.answers %}
-            {% include "post.mixin.html" %}
+          {% for post in question["answers"] %}
+            {% include "post.mixin.html" %} 
           {% endfor %}
         </div>
       {% else %}
@@ -28,17 +28,17 @@
     </div>
     <div class="row col-md-3">
       <div class="row">
-        <p>asked: <span class="date" title="{{ question.created_at }}">{{ question.created_at }}</span></p>
-        <p>viewed: {{ question.view_count | intspace }} times</p>
-        <p>active: <span class="date" title="{{ question.last_active_date }}">{{ question.last_active_date }}</span></p>
+        <p>asked: <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
+        <p>viewed: {{ question["ViewCount"] | intspace }} times</p>
+        <p>active: <span class="date" title="{{ question["LastActivityDate"] }}">{{ question["LastActivityDate"] }}</span></p>
       </div>
-      {% if question.links %}
+      {% if question["links"] %}
         <div id="related" class="row">
-          <h3>Related</h3>
+          <h3>Related :D</h3>
           <ul>
-            {% for link in question.links %}
-              {% if link.post.title %}
-                <li><a href="{{ rooturl }}/question/{{ link.post.title | slugify }}.html" >{{ link.post.title }}<a></li>
+            {% for link in question["links"] %}
+              {% if link %}
+                <li><a href="{{ rooturl }}/question/{{ link | slugify }}.html" >{{ link }}<a></li>
               {% endif %}
             {% endfor %}
             <ul>
@@ -47,9 +47,9 @@
         <div id="related" class="row">
           <h3>Related</h3>
           <ul>
-            {% for related in question.relateds %}
-              {% if related.post.title %}
-                <li><a href="{{ rooturl }}/question/{{ related.post.title | slugify }}.html" >{{ related.post.title }}<a></li>
+            {% for related in question["relateds"] %}
+              {% if related %}
+                <li><a href="{{ rooturl }}/question/{{ related | slugify }}.html" >{{ related }}<a></li>
               {% endif %}
             {% endfor %}
             <ul>

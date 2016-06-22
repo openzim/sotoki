@@ -2,27 +2,27 @@
 
 {% block bodyclass %}user{% endblock %}
 
-{% block title %}{{ user.name }}{% endblock %}
+{% block title %}{{ user["DisplayName"] }}{% endblock %}
 
 {% block body %}
   <div class="row">
-    <h2 class="title">{{ user.name }}</h2>
+    <h2 class="title">{{ user["DisplayName"] }}</h2>
   </div>
   <div class="row">
     <div class="col-md-3">
       <div> 
-        <img src="../static/identicon/{{ user.name | slugify }}.png" /> 
+        <img src="../static/identicon/{{ user["DisplayName"] | slugify }}.png" /> 
       </div> 
-      <p class="reputation"><span>{{ user.reputation | intspace }}</span> reputation</p>
+      <p class="reputation"><span>{{ user["Reputation"] | intspace }}</span> reputation</p>
     </div>
     <div class="col-md-4">
-      <div>{{ user.bio }}</div>
+      <div>{{ user["AboutMe"] }}</div>
     </div>
     <div class="row col-md-3">
       <div class="row">
-        {% if user.website %}<p><a href="{{ user.website }}">{{ user.website }}</a></p>{% endif %}
-        <p>member since <span class="date" title="{{ user.created_at }}">{{ user.created_at }}</span></p>
-        <p>{{ user.views | intspace }} profile views</p>
+        {% if user["WebsiteUrl"] %}<p><a href="{{ user["WebsiteUrl"] }}">{{ user["WebsiteUrl"] }}</a></p>{% endif %}
+        <p>member since <span class="date" title="{{ user["CreationDate"] }}">{{ user["CreationDate"] }}</span></p>
+        <p>{{ user["Views"] | intspace }} profile views</p>
       </div>
     </div>
   </div>
