@@ -21,7 +21,6 @@ import xml.etree.cElementTree as etree
 import logging
 
 import re
-import os
 import shlex
 import os.path
 from hashlib import sha1
@@ -50,7 +49,6 @@ from slugify import slugify
 from markdown import markdown as md
 import pydenticon
 
-import sqlite3
 import bs4 as BeautifulSoup
 import envoy
 import sys
