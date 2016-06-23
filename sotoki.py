@@ -252,28 +252,28 @@ def resize(filepath):
     img = Image.open(filepath)
     w, h = img.size
     if w >= 540:
-    # hardcoded size based on website layyout
-        img = resizeimage.resize_width(img, 540)
-    img.save(filepath, img.format)
-
-
-def system(command):
-    check_output(shlex.split(command))
+        # hardcoded size based on website layyout
+        try:
+            img = resizeimage.resize_width(img, 540 ,  Image.ANTIALIAS)
+        except:
+            print "Problem with image : " + filepath
+    #img.save(filepath, img.format, optimize=True,quality=50, progressive=True)
+    img.save(filepath, img.format) 
 
 def optimize(filepath):
     # based on mwoffliner code http://bit.ly/1HZgZeP
     ext = os.path.splitext(filepath)[1]
     if ext in ('.jpg', '.jpeg', '.JPG', '.JPEG'):
-        system('jpegoptim --strip-all -m50 "%s"' % filepath)
+        exec_cmd('jpegoptim --strip-all -m50 "%s"' % filepath)
     elif ext in ('.png', '.PNG'):
         # run pngquant
         cmd = 'pngquant --verbose --nofs --force --ext="%s" "%s"'
         cmd = cmd % (ext, filepath)
-        system(cmd)
+        exec_cmd(cmd)
         # run advancecomp
-        system('advdef -q -z -4 -i 5 "%s"' % filepath)
+        exec_cmd('advdef -q -z -4 -i 5 "%s"' % filepath)
     elif ext in ('.gif', '.GIF'):
-        system('gifsicle -O3 "%s" -o "%s"' % (filepath, filepath))
+        exec_cmd('gifsicle -O3 "%s" -o "%s"' % (filepath, filepath))
     else:
         print('* unknown file extension %s' % filepath)
 
