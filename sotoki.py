@@ -247,16 +247,17 @@ def download(url, output):
         f.write(output_content)
 
 def resize(filepath):
-    img = Image.open(filepath)
-    w, h = img.size
-    if w >= 540:
-        # hardcoded size based on website layyout
-        try:
-            img = resizeimage.resize_width(img, 540 ,  Image.ANTIALIAS)
-        except:
-            print "Problem with image : " + filepath
-    #img.save(filepath, img.format, optimize=True,quality=50, progressive=True)
-    img.save(filepath, img.format) 
+    if os.path.splitext(filepath)[1] in ('.jpg', '.jpeg', '.JPG', '.JPEG', '.png', '.PNG', '.gif', '.GIF'):
+        img = Image.open(filepath)
+        w, h = img.size
+        if w >= 540:
+            # hardcoded size based on website layyout
+            try:
+                img = resizeimage.resize_width(img, 540 ,  Image.ANTIALIAS)
+            except:
+                print "Problem with image : " + filepath
+        #img.save(filepath, img.format, optimize=True,quality=50, progressive=True)
+        img.save(filepath, img.format) 
 
 def optimize(filepath):
     # based on mwoffliner code http://bit.ly/1HZgZeP
