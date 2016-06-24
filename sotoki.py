@@ -306,8 +306,11 @@ def process(args):
                         src = '../static/images/' + filename
                         img.attrib['src'] = src
                         # finalize offlining
-                        resize(out)
-                        optimize(out)
+                        try:
+                            resize(out)
+                            optimize(out)
+                        except:
+                            print "Something went wrong with" + out
             # does the post contain images? if so, we surely modified
             # its content so save it.
             if imgs:
