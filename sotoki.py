@@ -383,10 +383,10 @@ def render_questions(templates, database, output, title, publisher, dump, cores)
                     tmp = cursor.execute("SELECT DisplayName FROM users WHERE Id == ? " ,( str(u["UserId"]),) ).fetchone()
                     if tmp != None:
                         u["UserDisplayName"] = tmp["DisplayName"]
-            tmp = cursor.execute("SELECT RelatedPostId FROM postlinks WHERE PostId == ? " ,( str(u["Id"]),) ).fetchall()
+            tmp = cursor.execute("SELECT PostId FROM postlinks WHERE RelatedPostId == ? " ,( str(question["Id"]),) ).fetchall()
             question["relateds"] = [ ]
             for links in tmp:
-                name =  cursor.execute("SELECT Title FROM posts WHERE Id == ? " ,( links["RelatedPostId"],) ).fetchone()
+                name =  cursor.execute("SELECT Title FROM posts WHERE Id == ? " ,( links["PostId"],) ).fetchone()
                 if name != None:
                     question["relateds"].append( name["Title"] )
             data_send = [ templates, database, output, title, publisher, dump, question ]
