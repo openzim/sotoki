@@ -546,7 +546,7 @@ def resize_image_profile(image_path):
     image.save(image_path)
 
 def exec_cmd(cmd):
-	return envoy.run(str(cmd.encode('utf-8')))
+	return envoy.run(str(cmd.encode('utf-8'))).status_code
 
 def create_zims(title, publisher, description):
         print 'Creating ZIM files'
@@ -580,7 +580,7 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
            .format(**context))
     print cmd
 
-    if exec_cmd(cmd):
+    if exec_cmd(cmd) == 0:
         print "Successfuly created ZIM file at {}".format(zim_path)
     else:
         print "Unable to create ZIM file :("
