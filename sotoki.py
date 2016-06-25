@@ -78,6 +78,8 @@ ANATHOMY = {
         'UserId': 'INTEGER',
         'Name': 'TEXT',
         'Date': 'DATETIME',
+        'Class': 'INTEGER',
+        'TagBased' : 'INTEGER'
     },
     'comments': {
         'Id': 'INTEGER',
