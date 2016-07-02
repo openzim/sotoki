@@ -702,9 +702,7 @@ if __name__ == '__main__':
         templates = 'templates'
         output = os.path.join('work', 'output')
         os.makedirs(output)
-        cores = cpu_count() / 2
-        if cores == 0:
-            cores = 1
+        cores = cpu_count() / 2 or 1
         title, description = grab_title_description_favicon(url, output)
         render_questions(templates, database, output, title, publisher, dump, cores)
         render_tags(templates, database, output, title, publisher, dump)
