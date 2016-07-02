@@ -61,14 +61,13 @@ class Worker(Process):
 
     def run(self):
         print 'Computing things!'
-        for data in iter( self.queue.get, None ):
+        for data in iter(self.queue.get, None):
             # Use data
             some_questions(data)
 
 
-
-
 DEBUG = os.environ.get('DEBUG', False)
+
 
 ANATHOMY = {
     'badges': {
@@ -77,7 +76,7 @@ ANATHOMY = {
         'Name': 'TEXT',
         'Date': 'DATETIME',
         'Class': 'INTEGER',
-        'TagBased' : 'INTEGER'
+        'TagBased': 'INTEGER'
     },
     'comments': {
         'Id': 'INTEGER',
@@ -101,9 +100,9 @@ ANATHOMY = {
         'OwnerDisplayName': 'TEXT',
         'LastEditorUserId': 'INTEGER',
         'LastEditorDisplayName': 'TEXT',  # ="Rich B"
-        'LastEditDate': 'DATETIME',  #="2009-03-05T22:28:34.823"
-        'LastActivityDate': 'DATETIME',  #="2009-03-11T12:51:01.480"
-        'CommunityOwnedDate': 'DATETIME',  #(present only if post is community wikied)
+        'LastEditDate': 'DATETIME',  # "2009-03-05T22:28:34.823"
+        'LastActivityDate': 'DATETIME',  # "2009-03-11T12:51:01.480"
+        'CommunityOwnedDate': 'DATETIME',  # (present only if post is community wikied)
         'Title': 'TEXT',
         'Tags': 'TEXT',
         'AnswerCount': 'INTEGER',
@@ -176,11 +175,9 @@ ANATHOMY = {
         'WikiPostId': 'INTEGER'
     }
 }
+
+
 # templating
-
-
-
-
 
 def intspace(value):
     orig = str(value)
@@ -195,6 +192,7 @@ def markdown(text):
     # FIXME: add postprocess step to transform 'http://' into a link
     # strip p tags
     return md(text)[3:-4]
+
 
 def dict_factory(cursor, row):
     d = {}
@@ -246,18 +244,21 @@ def download(url, output):
     with open(output, 'w') as f:
         f.write(output_content)
 
+
 def resize(filepath):
-    if os.path.splitext(filepath)[1] in ('.jpg', '.jpeg', '.JPG', '.JPEG', '.png', '.PNG', '.gif', '.GIF'):
+    exts = ('.jpg', '.jpeg', '.JPG', '.JPEG', '.png', '.PNG', '.gif', '.GIF')
+    if os.path.splitext(filepath)[1] in exts:
         img = Image.open(filepath)
         w, h = img.size
         if w >= 540:
             # hardcoded size based on website layyout
             try:
-                img = resizeimage.resize_width(img, 540 ,  Image.ANTIALIAS)
+                img = resizeimage.resize_width(img, 540, Image.ANTIALIAS)
             except:
                 print "Problem with image : " + filepath
         #img.save(filepath, img.format, optimize=True,quality=50, progressive=True)
         img.save(filepath, img.format)
+
 
 def optimize(filepath):
     # based on mwoffliner code http://bit.ly/1HZgZeP
@@ -347,7 +348,6 @@ def offline(output, cores):
     pool.map(process, args)
 
 
-
 def render_questions(templates, database, output, title, publisher, dump, cores):
     # wrap the actual database
     print 'render questions'
@@ -355,60 +355,63 @@ def render_questions(templates, database, output, title, publisher, dump, cores)
     conn = sqlite3.connect(db)
     conn.row_factory = dict_factory
     cursor = conn.cursor()
-    #create table tags-questions
+    # create table tags-questions
     cursor.execute("""CREATE TABLE IF NOT EXISTS questiontag(id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, Score INTEGER, Title TEXT, CreationDate TEXT, Tag TEXT )""")
     conn.commit()
     questions = cursor.execute("""SELECT * FROM posts WHERE PostTypeId == 1""").fetchall()
     os.makedirs(os.path.join(output, 'question'))
     request_queue = Queue()
     for i in range(cores):
-            Worker( request_queue ).start()
+        Worker(request_queue).start()
     for question in questions:
-            question["Tags"] = question["Tags"][1:-1].split('><')
-            for t in question["Tags"]:
-                cursor.execute("INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)""", (question["Score"], question["Title"], question["CreationDate"], t ))
-            user = cursor.execute("SELECT DisplayName, Reputation  FROM users WHERE Id == ? ",( str(question["OwnerUserId"]),) ).fetchone()
-            question["OwnerUserId"]=user
-            question["comments"] = cursor.execute("SELECT * FROM comments WHERE Id == ? ",( str(question["Id"]), )).fetchall()
-            for u in question["comments"]:
-                tmp = cursor.execute("SELECT DisplayName  FROM users WHERE Id == ?", ( str(u["UserId"]),) ).fetchone()
+        question["Tags"] = question["Tags"][1:-1].split('><')
+        for t in question["Tags"]:
+            cursor.execute("INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)""", (question["Score"], question["Title"], question["CreationDate"], t ))
+        user = cursor.execute("SELECT DisplayName, Reputation  FROM users WHERE Id == ? ",( str(question["OwnerUserId"]),) ).fetchone()
+        question["OwnerUserId"]=user
+        question["comments"] = cursor.execute("SELECT * FROM comments WHERE Id == ? ",( str(question["Id"]), )).fetchall()
+        for u in question["comments"]:
+            tmp = cursor.execute("SELECT DisplayName  FROM users WHERE Id == ?", ( str(u["UserId"]),) ).fetchone()
+            if tmp != None:
+                u["UserDisplayName"] = tmp["DisplayName"]
+        question["answers"] = cursor.execute("SELECT * FROM posts WHERE PostTypeId == 2 AND ParentID == ? ",( str(question["Id"]),)).fetchall()
+        for q in question["answers"]:
+            user = cursor.execute("SELECT DisplayName, Reputation  FROM users WHERE Id == ? ", ( str(q["OwnerUserId"]),) ).fetchone()
+            q["OwnerUserId"]=user
+            q["comments"] = cursor.execute("SELECT * FROM comments WHERE Id == ? ",( str(q["Id"]),)).fetchall()
+            for u in q["comments"]:
+                tmp = cursor.execute("SELECT DisplayName FROM users WHERE Id == ? " ,( str(u["UserId"]),) ).fetchone()
                 if tmp != None:
                     u["UserDisplayName"] = tmp["DisplayName"]
-            question["answers"] = cursor.execute("SELECT * FROM posts WHERE PostTypeId == 2 AND ParentID == ? ",( str(question["Id"]),)).fetchall()
-            for q in question["answers"]:
-                user = cursor.execute("SELECT DisplayName, Reputation  FROM users WHERE Id == ? ", ( str(q["OwnerUserId"]),) ).fetchone()
-                q["OwnerUserId"]=user
-                q["comments"] = cursor.execute("SELECT * FROM comments WHERE Id == ? ",( str(q["Id"]),)).fetchall()
-                for u in q["comments"]:
-                    tmp = cursor.execute("SELECT DisplayName FROM users WHERE Id == ? " ,( str(u["UserId"]),) ).fetchone()
-                    if tmp != None:
-                        u["UserDisplayName"] = tmp["DisplayName"]
-            tmp = cursor.execute("SELECT PostId FROM postlinks WHERE RelatedPostId == ? " ,( str(question["Id"]),) ).fetchall()
-            question["relateds"] = [ ]
-            for links in tmp:
-                name =  cursor.execute("SELECT Title FROM posts WHERE Id == ? " ,( links["PostId"],) ).fetchone()
-                if name != None:
-                    question["relateds"].append( name["Title"] )
-            data_send = [ templates, database, output, title, publisher, dump, question ]
-            request_queue.put( data_send )
+        tmp = cursor.execute("SELECT PostId FROM postlinks WHERE RelatedPostId == ? " ,( str(question["Id"]),) ).fetchall()
+        question["relateds"] = [ ]
+        for links in tmp:
+            name =  cursor.execute("SELECT Title FROM posts WHERE Id == ? " ,( links["PostId"],) ).fetchone()
+            if name != None:
+                question["relateds"].append( name["Title"] )
+        data_send = [ templates, database, output, title, publisher, dump, question ]
+        request_queue.put( data_send )
     conn.commit()
     for i in range(cores):
-            request_queue.put( None )
+        request_queue.put( None )
+
 
 def some_questions(args):
-            templates, database, output, title, publisher, dump, question = args
-            filename = '%s.html' % slugify(question["Title"])
-            print filename
-            filepath = os.path.join(output, 'question', filename)
-            jinja(
-                filepath,
-                'question.html',
-                templates,
-                question=question,
-                rooturl="..",
-                title=title,
-                publisher=publisher,
-            )
+    templates, database, output, title, publisher, dump, question = args
+    filename = '%s.html' % slugify(question["Title"])
+    print filename
+    filepath = os.path.join(output, 'question', filename)
+    jinja(
+        filepath,
+        'question.html',
+        templates,
+        question=question,
+        rooturl="..",
+        title=title,
+        publisher=publisher,
+    )
+
+
 def render_tags(templates, database, output, title, publisher, dump):
     print 'render tags'
     # index page
@@ -464,6 +467,8 @@ def render_tags(templates, database, output, title, publisher, dump):
             )
             page += 1
     conn.close()
+
+
 def render_users(templates, database, output, title, publisher, dump):
     print 'render users'
     os.makedirs(os.path.join(output, 'user'))
@@ -526,6 +531,7 @@ def render_users(templates, database, output, title, publisher, dump):
         if DEBUG and index == 10:
             break
 
+
 def grab_title_description_favicon(url, output_dir):
     output = urlopen(url).read()
     soup = BeautifulSoup.BeautifulSoup(output)
@@ -539,27 +545,36 @@ def grab_title_description_favicon(url, output_dir):
     resize_image_profile(favicon_out)
     return [ title , description ]
 
+
 def resize_image_profile(image_path):
     image = Image.open(image_path)
     w, h = image.size
     image = image.resize((48, 48), Image.ANTIALIAS)
     image.save(image_path)
 
+
 def exec_cmd(cmd):
-        return envoy.run(str(cmd.encode('utf-8'))).status_code
+    return envoy.run(str(cmd.encode('utf-8'))).status_code
+
 
 def create_zims(title, publisher, description):
-        print 'Creating ZIM files'
-        # Check, if the folder exists. Create it, if it doesn't.
-        lang_input="en"
-        html_dir = os.path.join("work", "output")
-        zim_path = os.path.join("work/", "{title}_{lang}_all_{date}.zim".format(title=title.lower(),lang=lang_input,date=datetime.datetime.now().strftime('%Y-%m')))
-        title = title.replace("-", " ")
-        creator = title
-        create_zim(html_dir, zim_path, title, description, lang_input, publisher, creator)
+    print 'Creating ZIM files'
+    # Check, if the folder exists. Create it, if it doesn't.
+    lang_input = "en"
+    html_dir = os.path.join("work", "output")
+    zim_path = dict(
+        title=title.lower(),
+        lang=lang_input,
+        date=datetime.datetime.now().strftime('%Y-%m')
+    )
+    zim_path = "work/", "{title}_{lang}_all_{date}.zim".format(**zim_path)
+    zim_path = os.path.join()
+    title = title.replace("-", " ")
+    creator = title
+    create_zim(html_dir, zim_path, title, description, lang_input, publisher, creator)
+
 
 def create_zim(static_folder, zim_path, title, description, lang_input, publisher, creator):
-
     print "\tWritting ZIM for {}".format(title)
     context = {
         'languages': lang_input,
@@ -585,6 +600,7 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
     else:
         print "Unable to create ZIM file :("
 
+
 def bin_is_present(binary):
     try:
         subprocess.Popen(binary,
@@ -600,16 +616,18 @@ def bin_is_present(binary):
         return True
 
 
-def dump_files(file_names, anathomy,dump_path,
-            dump_database_name='se-dump.db',
-            create_query='CREATE TABLE IF NOT EXISTS {table} ({fields})',
-            insert_query='INSERT INTO {table} ({columns}) VALUES ({values})',
-            log_filename='se-parser.log'):
+def dump_files(
+        file_names,
+        anathomy,
+        dump_path,
+        dump_database_name='se-dump.db',
+        create_query='CREATE TABLE IF NOT EXISTS {table} ({fields})',
+        insert_query='INSERT INTO {table} ({columns}) VALUES ({values})',
+        log_filename='se-parser.log'):
     logging.basicConfig(filename=os.path.join(dump_path, log_filename), level=logging.INFO)
     db = sqlite3.connect(os.path.join(dump_path, dump_database_name))
     for file in file_names:
-        print
-        "Opening {0}.xml".format(file)
+        print "Opening {0}.xml".format(file)
         with open(os.path.join(dump_path, file + '.xml')) as xml_file:
             tree = etree.iterparse(xml_file)
             table_name = file
@@ -650,8 +668,22 @@ if __name__ == '__main__':
     if arguments['load']:
         load(arguments['<dump-directory>'], arguments['<database-directory>'])
     elif arguments['render']:
-        render_questions(arguments['<templates>'], arguments['<database>'], arguments['<output>'], arguments['<title>'] , arguments['<publisher>'], arguments['    --directory'])
-        render_tags(arguments['<templates>'], arguments['<database>'], arguments['<output>'], arguments['<title>'] , arguments['<publisher>'], arguments['--directory'])
+        render_questions(
+            arguments['<templates>'],
+            arguments['<database>'],
+            arguments['<output>'],
+            arguments['<title>'],
+            arguments['<publisher>'],
+            arguments['--directory']
+        )
+        render_tags(
+            arguments['<templates>'],
+            arguments['<database>'],
+            arguments['<output>'],
+            arguments['<title>'],
+            arguments['<publisher>'],
+            arguments['--directory']
+        )
 
     elif arguments['render-users']:
         render_users(arguments['<templates>'], arguments['<database>'], arguments['<output>'])  # noqa
