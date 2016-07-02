@@ -259,7 +259,7 @@ def resize(filepath):
             except:
                 print "Problem with image : " + filepath
         #img.save(filepath, img.format, optimize=True,quality=50, progressive=True)
-        img.save(filepath, img.format) 
+        img.save(filepath, img.format)
 
 def optimize(filepath):
     # based on mwoffliner code http://bit.ly/1HZgZeP
@@ -370,7 +370,7 @@ def render_questions(templates, database, output, title, publisher, dump, cores)
             for t in question["Tags"]:
                 cursor.execute("INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)""", (question["Score"], question["Title"], question["CreationDate"], t ))
             user = cursor.execute("SELECT DisplayName, Reputation  FROM users WHERE Id == ? ",( str(question["OwnerUserId"]),) ).fetchone()
-            question["OwnerUserId"]=user 
+            question["OwnerUserId"]=user
             question["comments"] = cursor.execute("SELECT * FROM comments WHERE Id == ? ",( str(question["Id"]), )).fetchall()
             for u in question["comments"]:
                 tmp = cursor.execute("SELECT DisplayName  FROM users WHERE Id == ?", ( str(u["UserId"]),) ).fetchone()
@@ -535,7 +535,7 @@ def grab_title_description_favicon(url, output_dir):
     description = soup.find('meta',attrs={"name":u"twitter:description"})['content']
     favicon = soup.find('link',attrs={"rel":u"image_src"})['href']
     if favicon[:2] == "//":
-	favicon = "http:" + favicon
+        favicon = "http:" + favicon
     favicon_out = os.path.join(output_dir, 'favicon.png')
     download(favicon, favicon_out)
     resize_image_profile(favicon_out)
@@ -548,16 +548,16 @@ def resize_image_profile(image_path):
     image.save(image_path)
 
 def exec_cmd(cmd):
-	return envoy.run(str(cmd.encode('utf-8'))).status_code
+        return envoy.run(str(cmd.encode('utf-8'))).status_code
 
 def create_zims(title, publisher, description):
         print 'Creating ZIM files'
         # Check, if the folder exists. Create it, if it doesn't.
-	lang_input="en"
+        lang_input="en"
         html_dir = os.path.join("work", "output")
-	zim_path = os.path.join("work/", "{title}_{lang}_all_{date}.zim".format(title=title.lower(),lang=lang_input,date=datetime.datetime.now().strftime('%Y-%m')))
-	title = title.replace("-", " ")
-	creator = title
+        zim_path = os.path.join("work/", "{title}_{lang}_all_{date}.zim".format(title=title.lower(),lang=lang_input,date=datetime.datetime.now().strftime('%Y-%m')))
+        title = title.replace("-", " ")
+        creator = title
         create_zim(html_dir, zim_path, title, description, lang_input, publisher, creator)
 
 def create_zim(static_folder, zim_path, title, description, lang_input, publisher, creator):
@@ -599,14 +599,14 @@ def bin_is_present(binary):
     except OSError:
         return False
     else:
-	return True
+        return True
 
 
 def dump_files(file_names, anathomy,dump_path,
-	    dump_database_name='se-dump.db',
-	    create_query='CREATE TABLE IF NOT EXISTS {table} ({fields})',
-	    insert_query='INSERT INTO {table} ({columns}) VALUES ({values})',
-	    log_filename='se-parser.log'):
+            dump_database_name='se-dump.db',
+            create_query='CREATE TABLE IF NOT EXISTS {table} ({fields})',
+            insert_query='INSERT INTO {table} ({columns}) VALUES ({values})',
+            log_filename='se-parser.log'):
     logging.basicConfig(filename=os.path.join(dump_path, log_filename), level=logging.INFO)
     db = sqlite3.connect(os.path.join(dump_path, dump_database_name))
     for file in file_names:
@@ -644,7 +644,7 @@ def dump_files(file_names, anathomy,dump_path,
                     row.clear()
             print "\n"
             db.commit()
-	    del (tree) 
+            del (tree)
 
 
 if __name__ == '__main__':
