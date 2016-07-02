@@ -396,17 +396,19 @@ def render_questions(templates, database, output, title, publisher, dump, cores)
 
 def some_questions(templates, database, output, title, publisher, dump, question):
     filename = '%s.html' % slugify(question["Title"])
-    print filename
     filepath = os.path.join(output, 'question', filename)
-    jinja(
-        filepath,
-        'question.html',
-        templates,
-        question=question,
-        rooturl="..",
-        title=title,
-        publisher=publisher,
-    )
+    try:
+        jinja(
+            filepath,
+            'question.html',
+            templates,
+            question=question,
+            rooturl="..",
+            title=title,
+            publisher=publisher,
+        )
+    except:
+        print ' * failed to generate: %s' % filename
 
 
 def render_tags(templates, database, output, title, publisher, dump):
