@@ -21,13 +21,11 @@ import xml.etree.cElementTree as etree
 import logging
 
 import re
-import shlex
 import os.path
 from hashlib import sha1
 from distutils.dir_util import copy_tree
 from urllib2 import urlopen
 from string import punctuation
-from subprocess import check_output
 
 from multiprocessing import Pool
 from multiprocessing import cpu_count
