@@ -57,16 +57,13 @@ import subprocess
 class Worker(Process):
     def __init__(self, queue):
         super(Worker, self).__init__()
-        self.queue= queue
+        self.queue = queue
 
     def run(self):
         print 'Computing things!'
         for data in iter(self.queue.get, None):
             # Use data
-            some_questions(data)
-
-
-DEBUG = os.environ.get('DEBUG', False)
+            some_questions(*data)
 
 
 ANATHOMY = {
@@ -251,12 +248,11 @@ def resize(filepath):
         img = Image.open(filepath)
         w, h = img.size
         if w >= 540:
-            # hardcoded size based on website layyout
+            # hardcoded size based on website layout
             try:
                 img = resizeimage.resize_width(img, 540, Image.ANTIALIAS)
             except:
                 print "Problem with image : " + filepath
-        #img.save(filepath, img.format, optimize=True,quality=50, progressive=True)
         img.save(filepath, img.format)
 
 
@@ -356,9 +352,10 @@ def render_questions(templates, database, output, title, publisher, dump, cores)
     conn.row_factory = dict_factory
     cursor = conn.cursor()
     # create table tags-questions
-    cursor.execute("""CREATE TABLE IF NOT EXISTS questiontag(id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, Score INTEGER, Title TEXT, CreationDate TEXT, Tag TEXT )""")
+    sql = "CREATE TABLE IF NOT EXISTS questiontag(id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, Score INTEGER, Title TEXT, CreationDate TEXT, Tag TEXT)"
+    cursor.execute(sql)
     conn.commit()
-    questions = cursor.execute("""SELECT * FROM posts WHERE PostTypeId == 1""").fetchall()
+    questions = cursor.execute("SELECT * FROM posts WHERE PostTypeId == 1").fetchall()
     os.makedirs(os.path.join(output, 'question'))
     request_queue = Queue()
     for i in range(cores):
@@ -366,38 +363,38 @@ def render_questions(templates, database, output, title, publisher, dump, cores)
     for question in questions:
         question["Tags"] = question["Tags"][1:-1].split('><')
         for t in question["Tags"]:
-            cursor.execute("INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)""", (question["Score"], question["Title"], question["CreationDate"], t ))
-        user = cursor.execute("SELECT DisplayName, Reputation  FROM users WHERE Id == ? ",( str(question["OwnerUserId"]),) ).fetchone()
-        question["OwnerUserId"]=user
-        question["comments"] = cursor.execute("SELECT * FROM comments WHERE Id == ? ",( str(question["Id"]), )).fetchall()
+            sql = "INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)"
+            cursor.execute(sql, (question["Score"], question["Title"], question["CreationDate"], t))
+        user = cursor.execute("SELECT DisplayName, Reputation  FROM users WHERE Id == ? ", (str(question["OwnerUserId"]),)).fetchone()
+        question["OwnerUserId"] = user
+        question["comments"] = cursor.execute("SELECT * FROM comments WHERE Id == ? ", (str(question["Id"]),)).fetchall()
         for u in question["comments"]:
-            tmp = cursor.execute("SELECT DisplayName  FROM users WHERE Id == ?", ( str(u["UserId"]),) ).fetchone()
-            if tmp != None:
+            tmp = cursor.execute("SELECT DisplayName  FROM users WHERE Id == ?", (str(u["UserId"]),)).fetchone()
+            if tmp is not None:
                 u["UserDisplayName"] = tmp["DisplayName"]
-        question["answers"] = cursor.execute("SELECT * FROM posts WHERE PostTypeId == 2 AND ParentID == ? ",( str(question["Id"]),)).fetchall()
+        question["answers"] = cursor.execute("SELECT * FROM posts WHERE PostTypeId == 2 AND ParentID == ? ", (str(question["Id"]),)).fetchall()
         for q in question["answers"]:
-            user = cursor.execute("SELECT DisplayName, Reputation  FROM users WHERE Id == ? ", ( str(q["OwnerUserId"]),) ).fetchone()
-            q["OwnerUserId"]=user
-            q["comments"] = cursor.execute("SELECT * FROM comments WHERE Id == ? ",( str(q["Id"]),)).fetchall()
+            user = cursor.execute("SELECT DisplayName, Reputation  FROM users WHERE Id == ? ", (str(q["OwnerUserId"]),)).fetchone()
+            q["OwnerUserId"] = user
+            q["comments"] = cursor.execute("SELECT * FROM comments WHERE Id == ? ", (str(q["Id"]),)).fetchall()
             for u in q["comments"]:
-                tmp = cursor.execute("SELECT DisplayName FROM users WHERE Id == ? " ,( str(u["UserId"]),) ).fetchone()
-                if tmp != None:
+                tmp = cursor.execute("SELECT DisplayName FROM users WHERE Id == ? ", (str(u["UserId"]),)).fetchone()
+                if tmp is not None:
                     u["UserDisplayName"] = tmp["DisplayName"]
-        tmp = cursor.execute("SELECT PostId FROM postlinks WHERE RelatedPostId == ? " ,( str(question["Id"]),) ).fetchall()
-        question["relateds"] = [ ]
+        tmp = cursor.execute("SELECT PostId FROM postlinks WHERE RelatedPostId == ? ", (str(question["Id"]),)).fetchall()
+        question["relateds"] = []
         for links in tmp:
-            name =  cursor.execute("SELECT Title FROM posts WHERE Id == ? " ,( links["PostId"],) ).fetchone()
-            if name != None:
-                question["relateds"].append( name["Title"] )
-        data_send = [ templates, database, output, title, publisher, dump, question ]
-        request_queue.put( data_send )
+            name = cursor.execute("SELECT Title FROM posts WHERE Id == ? ", (links["PostId"],)).fetchone()
+            if name is not None:
+                question["relateds"].append(name["Title"])
+        data_send = [templates, database, output, title, publisher, dump, question]
+        request_queue.put(data_send)
     conn.commit()
     for i in range(cores):
-        request_queue.put( None )
+        request_queue.put(None)
 
 
-def some_questions(args):
-    templates, database, output, title, publisher, dump, question = args
+def some_questions(templates, database, output, title, publisher, dump, question):
     filename = '%s.html' % slugify(question["Title"])
     print filename
     filepath = os.path.join(output, 'question', filename)
@@ -415,12 +412,12 @@ def some_questions(args):
 def render_tags(templates, database, output, title, publisher, dump):
     print 'render tags'
     # index page
-    db = os.path.join(dump, 'se-dump.db')
+    db = os.path.join(dump, 'se-dump.db')  # FIXME: database name is hardcoded
     conn = sqlite3.connect(db)
     conn.row_factory = dict_factory
     cursor = conn.cursor()
 
-    tags = cursor.execute("""SELECT TagName FROM tags ORDER BY TagName""").fetchall()
+    tags = cursor.execute("SELECT TagName FROM tags ORDER BY TagName").fetchall()
     jinja(
         os.path.join(output, 'index.html'),
         'tags.html',
@@ -444,7 +441,7 @@ def render_tags(templates, database, output, title, publisher, dump):
         page = 1
         while offset is not None:
             fullpath = os.path.join(tagpath, '%s.html' % page)
-            questions = cursor.execute("SELECT * FROM questiontag WHERE Tag = ? LIMIT 11 OFFSET ? ", ( str(tag), offset, ) ).fetchall()
+            questions = cursor.execute("SELECT * FROM questiontag WHERE Tag = ? LIMIT 11 OFFSET ? ", (str(tag), offset,)).fetchall()
             try:
                 questions[10]
             except IndexError:
@@ -528,22 +525,20 @@ def render_users(templates, database, output, title, publisher, dump):
             title=title,
             publisher=publisher,
         )
-        if DEBUG and index == 10:
-            break
 
 
 def grab_title_description_favicon(url, output_dir):
     output = urlopen(url).read()
     soup = BeautifulSoup.BeautifulSoup(output)
-    title = soup.find('meta',attrs={"name":u"twitter:title"})['content']
-    description = soup.find('meta',attrs={"name":u"twitter:description"})['content']
-    favicon = soup.find('link',attrs={"rel":u"image_src"})['href']
+    title = soup.find('meta', attrs={"name": u"twitter:title"})['content']
+    description = soup.find('meta', attrs={"name": u"twitter:description"})['content']
+    favicon = soup.find('link', attrs={"rel": u"image_src"})['href']
     if favicon[:2] == "//":
         favicon = "http:" + favicon
     favicon_out = os.path.join(output_dir, 'favicon.png')
     download(favicon, favicon_out)
     resize_image_profile(favicon_out)
-    return [ title , description ]
+    return [title, description]
 
 
 def resize_image_profile(image_path):
