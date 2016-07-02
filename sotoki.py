@@ -347,7 +347,7 @@ def offline(output, cores):
 def render_questions(templates, database, output, title, publisher, dump, cores):
     # wrap the actual database
     print 'render questions'
-    db = os.path.join(dump, 'se-dump.db')
+    db = os.path.join(database, 'se-dump.db')
     conn = sqlite3.connect(db)
     conn.row_factory = dict_factory
     cursor = conn.cursor()
@@ -412,7 +412,7 @@ def some_questions(templates, database, output, title, publisher, dump, question
 def render_tags(templates, database, output, title, publisher, dump):
     print 'render tags'
     # index page
-    db = os.path.join(dump, 'se-dump.db')  # FIXME: database name is hardcoded
+    db = os.path.join(database, 'se-dump.db')
     conn = sqlite3.connect(db)
     conn.row_factory = dict_factory
     cursor = conn.cursor()
@@ -469,7 +469,7 @@ def render_tags(templates, database, output, title, publisher, dump):
 def render_users(templates, database, output, title, publisher, dump):
     print 'render users'
     os.makedirs(os.path.join(output, 'user'))
-    db = os.path.join(dump, 'se-dump.db')
+    db = os.path.join(database, 'se-dump.db')
     conn = sqlite3.connect(db)
     conn.row_factory = dict_factory
     cursor = conn.cursor()
@@ -611,17 +611,16 @@ def bin_is_present(binary):
         return True
 
 
-def dump_files(
-        file_names,
-        anathomy,
-        dump_path,
-        dump_database_name='se-dump.db',
-        create_query='CREATE TABLE IF NOT EXISTS {table} ({fields})',
-        insert_query='INSERT INTO {table} ({columns}) VALUES ({values})',
-        log_filename='se-parser.log'):
+def load(dump_path, database_path):
+    dump_database_name = 'se-dump.db'
+    log_filename = 'se-parser.log'
+    create_query = 'CREATE TABLE IF NOT EXISTS {table} ({fields})'
+    insert_query = 'INSERT INTO {table} ({columns}) VALUES ({values})'
+
     logging.basicConfig(filename=os.path.join(dump_path, log_filename), level=logging.INFO)
-    db = sqlite3.connect(os.path.join(dump_path, dump_database_name))
-    for file in file_names:
+    db = sqlite3.connect(os.path.join(database_path, dump_database_name))
+
+    for file, spec in ANATHOMY.items():
         print "Opening {0}.xml".format(file)
         with open(os.path.join(dump_path, file + '.xml')) as xml_file:
             tree = etree.iterparse(xml_file)
@@ -629,7 +628,7 @@ def dump_files(
 
             sql_create = create_query.format(
                 table=table_name,
-                fields=", ".join(['{0} {1}'.format(name, type) for name, type in anathomy[table_name].items()]))
+                fields=", ".join(['{0} {1}'.format(name, type) for name, type in spec.items()]))
             print('Creating table {0}'.format(table_name))
 
             try:
@@ -655,7 +654,7 @@ def dump_files(
                     row.clear()
             print "\n"
             db.commit()
-            del (tree)
+            del tree
 
 
 if __name__ == '__main__':
@@ -692,7 +691,7 @@ if __name__ == '__main__':
         publisher = arguments['<publisher>']
         dump = arguments['--directory']
         database = 'work'
-        dump_files(ANATHOMY.keys(), ANATHOMY, dump)
+        load(dump, database)
         # render templates into `output`
         templates = 'templates'
         output = os.path.join('work', 'output')
