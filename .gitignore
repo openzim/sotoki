@@ -7,3 +7,4 @@ build/
 db.backup/
 _work
 work
+venv/
