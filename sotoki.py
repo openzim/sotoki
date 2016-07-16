@@ -355,41 +355,50 @@ def render_questions(templates, database, output, title, publisher, dump, cores)
     sql = "CREATE TABLE IF NOT EXISTS questiontag(id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, Score INTEGER, Title TEXT, CreationDate TEXT, Tag TEXT)"
     cursor.execute(sql)
     conn.commit()
-    questions = cursor.execute("SELECT * FROM posts WHERE PostTypeId == 1").fetchall()
     os.makedirs(os.path.join(output, 'question'))
     request_queue = Queue()
     for i in range(cores):
         Worker(request_queue).start()
-    for question in questions:
-        question["Tags"] = question["Tags"][1:-1].split('><')
-        for t in question["Tags"]:
-            sql = "INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)"
-            cursor.execute(sql, (question["Score"], question["Title"], question["CreationDate"], t))
-        user = cursor.execute("SELECT DisplayName, Reputation  FROM users WHERE Id == ? ", (str(question["OwnerUserId"]),)).fetchone()
-        question["OwnerUserId"] = user
-        question["comments"] = cursor.execute("SELECT * FROM comments WHERE Id == ? ", (str(question["Id"]),)).fetchall()
-        for u in question["comments"]:
-            tmp = cursor.execute("SELECT DisplayName  FROM users WHERE Id == ?", (str(u["UserId"]),)).fetchone()
-            if tmp is not None:
-                u["UserDisplayName"] = tmp["DisplayName"]
-        question["answers"] = cursor.execute("SELECT * FROM posts WHERE PostTypeId == 2 AND ParentID == ? ", (str(question["Id"]),)).fetchall()
-        for q in question["answers"]:
-            user = cursor.execute("SELECT DisplayName, Reputation  FROM users WHERE Id == ? ", (str(q["OwnerUserId"]),)).fetchone()
-            q["OwnerUserId"] = user
-            q["comments"] = cursor.execute("SELECT * FROM comments WHERE Id == ? ", (str(q["Id"]),)).fetchall()
-            for u in q["comments"]:
-                tmp = cursor.execute("SELECT DisplayName FROM users WHERE Id == ? ", (str(u["UserId"]),)).fetchone()
+    offset = 0
+    while offset is not None:
+        questions = cursor.execute("SELECT * FROM posts WHERE PostTypeId == 1 LIMIT 1001 OFFSET ? ",  ( offset, ) ).fetchall()
+        try:
+            questions[1000]
+        except IndexError:
+            offset = None
+        else:
+            offset += 1000
+        questions = questions[:1000]
+        for question in questions:
+            question["Tags"] = question["Tags"][1:-1].split('><')
+            for t in question["Tags"]:
+                sql = "INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)"
+                cursor.execute(sql, (question["Score"], question["Title"], question["CreationDate"], t))
+            user = cursor.execute("SELECT DisplayName, Reputation  FROM users WHERE Id == ? ", (str(question["OwnerUserId"]),)).fetchone()
+            question["OwnerUserId"] = user
+            question["comments"] = cursor.execute("SELECT * FROM comments WHERE Id == ? ", (str(question["Id"]),)).fetchall()
+            for u in question["comments"]:
+                tmp = cursor.execute("SELECT DisplayName  FROM users WHERE Id == ?", (str(u["UserId"]),)).fetchone()
                 if tmp is not None:
                     u["UserDisplayName"] = tmp["DisplayName"]
-        tmp = cursor.execute("SELECT PostId FROM postlinks WHERE RelatedPostId == ? ", (str(question["Id"]),)).fetchall()
-        question["relateds"] = []
-        for links in tmp:
-            name = cursor.execute("SELECT Title FROM posts WHERE Id == ? ", (links["PostId"],)).fetchone()
-            if name is not None:
-                question["relateds"].append(name["Title"])
-        data_send = [templates, database, output, title, publisher, dump, question]
-        request_queue.put(data_send)
-    conn.commit()
+            question["answers"] = cursor.execute("SELECT * FROM posts WHERE PostTypeId == 2 AND ParentID == ? ", (str(question["Id"]),)).fetchall()
+            for q in question["answers"]:
+                user = cursor.execute("SELECT DisplayName, Reputation  FROM users WHERE Id == ? ", (str(q["OwnerUserId"]),)).fetchone()
+                q["OwnerUserId"] = user
+                q["comments"] = cursor.execute("SELECT * FROM comments WHERE Id == ? ", (str(q["Id"]),)).fetchall()
+                for u in q["comments"]:
+                    tmp = cursor.execute("SELECT DisplayName FROM users WHERE Id == ? ", (str(u["UserId"]),)).fetchone()
+                    if tmp is not None:
+                        u["UserDisplayName"] = tmp["DisplayName"]
+            tmp = cursor.execute("SELECT PostId FROM postlinks WHERE RelatedPostId == ? ", (str(question["Id"]),)).fetchall()
+            question["relateds"] = []
+            for links in tmp:
+                name = cursor.execute("SELECT Title FROM posts WHERE Id == ? ", (links["PostId"],)).fetchone()
+                if name is not None:
+                    question["relateds"].append(name["Title"])
+            data_send = [templates, database, output, title, publisher, dump, question]
+            request_queue.put(data_send)
+        conn.commit()
     for i in range(cores):
         request_queue.put(None)
 
@@ -564,8 +573,9 @@ def create_zims(title, publisher, description):
         lang=lang_input,
         date=datetime.datetime.now().strftime('%Y-%m')
     )
-    zim_path = "work/", "{title}_{lang}_all_{date}.zim".format(**zim_path)
-    zim_path = os.path.join()
+#    zim_path = "work/", "{title}_{lang}_all_{date}.zim".format(**zim_path)
+    zim_path = os.path.join("work/", "{title}_{lang}_all_{date}.zim".format(**zim_path))
+
     title = title.replace("-", " ")
     creator = title
     create_zim(html_dir, zim_path, title, description, lang_input, publisher, creator)
