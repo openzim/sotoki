@@ -718,3 +718,49 @@ if __name__ == '__main__':
         # copy static
         copy_tree('static', os.path.join('work', 'output', 'static'))
         create_zims(title, publisher, description)
+    elif arguments['benchmark']:
+        print '* Running benchmark for sqlite'
+        work = arguments['<work>']
+        database_path = work
+        dump_database_name = 'se-dump.db'
+
+        create_query = 'CREATE TABLE IF NOT EXISTS {table} ({fields})'
+        insert_query = 'INSERT INTO {table} ({columns}) VALUES ({values})'
+
+        db = sqlite3.connect(os.path.join(database_path, dump_database_name))
+
+        file = 'posts'
+        spec = ANATHOMY['file']
+        with open(os.path.join(dump_path, file + '.xml')) as xml_file:
+            tree = etree.iterparse(xml_file)
+            table_name = file
+            sql_create = create_query.format(
+                table=table_name,
+                fields=", ".join(['{0} {1}'.format(name, type) for name, type in spec.items()])
+            )
+            
+            db.execute(sql_create)
+
+            for events, row in tree:
+                if row.attrib.values():
+                    logging.debug(row.attrib.keys())
+                    query = insert_query.format(
+                        table=table_name,
+                        columns=', '.join(row.attrib.keys()),
+                        values=('?, ' * len(row.attrib.keys()))[:-2])
+                    db.execute(query, row.attrib.values())
+                    print ".",
+                    row.clear()
+            db.commit()
+
+        db = os.path.join(work, 'se-dump.db')
+        conn = sqlite3.connect(db)
+        conn.row_factory = dict_factory
+        cursor = conn.cursor()
+        # create table tags-questions
+        sql = "CREATE TABLE IF NOT EXISTS questiontag(id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, Score INTEGER, Title TEXT, CreationDate TEXT, Tag TEXT)"
+        cursor.execute(sql)
+        conn.commit()
+
+        while offset is not None:
+            questions = cursor.execute("SELECT * FROM posts").fetchall()
