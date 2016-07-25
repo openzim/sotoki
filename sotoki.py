@@ -6,7 +6,6 @@ Usage:
   sotoki.py load <dump-directory> <database-directory>
   sotoki.py render <templates> <database> <output> <title> <publisher> [--directory=<dir>]
   sotoki.py render-users <templates> <database> <output> <title> <publisher> [--directory=<dir>]
-  sotoki.py offline <output> <cores>
   sotoki.py benchmark <work>
   sotoki.py (-h | --help)
   sotoki.py --version
@@ -20,6 +19,10 @@ import sqlite3
 import os
 import xml.etree.cElementTree as etree
 import logging
+from itertools import chain
+from subprocess32 import check_output
+from subprocess32 import TimeoutExpired
+import shlex
 
 import re
 import os.path
@@ -37,7 +40,7 @@ from jinja2 import Environment
 from jinja2 import FileSystemLoader
 
 from lxml.etree import parse as string2xml
-from lxml.html import parse as html
+from lxml.html import fromstring as string2html
 from lxml.html import tostring as html2string
 
 from PIL import Image
@@ -61,10 +64,11 @@ class Worker(Process):
         self.queue = queue
 
     def run(self):
-        print 'Computing things!'
         for data in iter(self.queue.get, None):
-            # Use data
-            some_questions(*data)
+            try:
+                some_questions(*data)
+            except Exception as exc:
+                print 'error while rendering question:', data[-1]['Id']
 
 
 ANATHOMY = {
@@ -261,88 +265,18 @@ def optimize(filepath):
     # based on mwoffliner code http://bit.ly/1HZgZeP
     ext = os.path.splitext(filepath)[1]
     if ext in ('.jpg', '.jpeg', '.JPG', '.JPEG'):
-        exec_cmd('jpegoptim --strip-all -m50 "%s"' % filepath)
+        exec_cmd('jpegoptim --strip-all -m50 "%s"' % filepath, timeout=10)
     elif ext in ('.png', '.PNG'):
         # run pngquant
         cmd = 'pngquant --verbose --nofs --force --ext="%s" "%s"'
         cmd = cmd % (ext, filepath)
-        exec_cmd(cmd)
+        exec_cmd(cmd, timeout=10)
         # run advancecomp
-        exec_cmd('advdef -q -z -4 -i 5 "%s"' % filepath)
+        exec_cmd('advdef -q -z -4 -i 5 "%s"' % filepath, timeout=10)
     elif ext in ('.gif', '.GIF'):
-        exec_cmd('gifsicle -O3 "%s" -o "%s"' % (filepath, filepath))
+        exec_cmd('gifsicle -O3 "%s" -o "%s"' % (filepath, filepath), timeout=10)
     else:
         print('* unknown file extension %s' % filepath)
-
-
-def process(args):
-    images, filepaths, uid = args
-    count = len(filepaths)
-    print 'offlining start', uid
-    for index, filepath in enumerate(filepaths):
-        print 'offline %s/%s (%s)' % (index, count, uid)
-        try:
-            body = html(filepath)
-        except Exception as exc:  # error during xml parsing
-            print exc
-        else:
-            imgs = body.xpath('//img')
-            for img in imgs:
-                src = img.attrib['src']
-                ext = os.path.splitext(src)[1]
-                filename = sha1(src).hexdigest() + ext
-                out = os.path.join(images, filename)
-                # download the image only if it's not already downloaded
-                if not os.path.exists(out):
-                    try:
-                        download(src, out)
-                    except:
-                        # do nothing
-                        pass
-                    else:
-                        # update post's html
-                        src = '../static/images/' + filename
-                        img.attrib['src'] = src
-                        # finalize offlining
-                        try:
-                            resize(out)
-                            optimize(out)
-                        except:
-                            print "Something went wrong with" + out
-            # does the post contain images? if so, we surely modified
-            # its content so save it.
-            if imgs:
-                post = html2string(body)
-                with open(filepath, 'w') as f:
-                    f.write(post)
-    print 'offlining finished', uid
-
-
-def chunks(l, n):
-    """Yield successive n-sized chunks from l."""
-    for i in xrange(0, len(l), n):
-        yield l[i:i+n]
-
-
-def offline(output, cores):
-    """offline, resize and reduce size of images"""
-    print 'offline images of %s using %s process...' % (output, cores)
-    images_path = os.path.join(output, 'static', 'images')
-    if not os.path.exists(images_path):
-        os.makedirs(images_path)
-
-    filepaths = os.path.join(output, 'question')
-    filepaths = map(lambda x: os.path.join(output, 'question', x), os.listdir(filepaths))  # noqa
-    filepaths_chunks = chunks(filepaths, len(filepaths) / cores)
-    filepaths_chunks = list(filepaths_chunks)
-
-    # start offlining
-    pool = Pool(cores)
-    # prepare a list of (images_path, filepaths_chunck) to feed
-    # `process` function via pool.map
-    args = zip([images_path]*cores, filepaths_chunks, range(cores))
-    print 'start offline process with', cores, 'cores'
-    pool.map(process, args)
 
 
 def render_questions(templates, database, output, title, publisher, dump, cores):
@@ -407,6 +341,40 @@ def render_questions(templates, database, output, title, publisher, dump, cores)
 def some_questions(templates, database, output, title, publisher, dump, question):
     filename = '%s.html' % slugify(question["Title"])
     filepath = os.path.join(output, 'question', filename)
+    images = os.path.join(output, 'static', 'images')
+    #
+    for post in chain([question], question['answers']):
+        body = string2html(post['Body'])
+        imgs = body.xpath('//img')
+        for img in imgs:
+            src = img.attrib['src']
+            ext = os.path.splitext(src)[1]
+            filename = sha1(src).hexdigest() + ext
+            out = os.path.join(images, filename)
+            # download the image only if it's not already downloaded
+            if not os.path.exists(out):
+                try:
+                    download(src, out)
+                except:
+                    # do nothing
+                    pass
+                else:
+                    # update post's html
+                    src = '../static/images/' + filename
+                    img.attrib['src'] = src
+                    # finalize offlining
+                    try:
+                        resize(out)
+                        optimize(out)
+                    except:
+                        print "Something went wrong with" + out
+        # does the post contain images? if so, we surely modified
+        # its content so save it.
+        if imgs:
+            body = html2string(body)
+            post['Body'] = body
+
+    #
     try:
         jinja(
             filepath,
@@ -559,10 +527,11 @@ def resize_image_profile(image_path):
     image = image.resize((48, 48), Image.ANTIALIAS)
     image.save(image_path)
 
-
-def exec_cmd(cmd):
-    return envoy.run(str(cmd.encode('utf-8'))).status_code
-
+def exec_cmd(cmd, timeout=None):
+    try:
+        check_output(shlex.split(cmd), timeout=timeout)
+    except TimeoutExpired:
+        pass
 
 def create_zims(title, publisher, description):
     print 'Creating ZIM files'
@@ -694,8 +663,6 @@ if __name__ == '__main__':
 
     elif arguments['render-users']:
         render_users(arguments['<templates>'], arguments['<database>'], arguments['<output>'])  # noqa
-    elif arguments['offline']:
-        offline(arguments['<output>'], int(arguments['<cores>']))
     elif arguments['run']:
         if not bin_is_present("zimwriterfs"):
             sys.exit("zimwriterfs is not available, please install it.")
@@ -714,8 +681,6 @@ if __name__ == '__main__':
         render_questions(templates, database, output, title, publisher, dump, cores)
         render_tags(templates, database, output, title, publisher, dump)
         render_users(templates, database, output, title, publisher, dump)
-        # offline images
-        offline(output, cores)
         # copy static
         copy_tree('static', os.path.join('work', 'output', 'static'))
         create_zims(title, publisher, description)
