@@ -7,6 +7,7 @@ Usage:
   sotoki.py render <templates> <database> <output> <title> <publisher> [--directory=<dir>]
   sotoki.py render-users <templates> <database> <output> <title> <publisher> [--directory=<dir>]
   sotoki.py offline <output> <cores>
+  sotoki.py benchmark <work>
   sotoki.py (-h | --help)
   sotoki.py --version
 
@@ -730,8 +731,8 @@ if __name__ == '__main__':
         db = sqlite3.connect(os.path.join(database_path, dump_database_name))
 
         file = 'posts'
-        spec = ANATHOMY['file']
-        with open(os.path.join(dump_path, file + '.xml')) as xml_file:
+        spec = ANATHOMY[file]
+        with open(os.path.join(work, 'dump', 'Posts.xml')) as xml_file:
             tree = etree.iterparse(xml_file)
             table_name = file
             sql_create = create_query.format(
@@ -749,7 +750,6 @@ if __name__ == '__main__':
                         columns=', '.join(row.attrib.keys()),
                         values=('?, ' * len(row.attrib.keys()))[:-2])
                     db.execute(query, row.attrib.values())
-                    print ".",
                     row.clear()
             db.commit()
 
@@ -762,5 +762,4 @@ if __name__ == '__main__':
         cursor.execute(sql)
         conn.commit()
 
-        while offset is not None:
-            questions = cursor.execute("SELECT * FROM posts").fetchall()
+        questions = cursor.execute("SELECT * FROM posts").fetchall()
