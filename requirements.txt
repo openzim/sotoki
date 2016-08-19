@@ -9,3 +9,4 @@ slugify==0.0.1
 pydenticon==0.2
 bs4
 envoy
+subprocess32
