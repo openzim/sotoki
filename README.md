@@ -59,5 +59,3 @@ Go back at the sotoki root and run the pipeline:
 python sotoki.py run [url of stackechange website] [publisher] [--directory (optional)]
 
 ```
-
-It's use https://github.com/testlnord/sedumpy
