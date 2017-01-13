@@ -1,12 +1,9 @@
 #!/usr/bin/env python2
+# -*-coding:utf8 -*
 """sotoki.
 
 Usage:
   sotoki.py run <url> <publisher> [--directory=<dir>]
-  sotoki.py load <dump-directory> <database-directory>
-  sotoki.py render <templates> <database> <output> <title> <publisher> [--directory=<dir>]
-  sotoki.py render-users <templates> <database> <output> <title> <publisher> [--directory=<dir>]
-  sotoki.py benchmark <work>
   sotoki.py (-h | --help)
   sotoki.py --version
 
@@ -15,47 +12,372 @@ Options:
   --version     Show version.
   --directory=<dir>   Specify a directory for xml files [default: work/dump/]
 """
-import sqlite3
+import sys
+import datetime
+import subprocess
+import time
+import shutil
 import os
-import xml.etree.cElementTree as etree
-import logging
-from itertools import chain
-from subprocess32 import check_output
-from subprocess32 import TimeoutExpired
-import shlex
-
 import re
 import os.path
-from hashlib import sha1
 from distutils.dir_util import copy_tree
-from urllib2 import urlopen
-from string import punctuation
+
+#from subprocess32 import check_output
+#from subprocess32 import TimeoutExpired
+from subprocess32 import call
+import shlex
 
 from multiprocessing import Pool
 from multiprocessing import cpu_count
 from multiprocessing import Queue
 from multiprocessing import Process
 
+import envoy
+import logging
+import sqlite3
+
+from xml.sax import make_parser, handler
+
+from hashlib import sha1
+from urllib2 import urlopen
+
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
+import bs4 as BeautifulSoup
 
 from lxml.etree import parse as string2xml
 from lxml.html import fromstring as string2html
 from lxml.html import tostring as html2string
-
-from PIL import Image
-from resizeimage import resizeimage
-
 from docopt import docopt
 from slugify import slugify
 from markdown import markdown as md
 import pydenticon
+from string import punctuation
 
-import bs4 as BeautifulSoup
-import envoy
-import sys
-import datetime
-import subprocess
+from PIL import Image
+from resizeimage import resizeimage
+
+from itertools import chain
+
+
+#########################
+#        Question       #
+#########################
+class QuestionRender(handler.ContentHandler):
+
+    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor,conn):
+        self.cursor=cursor
+        self.conn=conn
+        self.post={}
+        self.comments=[]
+        self.answers=[]
+        self.whatwedo="post"
+        self.nb=0 #Nomber of post generate
+        os.makedirs(os.path.join(output, 'question'))
+        """
+        #TODO remove thread ?
+        self.request_queue = Queue()
+        self.workers = []
+        self.cores=cores
+        for i in range(self.cores): 
+            self.workers.append(Worker(self.request_queue))
+        for i in self.workers:
+            i.start()
+        """
+
+    def startElement(self, name, attrs): #For each element
+        if name == "comments" and self.whatwedo == "post": #We match if it's a comment of post
+            self.whatwedo="post/comments"
+            self.comments=[]
+            return
+        if name == "comments" and self.whatwedo == "post/answers": #comment of answer
+            self.whatwedo="post/answers/comments"
+            self.comments=[]
+            return
+        if name == "answers": #a answer
+            if self.whatwedo == "post/comments": #We put all comments into post["comments"] if the post has comment
+                self.post["comments"] = self.comments
+            self.whatwedo="post/answers"
+            self.comments=[]
+            self.answers=[]
+            return
+        if name== 'row': #Here is a answer
+            if self.whatwedo=="post/answers/comments": #we put all comment into the previous answer if the previous answer has comment
+                self.answers[-1]["comments"] = self.comments
+                self.whatwedo="post/answers"
+            tmp={}
+            for k in attrs.keys(): #Get all item
+                tmp[k] = attrs[k]
+            tmp["Score"] = int(tmp["Score"])
+
+            if tmp.has_key("OwnerUserId"): #We put the good name of the user how made the post
+                user=cursor.execute("SELECT * FROM users WHERE id = ?", (int(tmp["OwnerUserId"]),)).fetchone()
+                if user != None:
+                    tmp["OwnerUserId"] =  dict_to_unicodedict(user)
+                else:
+                    tmp["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
+            elif tmp.has_key("OwnerDisplayName"):
+                tmp["OwnerUserId"] = dict_to_unicodedict({ "DisplayName" : tmp["OwnerDisplayName"] })
+            else:
+                tmp["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
+            #print "        new answers"
+            self.answers.append(tmp)
+            return
+
+        if name == "comment": #Here is a comments
+            tmp={}
+            for k in attrs.keys(): #Get all item
+                tmp[k] = attrs[k]
+            #print "                 new comments"
+            if tmp.has_key("UserId"): #We put the good name of the user how made the comment
+                user=cursor.execute("SELECT * FROM users WHERE id = ?", (int(tmp["UserId"]),)).fetchone()
+                if tmp.has_key("UserId") and  user != None :
+                    tmp["UserDisplayName"] = dict_to_unicodedict(user)["DisplayName"]
+            else:
+                if not tmp.has_key("UserDisplayName"):
+                    tmp["UserDisplayName"] = u"None"
+            if tmp.has_key("Score"):
+                tmp["Score"] = int(tmp["Score"])
+            self.comments.append(tmp)
+            return
+
+        if name == "link": #We add link
+            self.post["relateds"].append(attrs["PostId"])
+            return
+
+        if name != 'post': #We go out if it's not a post, we because we have see all name of posible tag (answers, row,comments,comment and we will see after post) This normally match only this root
+            print "nothing " + name
+            return
+
+        if name == 'post': #Here is a post
+            if self.whatwedo=="post/answers/comments": #If we have a previous post with answer and comment on this answer, we put comment into the anwer
+                self.answers[-1]["comments"] = self.comments
+                self.whatwedo="post/answers"
+            if self.whatwedo=="post/answers": #If we have a previous post with answer(s), we put answer(s) we put them into post
+                self.post["answers"] = self.answers
+            elif self.whatwedo=="post/comments": #If we have previous post without answer but with comments we put comment into post
+                self.post["comments"] = self.comments
+            if self.post != {}: #Then, if we have a previous post, we generate it
+                #print self.post
+                self.nb+=1 
+                if self.nb % 1000 == 0:
+                    print "Already " + str(self.nb) + " questions done!"
+                some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
+                self.post = {} #reset post
+                self.whatwedo = "post"
+            for k in attrs.keys(): #get all item
+                self.post[k] = attrs[k]
+            self.post["relateds"] = [] #Prepare list for relateds question
+            if self.post.has_key("OwnerUserId"):#We put the good name of the user how made the post
+                user=cursor.execute("SELECT * FROM users WHERE id = ?", (int(self.post["OwnerUserId"]),)).fetchone()
+                if user != None:
+                    self.post["OwnerUserId"] =  dict_to_unicodedict(user)
+                else:
+                    self.post["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
+            elif self.post.has_key("OwnerDisplayName"):
+                self.post["OwnerUserId"] = dict_to_unicodedict({ "DisplayName" : self.post["OwnerDisplayName"] })
+            else:
+                self.post["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
+
+    def endDocument(self):
+        print "---END--"
+        #We close the last post !
+        if self.whatwedo=="post/answers/comments":
+            self.answers[-1]["comments"] = self.comments
+            self.whatwedo=="post/answers"
+        if self.whatwedo=="post/answers":
+            self.post["answers"] = self.answers
+        elif self.whatwedo=="post/comments":
+            self.post["comments"] = self.comments
+        some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
+
+        self.conn.commit()
+        #closing thread
+        """
+        for i in range(self.cores):
+            self.request_queue.put(None)
+        for i in self.workers:
+            i.join()
+        """
+def some_questions(templates, output, title, publisher, question, template_name,cursor):
+    try:
+        question["Score"] = int(question["Score"])
+        question["Tags"] = question["Tags"][1:-1].split('><')
+        for t in question["Tags"]: #We put tags into db
+            sql = "INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)"
+            cursor.execute(sql, (question["Score"], question["Title"], question["CreationDate"], t))
+            if question.has_key("answers"):
+                question["answers"] = sorted(question["answers"], key=lambda k: k['Score'],reverse=True) 
+        if slugify(question["Title"]) != "":
+                #Before we make thread for generation but with this stack increase, and increase and take to much memory
+                #data_send = [ some_questions, self.templates, self.output, self.title, self.publisher, self.post, "question.html"]
+                #self.request_queue.put(data_send)
+                #some_questions(templates, output, title, publisher, self.post, "question.html")
+                filename = '%s.html' % slugify(question["Title"])
+                filepath = os.path.join(output, 'question', filename)
+                question = image(question,output)
+                try:
+                    jinja(
+                        filepath,
+                        template_name,
+                        templates,
+                        False,
+                        question=question,
+                        rooturl="..",
+                        title=title,
+                        publisher=publisher,
+                        )
+                except Exception, e:
+                    print ' * failed to generate: %s' % filename
+                    print "erreur jinja" + str(e)
+                    print question
+        else: #Sometime (when title only have caratere that we can't sluglify) 
+                print "erreur avec le titre" #lever une exception ?
+    except Exception, e:
+        print "Erreur with one post : " + str(e)
+
+
+#########################
+#        Tags           #
+#########################
+
+class TagsRender(handler.ContentHandler):
+
+    def __init__(self, templates, database, output, title, publisher, dump, cursor, conn):
+        # index page
+        self.tags = []
+
+    def startElement(self, name, attrs): #For each element
+        if name == "row": #If it's a tag (row in tags.xml)
+            self.tags.append({'TagName': attrs["TagName"]})
+
+    def endDocument(self):
+        jinja(
+            os.path.join(output, 'index.html'),
+            'tags.html',
+            templates,
+            False,
+            tags=self.tags,
+            rooturl=".",
+            title=title,
+            publisher=publisher,
+        )
+        # tag page
+        print "Render tag page"
+        list_tag = map(lambda d: d['TagName'], self.tags)
+        os.makedirs(os.path.join(output, 'tag'))
+        for tag in list(set(list_tag)):
+            dirpath = os.path.join(output, 'tag')
+            tagpath = os.path.join(dirpath, '%s' % tag)
+            os.makedirs(tagpath)
+            print tagpath
+            # build page using pagination
+            offset = 0
+            page = 1
+            while offset is not None:
+                fullpath = os.path.join(tagpath, '%s.html' % page)
+                questions = cursor.execute("SELECT * FROM questiontag WHERE Tag = ? LIMIT 11 OFFSET ? ", (str(tag), offset,)).fetchall()
+                try:
+                    questions[10]
+                except IndexError:
+                    offset = None
+                else:
+                    offset += 10
+                questions = questions[:10]
+                jinja(
+                    fullpath,
+                    'tag.html',
+                    templates,
+                    False,
+                    tag=tag,
+                    index=page,
+                    questions=questions,
+                    rooturl="../..",
+                    hasnext=bool(offset),
+                    next=page + 1,
+                    title=title,
+                    publisher=publisher,
+                )
+                page += 1
+
+#########################
+#        Users          #
+#########################
+class UsersRender(handler.ContentHandler):
+
+    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor):
+        self.identicon_path = os.path.join(output, 'static', 'identicon')
+        self.id=0
+        os.makedirs(self.identicon_path)
+        os.makedirs(os.path.join(output, 'user'))
+        # Set-up a list of foreground colours (taken from Sigil).
+        self.foreground = [
+            "rgb(45,79,255)",
+            "rgb(254,180,44)",
+            "rgb(226,121,234)",
+            "rgb(30,179,253)",
+            "rgb(232,77,65)",
+            "rgb(49,203,115)",
+            "rgb(141,69,170)"
+            ]
+        # Set-up a background colour (taken from Sigil).
+        self.background = "rgb(224,224,224)"
+
+        # Instantiate a generator that will create 5x5 block identicons
+        # using SHA1 digest.
+        self.generator = pydenticon.Generator(5, 5, foreground=self.foreground, background=self.background)  # noqa
+
+    def startElement(self, name, attrs): #For each element
+        if name != "row": #If it's not a user (row in users.xml) we pass
+            return
+        self.id +=1
+        if self.id % 1000 == 0:
+            print "Already " + str(self.id) + " Users done !"
+        try:
+            user={}
+            for k in attrs.keys(): #get all item
+                user[k] = attrs[k]
+            if user != {}:
+                sql = "INSERT INTO users(id, DisplayName, Reputation) VALUES(?, ?, ?)"
+                cursor.execute(sql, (int(user["Id"]),  user["DisplayName"], user["Reputation"]))
+                username = slugify(user["DisplayName"])
+
+                # Generate big identicon
+                padding = (20, 20, 20, 20)
+                identicon = self.generator.generate(username, 164, 164, padding=padding, output_format="png")  # noqa
+                filename = username + '.png'
+                fullpath = os.path.join(output, 'static', 'identicon', filename)
+                with open(fullpath, "wb") as f:
+                    f.write(identicon)
+
+                # Generate small identicon
+                padding = [0] * 4  # no padding
+                identicon = self.generator.generate(username, 32, 32, padding=padding, output_format="png")  # noqa
+                filename = username + '.small.png'
+                fullpath = os.path.join(output, 'static', 'identicon', filename)
+                with open(fullpath, "wb") as f:
+                    f.write(identicon)
+
+                # generate user profile page
+                filename = '%s.html' % username
+                fullpath = os.path.join(output, 'user', filename)
+                jinja(
+                    fullpath,
+                    'user.html',
+                    templates,
+                    False,
+                    user=user,
+                    title=title,
+                    rooturl="..",
+                    publisher=publisher,
+                )
+        except Exception, e:
+            print e
+
+
+#########################
+#        Tools          #
+#########################
 
 
 class Worker(Process):
@@ -66,120 +388,11 @@ class Worker(Process):
     def run(self):
         for data in iter(self.queue.get, None):
             try:
-                some_questions(*data)
+                data[0](*data[1:])
+                #some_questions(*data)
             except Exception as exc:
                 print 'error while rendering question:', data[-1]['Id']
-
-
-ANATHOMY = {
-    'badges': {
-        'Id': 'INTEGER',
-        'UserId': 'INTEGER',
-        'Name': 'TEXT',
-        'Date': 'DATETIME',
-        'Class': 'INTEGER',
-        'TagBased': 'INTEGER'
-    },
-    'comments': {
-        'Id': 'INTEGER',
-        'PostId': 'INTEGER',
-        'Score': 'INTEGER',
-        'Text': 'TEXT',
-        'CreationDate': 'DATETIME',
-        'UserId': 'INTEGER',
-        'UserDisplayName': 'TEXT'
-    },
-    'posts': {
-        'Id': 'INTEGER',
-        'PostTypeId': 'INTEGER',  # 1: Question, 2: Answer
-        'ParentID': 'INTEGER',  # (only present if PostTypeId is 2)
-        'AcceptedAnswerId': 'INTEGER',  # (only present if PostTypeId is 1)
-        'CreationDate': 'DATETIME',
-        'Score': 'INTEGER',
-        'ViewCount': 'INTEGER',
-        'Body': 'TEXT',
-        'OwnerUserId': 'INTEGER',  # (present only if user has not been deleted)
-        'OwnerDisplayName': 'TEXT',
-        'LastEditorUserId': 'INTEGER',
-        'LastEditorDisplayName': 'TEXT',  # ="Rich B"
-        'LastEditDate': 'DATETIME',  # "2009-03-05T22:28:34.823"
-        'LastActivityDate': 'DATETIME',  # "2009-03-11T12:51:01.480"
-        'CommunityOwnedDate': 'DATETIME',  # (present only if post is community wikied)
-        'Title': 'TEXT',
-        'Tags': 'TEXT',
-        'AnswerCount': 'INTEGER',
-        'CommentCount': 'INTEGER',
-        'FavoriteCount': 'INTEGER',
-        'ClosedDate': 'DATETIME'
-    },
-    'votes': {
-        'Id': 'INTEGER',
-        'PostId': 'INTEGER',
-        'UserId': 'INTEGER',
-        'VoteTypeId': 'INTEGER',
-        # -   1: AcceptedByOriginator
-        # -   2: UpMod
-        # -   3: DownMod
-        # -   4: Offensive
-        # -   5: Favorite
-        # -   6: Close
-        # -   7: Reopen
-        # -   8: BountyStart
-        # -   9: BountyClose
-        # -  10: Deletion
-        # -  11: Undeletion
-        # -  12: Spam
-        # -  13: InformModerator
-        'CreationDate': 'DATETIME',
-        'BountyAmount': 'INTEGER'
-    },
-    'posthistory': {
-        'Id': 'INTEGER',
-        'PostHistoryTypeId': 'INTEGER',
-        'PostId': 'INTEGER',
-        'RevisionGUID': 'INTEGER',
-        'CreationDate': 'DATETIME',
-        'UserId': 'INTEGER',
-        'UserDisplayName': 'TEXT',
-        'Comment': 'TEXT',
-        'Text': 'TEXT'
-    },
-    'postlinks': {
-        'Id': 'INTEGER',
-        'CreationDate': 'DATETIME',
-        'PostId': 'INTEGER',
-        'RelatedPostId': 'INTEGER',
-        'PostLinkTypeId': 'INTEGER',
-        'LinkTypeId': 'INTEGER'
-    },
-    'users': {
-        'Id': 'INTEGER',
-        'Reputation': 'INTEGER',
-        'CreationDate': 'DATETIME',
-        'DisplayName': 'TEXT',
-        'LastAccessDate': 'DATETIME',
-        'WebsiteUrl': 'TEXT',
-        'Location': 'TEXT',
-        'Age': 'INTEGER',
-        'AboutMe': 'TEXT',
-        'Views': 'INTEGER',
-        'UpVotes': 'INTEGER',
-        'DownVotes': 'INTEGER',
-        'EmailHash': 'TEXT',
-        'AccountId': 'INTEGER',
-        'ProfileImageUrl': 'TEXT'
-    },
-    'tags': {
-        'Id': 'INTEGER',
-        'TagName': 'TEXT',
-        'Count': 'INTEGER',
-        'ExcerptPostId': 'INTEGER',
-        'WikiPostId': 'INTEGER'
-    }
-}
-
-
-# templating
+                print exc
 
 def intspace(value):
     orig = str(value)
@@ -216,300 +429,71 @@ def scale(number):
         return 'good'
     return 'verygood'
 
+ENV = None  # Jinja environment singleton
 
-def jinja(output, template, templates, **context):
-    templates = os.path.abspath(templates)
-    env = Environment(loader=FileSystemLoader((templates,)))
-    filters = dict(
-        markdown=markdown,
-        intspace=intspace,
-        scale=scale,
-        clean=lambda y: filter(lambda x: x not in punctuation, y),
-        slugify=slugify,
-    )
-    env.filters.update(filters)
-    template = env.get_template(template)
+def jinja(output, template, templates, raw, **context):
+    global ENV
+    if ENV is None:
+        templates = os.path.abspath(templates)
+        ENV = Environment(loader=FileSystemLoader((templates,)))
+        filters = dict(
+            markdown=markdown,
+            intspace=intspace,
+            scale=scale,
+            clean=lambda y: filter(lambda x: x not in punctuation, y),
+            slugify=slugify,
+        )
+        ENV.filters.update(filters)
+
+    template = ENV.get_template(template)
     page = template.render(**context)
+    if raw:
+        page = "{% raw %}" + page + "{% endraw %}"
     with open(output, 'w') as f:
         f.write(page.encode('utf-8'))
 
 
-def iterate(filepath):
-    items = string2xml(filepath).getroot()
-    for index, item in enumerate(items.iterchildren()):
-        yield item.attrib
-
-
 def download(url, output):
+    if url[0:2] == "//":
+        url="http:"+url
     response = urlopen(url)
     output_content = response.read()
     with open(output, 'w') as f:
         f.write(output_content)
 
-
-def resize(filepath):
-    exts = ('.jpg', '.jpeg', '.JPG', '.JPEG', '.png', '.PNG', '.gif', '.GIF')
-    if os.path.splitext(filepath)[1] in exts:
-        img = Image.open(filepath)
-        w, h = img.size
-        if w >= 540:
-            # hardcoded size based on website layout
-            try:
-                img = resizeimage.resize_width(img, 540, Image.ANTIALIAS)
-            except:
-                print "Problem with image : " + filepath
-        img.save(filepath, img.format)
-
-
-def optimize(filepath):
-    # based on mwoffliner code http://bit.ly/1HZgZeP
-    ext = os.path.splitext(filepath)[1]
-    if ext in ('.jpg', '.jpeg', '.JPG', '.JPEG'):
-        exec_cmd('jpegoptim --strip-all -m50 "%s"' % filepath, timeout=10)
-    elif ext in ('.png', '.PNG'):
-        # run pngquant
-        cmd = 'pngquant --verbose --nofs --force --ext="%s" "%s"'
-        cmd = cmd % (ext, filepath)
-        exec_cmd(cmd, timeout=10)
-        # run advancecomp
-        exec_cmd('advdef -q -z -4 -i 5 "%s"' % filepath, timeout=10)
-    elif ext in ('.gif', '.GIF'):
-        exec_cmd('gifsicle -O3 "%s" -o "%s"' % (filepath, filepath), timeout=10)
-    else:
-        print('* unknown file extension %s' % filepath)
-
-
-def render_questions(templates, database, output, title, publisher, dump, cores):
-    # wrap the actual database
-    print 'render questions'
-    db = os.path.join(database, 'se-dump.db')
-    conn = sqlite3.connect(db)
-    conn.row_factory = dict_factory
-    cursor = conn.cursor()
-    # create table tags-questions
-    sql = "CREATE TABLE IF NOT EXISTS questiontag(id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, Score INTEGER, Title TEXT, CreationDate TEXT, Tag TEXT)"
-    cursor.execute(sql)
-    conn.commit()
-    os.makedirs(os.path.join(output, 'question'))
-    request_queue = Queue()
-    for i in range(cores):
-        Worker(request_queue).start()
-    offset = 0
-    while offset is not None:
-        questions = cursor.execute("SELECT * FROM posts WHERE PostTypeId == 1 LIMIT 1001 OFFSET ? ",  ( offset, ) ).fetchall()
-        try:
-            questions[1000]
-        except IndexError:
-            offset = None
-        else:
-            offset += 1000
-        questions = questions[:1000]
-        for question in questions:
-            question["Tags"] = question["Tags"][1:-1].split('><')
-            for t in question["Tags"]:
-                sql = "INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)"
-                cursor.execute(sql, (question["Score"], question["Title"], question["CreationDate"], t))
-            user = cursor.execute("SELECT DisplayName, Reputation  FROM users WHERE Id == ? ", (str(question["OwnerUserId"]),)).fetchone()
-            question["OwnerUserId"] = user
-            question["comments"] = cursor.execute("SELECT * FROM comments WHERE Id == ? ", (str(question["Id"]),)).fetchall()
-            for u in question["comments"]:
-                tmp = cursor.execute("SELECT DisplayName  FROM users WHERE Id == ?", (str(u["UserId"]),)).fetchone()
-                if tmp is not None:
-                    u["UserDisplayName"] = tmp["DisplayName"]
-            question["answers"] = cursor.execute("SELECT * FROM posts WHERE PostTypeId == 2 AND ParentID == ? ", (str(question["Id"]),)).fetchall()
-            for q in question["answers"]:
-                user = cursor.execute("SELECT DisplayName, Reputation  FROM users WHERE Id == ? ", (str(q["OwnerUserId"]),)).fetchone()
-                q["OwnerUserId"] = user
-                q["comments"] = cursor.execute("SELECT * FROM comments WHERE Id == ? ", (str(q["Id"]),)).fetchall()
-                for u in q["comments"]:
-                    tmp = cursor.execute("SELECT DisplayName FROM users WHERE Id == ? ", (str(u["UserId"]),)).fetchone()
-                    if tmp is not None:
-                        u["UserDisplayName"] = tmp["DisplayName"]
-            tmp = cursor.execute("SELECT PostId FROM postlinks WHERE RelatedPostId == ? ", (str(question["Id"]),)).fetchall()
-            question["relateds"] = []
-            for links in tmp:
-                name = cursor.execute("SELECT Title FROM posts WHERE Id == ? ", (links["PostId"],)).fetchone()
-                if name is not None:
-                    question["relateds"].append(name["Title"])
-            data_send = [templates, database, output, title, publisher, dump, question]
-            request_queue.put(data_send)
-        conn.commit()
-    for i in range(cores):
-        request_queue.put(None)
-
-
-def some_questions(templates, database, output, title, publisher, dump, question):
-    filename = '%s.html' % slugify(question["Title"])
-    filepath = os.path.join(output, 'question', filename)
+def image(post, output):
     images = os.path.join(output, 'static', 'images')
-    #
-    for post in chain([question], question['answers']):
-        body = string2html(post['Body'])
-        imgs = body.xpath('//img')
-        for img in imgs:
+    body = string2html(post['Body'])
+    imgs = body.xpath('//img')
+    for img in imgs:
             src = img.attrib['src']
             ext = os.path.splitext(src)[1]
             filename = sha1(src).hexdigest() + ext
             out = os.path.join(images, filename)
             # download the image only if it's not already downloaded
-            if not os.path.exists(out):
+            if not os.path.exists(out) : 
                 try:
                     download(src, out)
-                except:
-                    # do nothing
-                    pass
-                else:
                     # update post's html
                     src = '../static/images/' + filename
                     img.attrib['src'] = src
-                    # finalize offlining
-                    try:
-                        resize(out)
-                        optimize(out)
-                    except:
-                        print "Something went wrong with" + out
-        # does the post contain images? if so, we surely modified
-        # its content so save it.
-        if imgs:
-            body = html2string(body)
-            post['Body'] = body
+                except Exception,e:
+                    # do nothing
+                    print e
+                    pass
+                img.attrib['style']= "max-width:100%"
+                # finalize offlining
 
-    #
-    try:
-        jinja(
-            filepath,
-            'question.html',
-            templates,
-            question=question,
-            rooturl="..",
-            title=title,
-            publisher=publisher,
-        )
-    except:
-        print ' * failed to generate: %s' % filename
-
-
-def render_tags(templates, database, output, title, publisher, dump):
-    print 'render tags'
-    # index page
-    db = os.path.join(database, 'se-dump.db')
-    conn = sqlite3.connect(db)
-    conn.row_factory = dict_factory
-    cursor = conn.cursor()
-
-    tags = cursor.execute("SELECT TagName FROM tags ORDER BY TagName").fetchall()
-    jinja(
-        os.path.join(output, 'index.html'),
-        'tags.html',
-        templates,
-        tags=tags,
-        rooturl=".",
-        title=title,
-        publisher=publisher,
-    )
-    # tag page
-    print "Render tag page"
-    list_tag = map(lambda d: d['TagName'], tags)
-    os.makedirs(os.path.join(output, 'tag'))
-    for tag in list(set(list_tag)):
-        dirpath = os.path.join(output, 'tag')
-        tagpath = os.path.join(dirpath, '%s' % tag)
-        os.makedirs(tagpath)
-        print tagpath
-        # build page using pagination
-        offset = 0
-        page = 1
-        while offset is not None:
-            fullpath = os.path.join(tagpath, '%s.html' % page)
-            questions = cursor.execute("SELECT * FROM questiontag WHERE Tag = ? LIMIT 11 OFFSET ? ", (str(tag), offset,)).fetchall()
-            try:
-                questions[10]
-            except IndexError:
-                offset = None
-            else:
-                offset += 10
-            questions = questions[:10]
-            jinja(
-                fullpath,
-                'tag.html',
-                templates,
-                tag=tag,
-                index=page,
-                questions=questions,
-                rooturl="../..",
-                hasnext=bool(offset),
-                next=page + 1,
-                title=title,
-                publisher=publisher,
-            )
-            page += 1
-    conn.close()
-
-
-def render_users(templates, database, output, title, publisher, dump):
-    print 'render users'
-    os.makedirs(os.path.join(output, 'user'))
-    db = os.path.join(database, 'se-dump.db')
-    conn = sqlite3.connect(db)
-    conn.row_factory = dict_factory
-    cursor = conn.cursor()
-    users = cursor.execute("""SELECT * FROM users""").fetchall()
-
-    # Prepare identicon generation
-    identicon_path = os.path.join(output, 'static', 'identicon')
-    os.makedirs(identicon_path)
-    # Set-up a list of foreground colours (taken from Sigil).
-    foreground = [
-        "rgb(45,79,255)",
-        "rgb(254,180,44)",
-        "rgb(226,121,234)",
-        "rgb(30,179,253)",
-        "rgb(232,77,65)",
-        "rgb(49,203,115)",
-        "rgb(141,69,170)"
-    ]
-    # Set-up a background colour (taken from Sigil).
-    background = "rgb(224,224,224)"
-
-    # Instantiate a generator that will create 5x5 block identicons
-    # using SHA1 digest.
-    generator = pydenticon.Generator(5, 5, foreground=foreground, background=background)  # noqa
-
-    for user in users:
-        username = slugify(user["DisplayName"])
-
-        # Generate big identicon
-        padding = (20, 20, 20, 20)
-        identicon = generator.generate(username, 164, 164, padding=padding, output_format="png")  # noqa
-        filename = username + '.png'
-        fullpath = os.path.join(output, 'static', 'identicon', filename)
-        with open(fullpath, "wb") as f:
-            f.write(identicon)
-
-        # Generate small identicon
-        padding = [0] * 4  # no padding
-        identicon = generator.generate(username, 32, 32, padding=padding, output_format="png")  # noqa
-        filename = username + '.small.png'
-        fullpath = os.path.join(output, 'static', 'identicon', filename)
-        with open(fullpath, "wb") as f:
-            f.write(identicon)
-
-        # generate user profile page
-        filename = '%s.html' % username
-        fullpath = os.path.join(output, 'user', filename)
-        jinja(
-            fullpath,
-            'user.html',
-            templates,
-            user=user,
-            title=title,
-            publisher=publisher,
-        )
-
+    # does the post contain images? if so, we surely modified
+    # its content so save it.
+    if imgs:
+        body = html2string(body)
+        post['Body'] = body
+    return post
 
 def grab_title_description_favicon(url, output_dir):
     output = urlopen(url).read()
-    soup = BeautifulSoup.BeautifulSoup(output)
+    soup = BeautifulSoup.BeautifulSoup(output, 'html.parser')
     title = soup.find('meta', attrs={"name": u"twitter:title"})['content']
     description = soup.find('meta', attrs={"name": u"twitter:description"})['content']
     favicon = soup.find('link', attrs={"rel": u"image_src"})['href']
@@ -529,9 +513,68 @@ def resize_image_profile(image_path):
 
 def exec_cmd(cmd, timeout=None):
     try:
-        check_output(shlex.split(cmd), timeout=timeout)
-    except TimeoutExpired:
+        #print shlex.split(cmd)
+        #return check_output(shlex.split(cmd), timeout=timeout)
+        return call(shlex.split(cmd))
+    except Exception, e:
+        print e
         pass
+def bin_is_present(binary):
+    try:
+        subprocess.Popen(binary,
+                         universal_newlines=True,
+                         shell=False,
+                         stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE,
+                         bufsize=0)
+    except OSError:
+        return False
+    else:
+        return True
+
+def dict_to_unicodedict(dictionnary):
+    dict_ = {}
+    if dictionnary.has_key("OwnerDisplayName"):
+        dictionnary["OwnerDisplayName"] = u""
+    for k, v in dictionnary.items():
+        if isinstance(k, str):
+            unicode_key = k.decode('utf8')
+        else:
+            unicode_key = k
+        if isinstance(v, unicode) or type(v) == type({}) or type(v) == type(1):
+            unicode_value = v
+        else:
+            unicode_value =  v.decode('utf8')
+        dict_[unicode_key] = unicode_value
+
+    return dict_
+
+def prepare(dump_path):
+    cmd="bash prepare_xml.sh " + dump_path
+    if exec_cmd(cmd) == 0:
+        print "Prepare xml ok"
+    else:
+        sys.exit("Unable to prepare xml :(")
+
+def optimize(output):
+    print "optimize images"
+    print "jpegoptim --strip-all -m50 " + output + "/*.{jpg,jpeg}"
+    exec_cmd("jpegoptim --strip-all -m50 " + output + "/*.{jpg,jpeg}", timeout=None)
+    print "pngquant --verbose --nofs --force --ext=.png " + output + "/*.png"
+    exec_cmd("pngquant --verbose --nofs --force --ext=.png " + output + "/*.png", timeout=None)
+    print "advdef -q -z -4 -i 5  " + output + "/*.png"
+    exec_cmd("advdef -q -z -4 -i 5  " + output + "/*.png", timeout=None)
+    print "gifsicle --batch -O3 -i " + output + "/*.gif"
+    exec_cmd("gifsicle --batch -O3 -i " + output + "/*.gif", timeout=None)
+
+def resize(output):
+    print "Resize image"
+    exec_cmd("mogrify -resize 540x\> " + output + "/*.{jpg,jpeg,png,gif}", timeout=None)
+
+#########################
+#     Zim generation    #
+#########################
 
 def create_zims(title, publisher, description):
     print 'Creating ZIM files'
@@ -578,153 +621,65 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
         print "Unable to create ZIM file :("
 
 
-def bin_is_present(binary):
-    try:
-        subprocess.Popen(binary,
-                         universal_newlines=True,
-                         shell=False,
-                         stdin=subprocess.PIPE,
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE,
-                         bufsize=0)
-    except OSError:
-        return False
-    else:
-        return True
-
-
-def load(dump_path, database_path):
-    dump_database_name = 'se-dump.db'
-    log_filename = 'se-parser.log'
-    create_query = 'CREATE TABLE IF NOT EXISTS {table} ({fields})'
-    insert_query = 'INSERT INTO {table} ({columns}) VALUES ({values})'
-
-    logging.basicConfig(filename=os.path.join(dump_path, log_filename), level=logging.INFO)
-    db = sqlite3.connect(os.path.join(database_path, dump_database_name))
-
-    for file, spec in ANATHOMY.items():
-        print "Opening {0}.xml".format(file)
-        with open(os.path.join(dump_path, file + '.xml')) as xml_file:
-            tree = etree.iterparse(xml_file)
-            table_name = file
-
-            sql_create = create_query.format(
-                table=table_name,
-                fields=", ".join(['{0} {1}'.format(name, type) for name, type in spec.items()]))
-            print('Creating table {0}'.format(table_name))
-
-            try:
-                logging.info(sql_create)
-                db.execute(sql_create)
-            except Exception, e:
-                logging.warning(e)
-
-            for events, row in tree:
-                try:
-                    if row.attrib.values():
-                        logging.debug(row.attrib.keys())
-                        query = insert_query.format(
-                            table=table_name,
-                            columns=', '.join(row.attrib.keys()),
-                            values=('?, ' * len(row.attrib.keys()))[:-2])
-                        db.execute(query, row.attrib.values())
-                        print ".",
-                except Exception, e:
-                    logging.warning(e)
-                    print "x",
-                finally:
-                    row.clear()
-            print "\n"
-            db.commit()
-            del tree
-
-
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='sotoki 0.1')
-    if arguments['load']:
-        load(arguments['<dump-directory>'], arguments['<database-directory>'])
-    elif arguments['render']:
-        render_questions(
-            arguments['<templates>'],
-            arguments['<database>'],
-            arguments['<output>'],
-            arguments['<title>'],
-            arguments['<publisher>'],
-            arguments['--directory']
-        )
-        render_tags(
-            arguments['<templates>'],
-            arguments['<database>'],
-            arguments['<output>'],
-            arguments['<title>'],
-            arguments['<publisher>'],
-            arguments['--directory']
-        )
-
-    elif arguments['render-users']:
-        render_users(arguments['<templates>'], arguments['<database>'], arguments['<output>'])  # noqa
-    elif arguments['run']:
+    if arguments['run']:
         if not bin_is_present("zimwriterfs"):
             sys.exit("zimwriterfs is not available, please install it.")
-        # load dump into database
         url = arguments['<url>']
         publisher = arguments['<publisher>']
         dump = arguments['--directory']
         database = 'work'
-        load(dump, database)
         # render templates into `output`
-        templates = 'templates'
+        #templates = 'templates'
+        templates = 'templates_mini'
         output = os.path.join('work', 'output')
         os.makedirs(output)
+        os.makedirs(os.path.join(output, 'static', 'images'))
         cores = cpu_count() / 2 or 1
-        title, description = grab_title_description_favicon(url, output)
-        render_questions(templates, database, output, title, publisher, dump, cores)
-        render_tags(templates, database, output, title, publisher, dump)
-        render_users(templates, database, output, title, publisher, dump)
-        # copy static
-        copy_tree('static', os.path.join('work', 'output', 'static'))
-        create_zims(title, publisher, description)
-    elif arguments['benchmark']:
-        print '* Running benchmark for sqlite'
-        work = arguments['<work>']
-        database_path = work
-        dump_database_name = 'se-dump.db'
 
-        create_query = 'CREATE TABLE IF NOT EXISTS {table} ({fields})'
-        insert_query = 'INSERT INTO {table} ({columns}) VALUES ({values})'
-
-        db = sqlite3.connect(os.path.join(database_path, dump_database_name))
-
-        file = 'posts'
-        spec = ANATHOMY[file]
-        with open(os.path.join(work, 'dump', 'Posts.xml')) as xml_file:
-            tree = etree.iterparse(xml_file)
-            table_name = file
-            sql_create = create_query.format(
-                table=table_name,
-                fields=", ".join(['{0} {1}'.format(name, type) for name, type in spec.items()])
-            )
-            
-            db.execute(sql_create)
-
-            for events, row in tree:
-                if row.attrib.values():
-                    logging.debug(row.attrib.keys())
-                    query = insert_query.format(
-                        table=table_name,
-                        columns=', '.join(row.attrib.keys()),
-                        values=('?, ' * len(row.attrib.keys()))[:-2])
-                    db.execute(query, row.attrib.values())
-                    row.clear()
-            db.commit()
-
-        db = os.path.join(work, 'se-dump.db')
-        conn = sqlite3.connect(db)
+        #prepare db
+        #db = os.path.join(database, 'se-dump.db')
+        conn = sqlite3.connect(":memory:") #in :memory:
         conn.row_factory = dict_factory
         cursor = conn.cursor()
         # create table tags-questions
         sql = "CREATE TABLE IF NOT EXISTS questiontag(id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, Score INTEGER, Title TEXT, CreationDate TEXT, Tag TEXT)"
         cursor.execute(sql)
+        #creater user table
+        sql = "CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY UNIQUE, DisplayName TEXT, Reputation TEXT)"
+        cursor.execute(sql)
+        #create table for links
+        sql = "CREATE TABLE IF NOT EXISTS links(id INTEGER, title TEXT)"
+        cursor.execute(sql)
         conn.commit()
 
-        questions = cursor.execute("SELECT * FROM posts").fetchall()
+        prepare(dump)
+        title, description = grab_title_description_favicon(url, output)
+
+        #Generate users !
+        parser = make_parser()
+        parser.setContentHandler(UsersRender(templates, database, output, title, publisher, dump, cores, cursor))
+        parser.parse(os.path.join(dump, "users.xml"))
+        conn.commit()
+
+
+        #Generate question !
+        parser = make_parser()
+        parser.setContentHandler(QuestionRender(templates, database, output, title, publisher, dump, cores, cursor,conn))
+        parser.parse(os.path.join(dump, "prepare.xml"))
+        conn.commit()
+
+        #Generate tags !
+        parser = make_parser()
+        parser.setContentHandler(TagsRender(templates, database, output, title, publisher, dump, cores, cursor))
+        parser.parse(os.path.join(dump, "tags.xml"))
+
+        conn.close()
+        # copy static
+        #TODO Code better resize and optimize !
+        #resize(os.path.join(output, 'static', 'images'))
+        #optimize(os.path.join(output, 'static', 'images'))
+        copy_tree('static', os.path.join('work', 'output', 'static'))
+        create_zims(title, publisher, description)
+

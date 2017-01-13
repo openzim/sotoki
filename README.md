@@ -28,7 +28,7 @@ sudo apt-get install jpegoptim pngquant gifsicle advancecomp python-pip python-v
 Create a virtual environment for python:
 
 ```
-virtualenv --with-system-site-packages venv
+virtualenv --system-site-packages venv
 ```
 
 Activate the virtual enviroment:
