@@ -20,9 +20,7 @@ for line in f1:
 	        else:
 	                break
 
-
-
 	if line_id == line_2_id:
-		print re.sub(' PostId=\"[0-9]*\"', " PostId=\"" + re.sub("\n$","", re.sub("\"", "", line_2.split(",")[1])) + "\"", re.sub("\n$","",line))
+		print re.sub(r'\\(.)', r'\1', re.sub(' PostId=\"[0-9]*\"', " PostId=\"" + re.sub("\n$","", re.escape(re.sub("\"", "", line_2.split(",")[1]))) + "\"", re.sub("\n$","", line)))
 	#else => Title doesn't exist
 #print '</postlinks>'

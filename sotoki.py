@@ -142,7 +142,10 @@ class QuestionRender(handler.ContentHandler):
             return
 
         if name == "link": #We add link
-            self.post["relateds"].append(attrs["PostId"])
+            if attrs["LinkTypeId"] == "1":
+                self.post["relateds"].append(attrs["PostId"])
+            elif attrs["LinkTypeId"] == "3":
+                self.post["duplicate"].append(attrs["PostId"])
             return
 
         if name != 'post': #We go out if it's not a post, we because we have see all name of posible tag (answers, row,comments,comment and we will see after post) This normally match only this root
@@ -163,11 +166,15 @@ class QuestionRender(handler.ContentHandler):
                 if self.nb % 1000 == 0:
                     print "Already " + str(self.nb) + " questions done!"
                 some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
-                self.post = {} #reset post
+                #Reset element
+                self.post={}
+                self.comments=[]
+                self.answers=[]
                 self.whatwedo = "post"
             for k in attrs.keys(): #get all item
                 self.post[k] = attrs[k]
             self.post["relateds"] = [] #Prepare list for relateds question
+            self.post["duplicate"] = [] #Prepare list for duplicate question
             if self.post.has_key("OwnerUserId"):#We put the good name of the user how made the post
                 user=cursor.execute("SELECT * FROM users WHERE id = ?", (int(self.post["OwnerUserId"]),)).fetchone()
                 if user != None:
@@ -476,6 +483,8 @@ def image(post, output):
                     download(src, out)
                     # update post's html
                     src = '../static/images/' + filename
+                    resize_one(out)
+                    optimize_one(out)
                     img.attrib['src'] = src
                 except Exception,e:
                     # do nothing
@@ -513,9 +522,8 @@ def resize_image_profile(image_path):
 
 def exec_cmd(cmd, timeout=None):
     try:
-        #print shlex.split(cmd)
         #return check_output(shlex.split(cmd), timeout=timeout)
-        return call(shlex.split(cmd))
+        return call(shlex.split(cmd), timeout=timeout)
     except Exception, e:
         print e
         pass
@@ -557,20 +565,20 @@ def prepare(dump_path):
     else:
         sys.exit("Unable to prepare xml :(")
 
-def optimize(output):
-    print "optimize images"
-    print "jpegoptim --strip-all -m50 " + output + "/*.{jpg,jpeg}"
-    exec_cmd("jpegoptim --strip-all -m50 " + output + "/*.{jpg,jpeg}", timeout=None)
-    print "pngquant --verbose --nofs --force --ext=.png " + output + "/*.png"
-    exec_cmd("pngquant --verbose --nofs --force --ext=.png " + output + "/*.png", timeout=None)
-    print "advdef -q -z -4 -i 5  " + output + "/*.png"
-    exec_cmd("advdef -q -z -4 -i 5  " + output + "/*.png", timeout=None)
-    print "gifsicle --batch -O3 -i " + output + "/*.gif"
-    exec_cmd("gifsicle --batch -O3 -i " + output + "/*.gif", timeout=None)
+def optimize_one(path):
+    ext=os.path.splitext(path)[1]
+    if ext in [".jpg", ".jpeg", ".JPG", ".JPEG"]:
+        exec_cmd("jpegoptim --strip-all -m50 " + path, timeout=10)
+    elif ext in [ ".png", ".PNG"] :
+        exec_cmd("pngquant --verbose --nofs --force --ext=.png " + path, timeout=10)
+        exec_cmd("advdef -q -z -4 -i 5  " + path, timeout=10)
+    elif ext in [".gif", ".GIF"]:
+        exec_cmd("gifsicle --batch -O3 -i " + path, timeout=10)
 
-def resize(output):
-    print "Resize image"
-    exec_cmd("mogrify -resize 540x\> " + output + "/*.{jpg,jpeg,png,gif}", timeout=None)
+def resize_one(path):
+    ext=os.path.splitext(path)[1]
+    if ext in [".jpg",".jpeg", ".png", ".gif", ".JPG", ".JPEG", ".PNG", ".GIF" ]:
+        exec_cmd("mogrify -resize 540x\> " + path, timeout=10)
 
 #########################
 #     Zim generation    #
@@ -677,9 +685,6 @@ if __name__ == '__main__':
 
         conn.close()
         # copy static
-        #TODO Code better resize and optimize !
-        #resize(os.path.join(output, 'static', 'images'))
-        #optimize(os.path.join(output, 'static', 'images'))
         copy_tree('static', os.path.join('work', 'output', 'static'))
         create_zims(title, publisher, description)
 
