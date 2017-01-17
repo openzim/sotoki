@@ -74,16 +74,13 @@ class QuestionRender(handler.ContentHandler):
         self.whatwedo="post"
         self.nb=0 #Nomber of post generate
         os.makedirs(os.path.join(output, 'question'))
-        """
-        #TODO remove thread ?
-        self.request_queue = Queue()
+        self.request_queue = Queue(cores*2)
         self.workers = []
         self.cores=cores
         for i in range(self.cores): 
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
             i.start()
-        """
 
     def startElement(self, name, attrs): #For each element
         if name == "comments" and self.whatwedo == "post": #We match if it's a comment of post
@@ -165,7 +162,13 @@ class QuestionRender(handler.ContentHandler):
                 self.nb+=1 
                 if self.nb % 1000 == 0:
                     print "Already " + str(self.nb) + " questions done!"
-                some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
+                self.post["Tags"] = self.post["Tags"][1:-1].split('><')
+                for t in self.post["Tags"]: #We put tags into db
+                    sql = "INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)"
+                    self.cursor.execute(sql, (self.post["Score"], self.post["Title"], self.post["CreationDate"], t))
+                data_send = [ some_questions, templates, output, title, publisher, self.post, "question.html" ]
+                self.request_queue.put(data_send)
+                #some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
                 #Reset element
                 self.post={}
                 self.comments=[]
@@ -185,7 +188,6 @@ class QuestionRender(handler.ContentHandler):
                 self.post["OwnerUserId"] = dict_to_unicodedict({ "DisplayName" : self.post["OwnerDisplayName"] })
             else:
                 self.post["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
-
     def endDocument(self):
         print "---END--"
         #We close the last post !
@@ -196,48 +198,54 @@ class QuestionRender(handler.ContentHandler):
             self.post["answers"] = self.answers
         elif self.whatwedo=="post/comments":
             self.post["comments"] = self.comments
-        some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
+        for t in self.post["Tags"]: #We put tags into db
+            sql = "INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)"
+            self.cursor.execute(sql, (self.post["Score"], self.post["Title"], self.post["CreationDate"], t))
+        data_send = [ some_questions, templates, output, title, publisher, self.post, "question.html" ]
+        self.request_queue.put(data_send)
+        #some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
 
         self.conn.commit()
         #closing thread
-        """
         for i in range(self.cores):
             self.request_queue.put(None)
         for i in self.workers:
             i.join()
-        """
-def some_questions(templates, output, title, publisher, question, template_name,cursor):
+
+def some_questions(templates, output, title, publisher, question, template_name):
     try:
         question["Score"] = int(question["Score"])
+        """ 
         question["Tags"] = question["Tags"][1:-1].split('><')
         for t in question["Tags"]: #We put tags into db
             sql = "INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)"
             cursor.execute(sql, (question["Score"], question["Title"], question["CreationDate"], t))
-            if question.has_key("answers"):
-                question["answers"] = sorted(question["answers"], key=lambda k: k['Score'],reverse=True) 
+        """
+        if question.has_key("answers"):
+            question["answers"] = sorted(question["answers"], key=lambda k: k['Score'],reverse=True) 
         if slugify(question["Title"]) != "":
-                #Before we make thread for generation but with this stack increase, and increase and take to much memory
-                #data_send = [ some_questions, self.templates, self.output, self.title, self.publisher, self.post, "question.html"]
-                #self.request_queue.put(data_send)
-                #some_questions(templates, output, title, publisher, self.post, "question.html")
-                filename = '%s.html' % slugify(question["Title"])
-                filepath = os.path.join(output, 'question', filename)
-                question = image(question,output)
-                try:
-                    jinja(
-                        filepath,
-                        template_name,
-                        templates,
-                        False,
-                        question=question,
-                        rooturl="..",
-                        title=title,
-                        publisher=publisher,
-                        )
-                except Exception, e:
-                    print ' * failed to generate: %s' % filename
-                    print "erreur jinja" + str(e)
-                    print question
+            #Before we make thread for generation but with this stack increase, and increase and take to much memory
+            #data_send = [ some_questions, self.templates, self.output, self.title, self.publisher, self.post, "question.html"]
+            #self.request_queue.put(data_send)
+            #some_questions(templates, output, title, publisher, self.post, "question.html")
+            filename = '%s.html' % slugify(question["Title"])
+            filepath = os.path.join(output, 'question', filename)
+            question = image(question,output)
+            try:
+                jinja(
+                    filepath,
+                    template_name,
+                    templates,
+                    False,
+                    question=question,
+                    rooturl="..",
+                    title=title,
+                    publisher=publisher,
+                    )
+            except Exception, e:
+                print ' * failed to generate: %s' % filename
+                print "erreur jinja" + str(e)
+                print question
         else: #Sometime (when title only have caratere that we can't sluglify) 
                 print "erreur avec le titre" #lever une exception ?
     except Exception, e:
