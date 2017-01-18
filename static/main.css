@@ -94,6 +94,13 @@ a[href*="//"]:after {  /* all external links are absolute */
     font-size: 0.8em;
 }
 
+/** accepted **/
+.post .accepted {
+  font-size: 36px;
+  color: hsl(120, 50%, 40%);
+  margin: 0px;
+}
+
 /** tags  **/
 
 .post .tags ul li {

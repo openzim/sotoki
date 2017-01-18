@@ -18,6 +18,11 @@
           <p><span>{{ post["FavoriteCount"] | intspace }}</span></p>
         </div>
       {% endif %}
+      {% if post["Accepted"] and post["Accepted"] == True %}
+        <div class="accepted">
+          <p><span class="glyphicon glyphicon-ok"></span></p>
+        </div>
+      {% endif %}
     </div>
     {# FIXME, remove the decode #}
     <div class="body">{{ post["Body"] | safe }}</div>
@@ -28,6 +33,7 @@
         {% for tag in post["Tags"] %}
           <li><a href="{{ rooturl }}/tag/{{ tag }}/1.html">{{ tag }}</a></li>
         {% endfor %}
+      </ul>
     </div>
   {% endif %}
   {% if post["OwnerUserId"] %}

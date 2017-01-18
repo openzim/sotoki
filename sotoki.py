@@ -106,6 +106,11 @@ class QuestionRender(handler.ContentHandler):
             for k in attrs.keys(): #Get all item
                 tmp[k] = attrs[k]
             tmp["Score"] = int(tmp["Score"])
+            
+            if self.post.has_key("AcceptedAnswerId") and self.post["AcceptedAnswerId"] == tmp["Id"]:
+                tmp["Accepted"] = True
+            else:
+                tmp["Accepted"] = False
 
             if tmp.has_key("OwnerUserId"): #We put the good name of the user how made the post
                 user=cursor.execute("SELECT * FROM users WHERE id = ?", (int(tmp["OwnerUserId"]),)).fetchone()
@@ -215,14 +220,9 @@ class QuestionRender(handler.ContentHandler):
 def some_questions(templates, output, title, publisher, question, template_name):
     try:
         question["Score"] = int(question["Score"])
-        """ 
-        question["Tags"] = question["Tags"][1:-1].split('><')
-        for t in question["Tags"]: #We put tags into db
-            sql = "INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)"
-            cursor.execute(sql, (question["Score"], question["Title"], question["CreationDate"], t))
-        """
         if question.has_key("answers"):
             question["answers"] = sorted(question["answers"], key=lambda k: k['Score'],reverse=True) 
+            question["answers"] = sorted(question["answers"], key=lambda k: k['Accepted'],reverse=True) #sorted is stable so accepted will be always first, then other question will be sort in ascending order
         if slugify(question["Title"]) != "":
             #Before we make thread for generation but with this stack increase, and increase and take to much memory
             #data_send = [ some_questions, self.templates, self.output, self.title, self.publisher, self.post, "question.html"]
