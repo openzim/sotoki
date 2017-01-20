@@ -3,7 +3,7 @@
 """sotoki.
 
 Usage:
-  sotoki.py run <url> <publisher> [--directory=<dir>]
+  sotoki.py run <url> <publisher> [--directory=<dir>] [--nozim]
   sotoki.py (-h | --help)
   sotoki.py --version
 
@@ -11,6 +11,7 @@ Options:
   -h --help     Show this screen.
   --version     Show version.
   --directory=<dir>   Specify a directory for xml files [default: work/dump/]
+  --nozim       doesn't make zim file, output will be in work/output/
 """
 import sys
 import datetime
@@ -92,21 +93,15 @@ class QuestionRender(handler.ContentHandler):
             self.comments=[]
             return
         if name == "answers": #a answer
-            if self.whatwedo == "post/comments": #We put all comments into post["comments"] if the post has comment
-                self.post["comments"] = self.comments
             self.whatwedo="post/answers"
             self.comments=[]
             self.answers=[]
             return
         if name== 'row': #Here is a answer
-            if self.whatwedo=="post/answers/comments": #we put all comment into the previous answer if the previous answer has comment
-                self.answers[-1]["comments"] = self.comments
-                self.whatwedo="post/answers"
             tmp={}
             for k in attrs.keys(): #Get all item
                 tmp[k] = attrs[k]
             tmp["Score"] = int(tmp["Score"])
-            
             if self.post.has_key("AcceptedAnswerId") and self.post["AcceptedAnswerId"] == tmp["Id"]:
                 tmp["Accepted"] = True
             else:
@@ -155,30 +150,7 @@ class QuestionRender(handler.ContentHandler):
             return
 
         if name == 'post': #Here is a post
-            if self.whatwedo=="post/answers/comments": #If we have a previous post with answer and comment on this answer, we put comment into the anwer
-                self.answers[-1]["comments"] = self.comments
-                self.whatwedo="post/answers"
-            if self.whatwedo=="post/answers": #If we have a previous post with answer(s), we put answer(s) we put them into post
-                self.post["answers"] = self.answers
-            elif self.whatwedo=="post/comments": #If we have previous post without answer but with comments we put comment into post
-                self.post["comments"] = self.comments
-            if self.post != {}: #Then, if we have a previous post, we generate it
-                #print self.post
-                self.nb+=1 
-                if self.nb % 1000 == 0:
-                    print "Already " + str(self.nb) + " questions done!"
-                self.post["Tags"] = self.post["Tags"][1:-1].split('><')
-                for t in self.post["Tags"]: #We put tags into db
-                    sql = "INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)"
-                    self.cursor.execute(sql, (self.post["Score"], self.post["Title"], self.post["CreationDate"], t))
-                data_send = [ some_questions, templates, output, title, publisher, self.post, "question.html" ]
-                self.request_queue.put(data_send)
-                #some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
-                #Reset element
-                self.post={}
-                self.comments=[]
-                self.answers=[]
-                self.whatwedo = "post"
+            self.whatwedo = "post"
             for k in attrs.keys(): #get all item
                 self.post[k] = attrs[k]
             self.post["relateds"] = [] #Prepare list for relateds question
@@ -193,23 +165,36 @@ class QuestionRender(handler.ContentHandler):
                 self.post["OwnerUserId"] = dict_to_unicodedict({ "DisplayName" : self.post["OwnerDisplayName"] })
             else:
                 self.post["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
+
+    def endElement(self, name):
+        if self.whatwedo=="post/answers/comments": #If we have a post with answer and comment on this answer, we put comment into the anwer
+            self.answers[-1]["comments"] = self.comments
+            self.whatwedo="post/answers"
+        if self.whatwedo=="post/answers": #If we have a post with answer(s), we put answer(s) we put them into post
+            self.post["answers"] = self.answers
+        elif self.whatwedo=="post/comments": #If we have post without answer but with comments we put comment into post
+            self.post["comments"] = self.comments
+
+        if name == "post":
+            #print self.post
+            self.nb+=1 
+            if self.nb % 1000 == 0:
+                print "Already " + str(self.nb) + " questions done!"
+            self.post["Tags"] = self.post["Tags"][1:-1].split('><')
+            for t in self.post["Tags"]: #We put tags into db
+                sql = "INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)"
+                self.cursor.execute(sql, (self.post["Score"], self.post["Title"], self.post["CreationDate"], t))
+            data_send = [ some_questions, templates, output, title, publisher, self.post, "question.html" ]
+            self.request_queue.put(data_send)
+            #some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
+            #Reset element
+            self.post={}
+            self.comments=[]
+            self.answers=[]
+
+
     def endDocument(self):
         print "---END--"
-        #We close the last post !
-        if self.whatwedo=="post/answers/comments":
-            self.answers[-1]["comments"] = self.comments
-            self.whatwedo=="post/answers"
-        if self.whatwedo=="post/answers":
-            self.post["answers"] = self.answers
-        elif self.whatwedo=="post/comments":
-            self.post["comments"] = self.comments
-        for t in self.post["Tags"]: #We put tags into db
-            sql = "INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)"
-            self.cursor.execute(sql, (self.post["Score"], self.post["Title"], self.post["CreationDate"], t))
-        data_send = [ some_questions, templates, output, title, publisher, self.post, "question.html" ]
-        self.request_queue.put(data_send)
-        #some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
-
         self.conn.commit()
         #closing thread
         for i in range(self.cores):
@@ -640,7 +625,7 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='sotoki 0.1')
     if arguments['run']:
-        if not bin_is_present("zimwriterfs"):
+        if not arguments['--nozim'] and not bin_is_present("zimwriterfs"):
             sys.exit("zimwriterfs is not available, please install it.")
         url = arguments['<url>']
         publisher = arguments['<publisher>']
@@ -694,5 +679,6 @@ if __name__ == '__main__':
         conn.close()
         # copy static
         copy_tree('static', os.path.join('work', 'output', 'static'))
-        create_zims(title, publisher, description)
+        if not arguments['--nozim']:
+            create_zims(title, publisher, description)
 

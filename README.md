@@ -56,6 +56,6 @@ rename 'y/A-Z/a-z/' *
 Go back at the sotoki root and run the pipeline:
 
 ```
-python sotoki.py run [url of stackechange website] [publisher] [--directory (optional)]
+python sotoki.py run [url of stackechange website] [publisher] [--directory (optional)] [--nozim (optional)]
 
 ```
