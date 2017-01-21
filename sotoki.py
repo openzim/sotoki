@@ -11,7 +11,7 @@ Options:
   -h --help     Show this screen.
   --version     Show version.
   --directory=<dir>   Specify a directory for xml files [default: work/dump/]
-  --nozim       doesn't make zim file, output will be in work/output/
+  --nozim       doesn't make zim file, output will be in work/output/ in normal html (otherwise work/ouput/ will be in deflate form and will produice a zim file)
 """
 import sys
 import datetime
@@ -54,6 +54,7 @@ from slugify import slugify
 from markdown import markdown as md
 import pydenticon
 from string import punctuation
+import zlib
 
 from PIL import Image
 from resizeimage import resizeimage
@@ -66,7 +67,7 @@ from itertools import chain
 #########################
 class QuestionRender(handler.ContentHandler):
 
-    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor,conn):
+    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor,conn, deflate):
         self.cursor=cursor
         self.conn=conn
         self.post={}
@@ -184,7 +185,7 @@ class QuestionRender(handler.ContentHandler):
             for t in self.post["Tags"]: #We put tags into db
                 sql = "INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)"
                 self.cursor.execute(sql, (self.post["Score"], self.post["Title"], self.post["CreationDate"], t))
-            data_send = [ some_questions, templates, output, title, publisher, self.post, "question.html" ]
+            data_send = [ some_questions, templates, output, title, publisher, self.post, "question.html", deflate ]
             self.request_queue.put(data_send)
             #some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
             #Reset element
@@ -202,7 +203,7 @@ class QuestionRender(handler.ContentHandler):
         for i in self.workers:
             i.join()
 
-def some_questions(templates, output, title, publisher, question, template_name):
+def some_questions(templates, output, title, publisher, question, template_name, deflate):
     try:
         question["Score"] = int(question["Score"])
         if question.has_key("answers"):
@@ -222,6 +223,7 @@ def some_questions(templates, output, title, publisher, question, template_name)
                     template_name,
                     templates,
                     False,
+                    deflate,
                     question=question,
                     rooturl="..",
                     title=title,
@@ -243,7 +245,7 @@ def some_questions(templates, output, title, publisher, question, template_name)
 
 class TagsRender(handler.ContentHandler):
 
-    def __init__(self, templates, database, output, title, publisher, dump, cursor, conn):
+    def __init__(self, templates, database, output, title, publisher, dump, cursor, conn, deflate):
         # index page
         self.tags = []
 
@@ -257,6 +259,7 @@ class TagsRender(handler.ContentHandler):
             'tags.html',
             templates,
             False,
+            deflate,
             tags=self.tags,
             rooturl=".",
             title=title,
@@ -289,6 +292,7 @@ class TagsRender(handler.ContentHandler):
                     'tag.html',
                     templates,
                     False,
+                    deflate,
                     tag=tag,
                     index=page,
                     questions=questions,
@@ -305,7 +309,7 @@ class TagsRender(handler.ContentHandler):
 #########################
 class UsersRender(handler.ContentHandler):
 
-    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor):
+    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor, deflate):
         self.identicon_path = os.path.join(output, 'static', 'identicon')
         self.id=0
         os.makedirs(self.identicon_path)
@@ -366,6 +370,7 @@ class UsersRender(handler.ContentHandler):
                     'user.html',
                     templates,
                     False,
+                    deflate,
                     user=user,
                     title=title,
                     rooturl="..",
@@ -431,7 +436,7 @@ def scale(number):
 
 ENV = None  # Jinja environment singleton
 
-def jinja(output, template, templates, raw, **context):
+def jinja(output, template, templates, raw, deflate, **context):
     global ENV
     if ENV is None:
         templates = os.path.abspath(templates)
@@ -450,7 +455,10 @@ def jinja(output, template, templates, raw, **context):
     if raw:
         page = "{% raw %}" + page + "{% endraw %}"
     with open(output, 'w') as f:
-        f.write(page.encode('utf-8'))
+        if deflate:
+            f.write(zlib.compress(page.encode('utf-8')))
+        else:
+             f.write(page.encode('utf-8'))
 
 
 def download(url, output):
@@ -609,7 +617,7 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
         'zim': zim_path
     }
 
-    cmd = ('zimwriterfs --welcome="{home}" --favicon="{favicon}" '
+    cmd = ('zimwriterfs --inflateHtml --welcome="{home}" --favicon="{favicon}" '
            '--language="{languages}" --title="{title}" '
            '--description="{description}" '
            '--creator="{creator}" --publisher="{publisher}" "{static}" "{zim}"'
@@ -630,6 +638,7 @@ if __name__ == '__main__':
         url = arguments['<url>']
         publisher = arguments['<publisher>']
         dump = arguments['--directory']
+        deflate = not arguments['--nozim']
         database = 'work'
         # render templates into `output`
         #templates = 'templates'
@@ -660,20 +669,20 @@ if __name__ == '__main__':
 
         #Generate users !
         parser = make_parser()
-        parser.setContentHandler(UsersRender(templates, database, output, title, publisher, dump, cores, cursor))
+        parser.setContentHandler(UsersRender(templates, database, output, title, publisher, dump, cores, cursor, deflate))
         parser.parse(os.path.join(dump, "users.xml"))
         conn.commit()
 
 
         #Generate question !
         parser = make_parser()
-        parser.setContentHandler(QuestionRender(templates, database, output, title, publisher, dump, cores, cursor,conn))
+        parser.setContentHandler(QuestionRender(templates, database, output, title, publisher, dump, cores, cursor,conn, deflate))
         parser.parse(os.path.join(dump, "prepare.xml"))
         conn.commit()
 
         #Generate tags !
         parser = make_parser()
-        parser.setContentHandler(TagsRender(templates, database, output, title, publisher, dump, cores, cursor))
+        parser.setContentHandler(TagsRender(templates, database, output, title, publisher, dump, cores, cursor, deflate))
         parser.parse(os.path.join(dump, "tags.xml"))
 
         conn.close()
