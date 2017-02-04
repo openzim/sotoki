@@ -58,6 +58,7 @@ import zlib
 
 from PIL import Image
 from resizeimage import resizeimage
+import magic
 
 from itertools import chain
 
@@ -468,6 +469,27 @@ def download(url, output):
     output_content = response.read()
     with open(output, 'w') as f:
         f.write(output_content)
+    return response.headers
+
+def get_filetype(headers,path):
+    type="none"
+    if headers.has_key('content-type'):
+        if ("png" in headers['content-type']) or ("PNG" in headers['content-type']):
+            type="png"
+        elif ("jpg" in headers['content-type']) or ("jpeg" in headers['content-type']) or ("JPG" in headers['content-type']) or ("JPEG" in headers['content-type']):
+            type="jpeg"
+        elif ("gif" in headers['content-type']) or ("GIF" in headers['content-type']):
+            type="gif"
+    else:
+        with magic.Magic() as m:
+            mine=m.id_filename(path)
+            if "PNG" in mine:
+                type="png"
+            elif "JPEG" in mine:
+                type="jpeg"
+            elif "GIF" in mine:
+                type="gif"
+    return type
 
 def image(post, output):
     images = os.path.join(output, 'static', 'images')
@@ -481,11 +503,12 @@ def image(post, output):
             # download the image only if it's not already downloaded
             if not os.path.exists(out) : 
                 try:
-                    download(src, out)
+                    headers=download(src, out)
+                    type=get_filetype(headers,out)
                     # update post's html
                     src = '../static/images/' + filename
-                    resize_one(out)
-                    optimize_one(out)
+                    resize_one(out,type)
+                    optimize_one(out,type)
                     img.attrib['src'] = src
                 except Exception,e:
                     # do nothing
@@ -566,19 +589,17 @@ def prepare(dump_path):
     else:
         sys.exit("Unable to prepare xml :(")
 
-def optimize_one(path):
-    ext=os.path.splitext(path)[1]
-    if ext in [".jpg", ".jpeg", ".JPG", ".JPEG"]:
+def optimize_one(path,type):
+    if type == "jpeg":
         exec_cmd("jpegoptim --strip-all -m50 " + path, timeout=10)
-    elif ext in [ ".png", ".PNG"] :
+    elif type == "png" :
         exec_cmd("pngquant --verbose --nofs --force --ext=.png " + path, timeout=10)
         exec_cmd("advdef -q -z -4 -i 5  " + path, timeout=10)
-    elif ext in [".gif", ".GIF"]:
+    elif type == "gif":
         exec_cmd("gifsicle --batch -O3 -i " + path, timeout=10)
 
-def resize_one(path):
-    ext=os.path.splitext(path)[1]
-    if ext in [".jpg",".jpeg", ".png", ".gif", ".JPG", ".JPEG", ".PNG", ".GIF" ]:
+def resize_one(path,type):
+    if type in ["gif", "png", "jpeg"]:
         exec_cmd("mogrify -resize 540x\> " + path, timeout=10)
 
 #########################

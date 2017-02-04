@@ -10,3 +10,4 @@ pydenticon==0.2
 bs4
 envoy
 subprocess32
+filemagic
