@@ -59,3 +59,5 @@ Go back at the sotoki root and run the pipeline:
 python sotoki.py run [url of stackechange website] [publisher] [--directory (optional)] [--nozim (optional)]
 
 ```
+
+If you want to restart sotoki after a run, you must remove work/output directory
