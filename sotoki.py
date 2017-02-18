@@ -77,9 +77,13 @@ class QuestionRender(handler.ContentHandler):
         self.whatwedo="post"
         self.nb=0 #Nomber of post generate
         os.makedirs(os.path.join(output, 'question'))
+        for letter in list(map(chr, range(97, 123))):
+            os.makedirs(os.path.join(output, 'question',letter))
+        os.makedirs(os.path.join(output, 'question','other'))
         self.request_queue = Queue(cores*2)
         self.workers = []
         self.cores=cores
+        self.conn=conn
         for i in range(self.cores): 
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
@@ -133,8 +137,8 @@ class QuestionRender(handler.ContentHandler):
                 if tmp.has_key("UserId") and  user != None :
                     tmp["UserDisplayName"] = dict_to_unicodedict(user)["DisplayName"]
             else:
-                if not tmp.has_key("UserDisplayName"):
-                    tmp["UserDisplayName"] = u"None"
+                tmp["UserDisplayName"] = u"None"
+
             if tmp.has_key("Score"):
                 tmp["Score"] = int(tmp["Score"])
             self.comments.append(tmp)
@@ -182,6 +186,7 @@ class QuestionRender(handler.ContentHandler):
             self.nb+=1 
             if self.nb % 1000 == 0:
                 print "Already " + str(self.nb) + " questions done!"
+                self.conn.commit()
             self.post["Tags"] = self.post["Tags"][1:-1].split('><')
             for t in self.post["Tags"]: #We put tags into db
                 sql = "INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)"
@@ -215,8 +220,8 @@ def some_questions(templates, output, title, publisher, question, template_name,
             #data_send = [ some_questions, self.templates, self.output, self.title, self.publisher, self.post, "question.html"]
             #self.request_queue.put(data_send)
             #some_questions(templates, output, title, publisher, self.post, "question.html")
-            filename = '%s.html' % slugify(question["Title"])
-            filepath = os.path.join(output, 'question', filename)
+            filename = '%s.html' % slugify(question["Title"][:248])
+            filepath = os.path.join(output, 'question', path_lettre( filename))
             question = image(question,output)
             try:
                 jinja(
@@ -280,14 +285,16 @@ class TagsRender(handler.ContentHandler):
             page = 1
             while offset is not None:
                 fullpath = os.path.join(tagpath, '%s.html' % page)
-                questions = cursor.execute("SELECT * FROM questiontag WHERE Tag = ? LIMIT 11 OFFSET ? ", (str(tag), offset,)).fetchall()
+                questions = cursor.execute("SELECT * FROM questiontag WHERE Tag = ? LIMIT 101 OFFSET ? ", (str(tag), offset,)).fetchall()
                 try:
-                    questions[10]
+                    questions[100]
                 except IndexError:
                     offset = None
                 else:
-                    offset += 10
-                questions = questions[:10]
+                    offset += 100
+                questions = questions[:100]
+                for question in questions:
+                    question["filepath"] = path_lettre(slugify(question["Title"][:248]))
                 jinja(
                     fullpath,
                     'tag.html',
@@ -602,6 +609,11 @@ def resize_one(path,type):
     if type in ["gif", "png", "jpeg"]:
         exec_cmd("mogrify -resize 540x\> " + path, timeout=10)
 
+def path_lettre(name):
+    if name[0].lower() in list(map(chr, range(97, 123))):
+        return os.path.join(name[0].lower(),name)
+    else:
+        return os.path.join("other",name)
 #########################
 #     Zim generation    #
 #########################
@@ -670,8 +682,8 @@ if __name__ == '__main__':
         cores = cpu_count() / 2 or 1
 
         #prepare db
-        #db = os.path.join(database, 'se-dump.db')
-        conn = sqlite3.connect(":memory:") #in :memory:
+        db = os.path.join(database, 'se-dump.db')
+        conn = sqlite3.connect(db) #can be :memory: for small dump  
         conn.row_factory = dict_factory
         cursor = conn.cursor()
         # create table tags-questions

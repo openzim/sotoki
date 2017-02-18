@@ -9,7 +9,7 @@
   <div class="row">
     <div class="col-md-6">
       {% for question in questions %}
-        <p class="question"><span class="score {{ question["Score"] | scale }}">{{ question["Score"] }}</span> <a href="{{ rooturl }}/question/{{ question["Title"] | slugify }}.html">{{ question["Title"] }}</a> <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
+        <p class="question"><span class="score {{ question["Score"] | scale }}">{{ question["Score"] }}</span> <a href="{{ rooturl }}/question/{{ question["filepath"] }}.html">{{ question["Title"] }}</a> <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
       {% endfor %}
       {% if hasnext %}
         <div class="pagination">
