@@ -3,7 +3,7 @@
 """sotoki.
 
 Usage:
-  sotoki.py run <url> <publisher> [--directory=<dir>] [--nozim]
+  sotoki.py run <url> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>]
   sotoki.py (-h | --help)
   sotoki.py --version
 
@@ -12,6 +12,8 @@ Options:
   --version     Show version.
   --directory=<dir>   Specify a directory for xml files [default: work/dump/]
   --nozim       doesn't make zim file, output will be in work/output/ in normal html (otherwise work/ouput/ will be in deflate form and will produice a zim file)
+  --tag-depth=<tag_depth>   Specify number of question, order by Score, to show in tags pages (should be a multiple of 100, default all question are in tags pages) [default: -1]
+
 """
 import sys
 import datetime
@@ -251,7 +253,7 @@ def some_questions(templates, output, title, publisher, question, template_name,
 
 class TagsRender(handler.ContentHandler):
 
-    def __init__(self, templates, database, output, title, publisher, dump, cursor, conn, deflate):
+    def __init__(self, templates, database, output, title, publisher, dump, cursor, conn, deflate, tag_depth):
         # index page
         self.tags = []
 
@@ -281,36 +283,69 @@ class TagsRender(handler.ContentHandler):
             os.makedirs(tagpath)
             print tagpath
             # build page using pagination
-            offset = 0
-            page = 1
-            while offset is not None:
-                fullpath = os.path.join(tagpath, '%s.html' % page)
-                questions = cursor.execute("SELECT * FROM questiontag WHERE Tag = ? LIMIT 101 OFFSET ? ", (str(tag), offset,)).fetchall()
-                try:
-                    questions[100]
-                except IndexError:
-                    offset = None
-                else:
-                    offset += 100
-                questions = questions[:100]
-                for question in questions:
-                    question["filepath"] = path_lettre(slugify(question["Title"][:248]))
-                jinja(
-                    fullpath,
-                    'tag.html',
-                    templates,
-                    False,
-                    deflate,
-                    tag=tag,
-                    index=page,
-                    questions=questions,
-                    rooturl="../..",
-                    hasnext=bool(offset),
-                    next=page + 1,
-                    title=title,
-                    publisher=publisher,
-                )
-                page += 1
+            if tag_depth==-1:
+                offset = 0
+                page = 1
+                while offset is not None:
+                    fullpath = os.path.join(tagpath, '%s.html' % page)
+                    questions = cursor.execute("SELECT * FROM questiontag WHERE Tag = ? LIMIT 101 OFFSET ? ", (str(tag), offset,)).fetchall()
+                    try:
+                        questions[100]
+                    except IndexError:
+                        offset = None
+                    else:
+                        offset += 100
+                    questions = questions[:100]
+                    for question in questions:
+                        question["filepath"] = path_lettre(slugify(question["Title"][:248]))
+                    jinja(
+                        fullpath,
+                        'tag.html',
+                        templates,
+                        False,
+                        deflate,
+                        tag=tag,
+                        index=page,
+                        questions=questions,
+                        rooturl="../..",
+                        hasnext=bool(offset),
+                        next=page + 1,
+                        title=title,
+                        publisher=publisher,
+                    )
+                    page += 1
+            else:
+                offset = 0
+                page = 1
+                while offset is not None and offset < tag_depth:
+                    fullpath = os.path.join(tagpath, '%s.html' % page)
+                    questions = cursor.execute("SELECT * FROM questiontag WHERE Tag = ? ORDER BY Score DESC LIMIT 101 OFFSET ? ", (str(tag), offset,)).fetchall()
+                    try:
+                        questions[100]
+                    except IndexError:
+                        offset = None
+                    else:
+                        offset += 100
+                    questions = questions[:100]
+                    for question in questions:
+                        question["filepath"] = path_lettre(slugify(question["Title"][:248]))
+                    jinja(
+                        fullpath,
+                        'tag.html',
+                        templates,
+                        False,
+                        deflate,
+                        tag=tag,
+                        index=page,
+                        questions=questions,
+                        rooturl="../..",
+                        hasnext=bool(offset),
+                        next=page + 1,
+                        title=title,
+                        publisher=publisher,
+                    )
+                    page += 1
+
 
 #########################
 #        Users          #
@@ -668,6 +703,9 @@ if __name__ == '__main__':
     if arguments['run']:
         if not arguments['--nozim'] and not bin_is_present("zimwriterfs"):
             sys.exit("zimwriterfs is not available, please install it.")
+        tag_depth = int(arguments['--tag-depth'])
+        if tag_depth != -1 and tag_depth <= 0:
+            sys.exit("--tag-depth should be a positive integer")
         url = arguments['<url>']
         publisher = arguments['<publisher>']
         dump = arguments['--directory']
@@ -716,7 +754,7 @@ if __name__ == '__main__':
 
         #Generate tags !
         parser = make_parser()
-        parser.setContentHandler(TagsRender(templates, database, output, title, publisher, dump, cores, cursor, deflate))
+        parser.setContentHandler(TagsRender(templates, database, output, title, publisher, dump, cores, cursor, deflate,tag_depth))
         parser.parse(os.path.join(dump, "tags.xml"))
 
         conn.close()
