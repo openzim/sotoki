@@ -445,19 +445,6 @@ def scale(number):
 ENV = None  # Jinja environment singleton
 
 def jinja(output, template, templates, raw, deflate, **context):
-    global ENV
-    if ENV is None:
-        templates = os.path.abspath(templates)
-        ENV = Environment(loader=FileSystemLoader((templates,)))
-        filters = dict(
-            markdown=markdown,
-            intspace=intspace,
-            scale=scale,
-            clean=lambda y: filter(lambda x: x not in punctuation, y),
-            slugify=slugify,
-        )
-        ENV.filters.update(filters)
-
     template = ENV.get_template(template)
     page = template.render(**context)
     if raw:
@@ -467,6 +454,19 @@ def jinja(output, template, templates, raw, deflate, **context):
             f.write(zlib.compress(page.encode('utf-8')))
         else:
              f.write(page.encode('utf-8'))
+
+def jinja_init(templates):
+    global ENV
+    templates = os.path.abspath(templates)
+    ENV = Environment(loader=FileSystemLoader((templates,)))
+    filters = dict(
+        markdown=markdown,
+        intspace=intspace,
+        scale=scale,
+        clean=lambda y: filter(lambda x: x not in punctuation, y),
+        slugify=slugify,
+    )
+    ENV.filters.update(filters)
 
 
 def download(url, output):
@@ -699,6 +699,7 @@ if __name__ == '__main__':
 
         prepare(dump)
         title, description = grab_title_description_favicon(url, output)
+        jinja_init(templates)
 
         #Generate users !
         parser = make_parser()
