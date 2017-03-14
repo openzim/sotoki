@@ -82,7 +82,7 @@ class QuestionRender(handler.ContentHandler):
         for letter in list(map(chr, range(97, 123))):
             os.makedirs(os.path.join(output, 'question',letter))
         os.makedirs(os.path.join(output, 'question','other'))
-        self.request_queue = Queue(cores*2)
+        self.request_queue = Queue(cores)
         self.workers = []
         self.cores=cores
         self.conn=conn
@@ -377,6 +377,14 @@ class UsersRender(handler.ContentHandler):
         # Instantiate a generator that will create 5x5 block identicons
         # using SHA1 digest.
         self.generator = pydenticon.Generator(5, 5, foreground=self.foreground, background=self.background)  # noqa
+        self.request_queue = Queue(cores)
+        self.workers = []
+        self.cores=cores
+        self.conn=conn
+        for i in range(self.cores): 
+            self.workers.append(Worker(self.request_queue))
+        for i in self.workers:
+            i.start()
 
     def startElement(self, name, attrs): #For each element
         if name != "row": #If it's not a user (row in users.xml) we pass
@@ -384,48 +392,61 @@ class UsersRender(handler.ContentHandler):
         self.id +=1
         if self.id % 1000 == 0:
             print "Already " + str(self.id) + " Users done !"
-        try:
-            user={}
-            for k in attrs.keys(): #get all item
-                user[k] = attrs[k]
-            if user != {}:
-                sql = "INSERT INTO users(id, DisplayName, Reputation) VALUES(?, ?, ?)"
-                cursor.execute(sql, (int(user["Id"]),  user["DisplayName"], user["Reputation"]))
-                username = slugify(user["DisplayName"])
+            self.conn.commit()
+        user={}
+        for k in attrs.keys(): #get all item
+            user[k] = attrs[k]
+        if user != {}:
+            sql = "INSERT INTO users(id, DisplayName, Reputation) VALUES(?, ?, ?)"
+            cursor.execute(sql, (int(user["Id"]),  user["DisplayName"], user["Reputation"]))
 
-                # Generate big identicon
-                padding = (20, 20, 20, 20)
-                identicon = self.generator.generate(username, 164, 164, padding=padding, output_format="png")  # noqa
-                filename = username + '.png'
-                fullpath = os.path.join(output, 'static', 'identicon', filename)
-                with open(fullpath, "wb") as f:
-                    f.write(identicon)
+            data_send = [some_user, user, self.generator, templates, output, publisher]
+            self.request_queue.put(data_send)
 
-                # Generate small identicon
-                padding = [0] * 4  # no padding
-                identicon = self.generator.generate(username, 32, 32, padding=padding, output_format="png")  # noqa
-                filename = username + '.small.png'
-                fullpath = os.path.join(output, 'static', 'identicon', filename)
-                with open(fullpath, "wb") as f:
-                    f.write(identicon)
+    def endDocument(self):
+        print "---END--"
+        self.conn.commit()
+        #closing thread
+        for i in range(self.cores):
+            self.request_queue.put(None)
+        for i in self.workers:
+            i.join()
 
-                # generate user profile page
-                filename = '%s.html' % username
-                fullpath = os.path.join(output, 'user', filename)
-                jinja(
-                    fullpath,
-                    'user.html',
-                    templates,
-                    False,
-                    deflate,
-                    user=user,
-                    title=title,
-                    rooturl="..",
-                    publisher=publisher,
-                )
-        except Exception, e:
-            print e
+def some_user(user,generator,templates, output, publisher):
+    try:
+        username = slugify(user["DisplayName"])
+        # Generate big identicon
+        padding = (20, 20, 20, 20)
+        identicon = generator.generate(username, 164, 164, padding=padding, output_format="png")  # noqa
+        filename = username + '.png'
+        fullpath = os.path.join(output, 'static', 'identicon', filename)
+        with open(fullpath, "wb") as f:
+            f.write(identicon)
 
+        # Generate small identicon
+        padding = [0] * 4  # no padding
+        identicon = generator.generate(username, 32, 32, padding=padding, output_format="png")  # noqa
+        filename = username + '.small.png'
+        fullpath = os.path.join(output, 'static', 'identicon', filename)
+        with open(fullpath, "wb") as f:
+            f.write(identicon)
+
+        # generate user profile page
+        filename = '%s.html' % username
+        fullpath = os.path.join(output, 'user', filename)
+        jinja(
+            fullpath,
+            'user.html',
+            templates,
+            False,
+            deflate,
+            user=user,
+            title=title,
+            rooturl="..",
+            publisher=publisher,
+        )
+    except Exception, e:
+        print e
 
 #########################
 #        Tools          #
