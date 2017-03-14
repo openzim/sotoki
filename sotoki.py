@@ -219,6 +219,8 @@ def some_questions(templates, output, title, publisher, question, template_name,
         if question.has_key("answers"):
             question["answers"] = sorted(question["answers"], key=lambda k: k['Score'],reverse=True) 
             question["answers"] = sorted(question["answers"], key=lambda k: k['Accepted'],reverse=True) #sorted is stable so accepted will be always first, then other question will be sort in ascending order
+            for ans in question["answers"]:
+                ans["Body"]=image(ans["Body"],output)
         if slugify(question["Title"]) != "":
             #Before we make thread for generation but with this stack increase, and increase and take to much memory
             #data_send = [ some_questions, self.templates, self.output, self.title, self.publisher, self.post, "question.html"]
@@ -226,7 +228,7 @@ def some_questions(templates, output, title, publisher, question, template_name,
             #some_questions(templates, output, title, publisher, self.post, "question.html")
             filename = '%s.html' % slugify(question["Title"][:248])
             filepath = os.path.join(output, 'question', path_lettre( filename))
-            question = image(question,output)
+            question["Body"] = image(question["Body"],output)
             try:
                 jinja(
                     filepath,
@@ -535,9 +537,9 @@ def get_filetype(headers,path):
                 type="gif"
     return type
 
-def image(post, output):
+def image(text_post, output):
     images = os.path.join(output, 'static', 'images')
-    body = string2html(post['Body'])
+    body = string2html(text_post)
     imgs = body.xpath('//img')
     for img in imgs:
             src = img.attrib['src']
@@ -564,9 +566,8 @@ def image(post, output):
     # does the post contain images? if so, we surely modified
     # its content so save it.
     if imgs:
-        body = html2string(body)
-        post['Body'] = body
-    return post
+        text_post = html2string(body)
+    return text_post
 
 def grab_title_description_favicon(url, output_dir):
     output = urlopen(url).read()
