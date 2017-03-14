@@ -138,6 +138,8 @@ class QuestionRender(handler.ContentHandler):
                 user=cursor.execute("SELECT * FROM users WHERE id = ?", (int(tmp["UserId"]),)).fetchone()
                 if tmp.has_key("UserId") and  user != None :
                     tmp["UserDisplayName"] = dict_to_unicodedict(user)["DisplayName"]
+                else:
+                    tmp["UserDisplayName"] = u"None"
             else:
                 tmp["UserDisplayName"] = u"None"
 
