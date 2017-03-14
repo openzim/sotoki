@@ -413,40 +413,33 @@ class UsersRender(handler.ContentHandler):
             i.join()
 
 def some_user(user,generator,templates, output, publisher):
+    username = slugify(user["DisplayName"])
+    filename = username + '.png'
+    fullpath = os.path.join(output, 'static', 'identicon', filename)
     try:
-        username = slugify(user["DisplayName"])
+        url=user["ProfileImageUrl"]
+        download(url, fullpath)
+    except Exception,e:
         # Generate big identicon
         padding = (20, 20, 20, 20)
-        identicon = generator.generate(username, 164, 164, padding=padding, output_format="png")  # noqa
-        filename = username + '.png'
-        fullpath = os.path.join(output, 'static', 'identicon', filename)
+        identicon = generator.generate(username, 128, 128, padding=padding, output_format="png")  # noqa
         with open(fullpath, "wb") as f:
             f.write(identicon)
 
-        # Generate small identicon
-        padding = [0] * 4  # no padding
-        identicon = generator.generate(username, 32, 32, padding=padding, output_format="png")  # noqa
-        filename = username + '.small.png'
-        fullpath = os.path.join(output, 'static', 'identicon', filename)
-        with open(fullpath, "wb") as f:
-            f.write(identicon)
-
-        # generate user profile page
-        filename = '%s.html' % username
-        fullpath = os.path.join(output, 'user', filename)
-        jinja(
-            fullpath,
-            'user.html',
-            templates,
-            False,
-            deflate,
-            user=user,
-            title=title,
-            rooturl="..",
-            publisher=publisher,
-        )
-    except Exception, e:
-        print e
+    # generate user profile page
+    filename = '%s.html' % username
+    fullpath = os.path.join(output, 'user', filename)
+    jinja(
+        fullpath,
+        'user.html',
+        templates,
+        False,
+        deflate,
+        user=user,
+        title=title,
+        rooturl="..",
+        publisher=publisher,
+    )
 
 #########################
 #        Tools          #

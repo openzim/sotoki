@@ -42,7 +42,7 @@
         <p>asked <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
         <a class="profile" href="../user/{{ post["OwnerUserId"]["DisplayName"] | slugify  }}.html">
           <div> 
-            <img src="../static/identicon/{{ post["OwnerUserId"]["DisplayName"] | slugify }}.small.png" /> 
+            <img src="../static/identicon/{{ post["OwnerUserId"]["DisplayName"] | slugify }}.png" style="width:32px; height:32px;" /> 
           </div> 
           <div>
             <p>{{ post["OwnerUserId"]["DisplayName"] }}</p>
