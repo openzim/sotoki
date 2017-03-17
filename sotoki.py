@@ -334,6 +334,8 @@ class TagsRender(handler.ContentHandler):
                         offset = None
                     else:
                         offset += 100
+                    if offset > tag_depth:
+                        offset = None
                     questions = questions[:100]
                     for question in questions:
                         question["filepath"] = slugify(question["Title"])[:248]
@@ -751,7 +753,7 @@ if __name__ == '__main__':
         cursor.execute(sql)
         conn.commit()
 
-	prepare(dump)
+        prepare(dump)
         title, description = grab_title_description_favicon(url, output)
         jinja_init(templates)
 

@@ -34,7 +34,7 @@
       </div>
       {% if question["links"] %}
         <div id="related" class="row">
-          <h3>Related :D</h3>
+          <h3>Linked</h3>
           <ul>
             {% for link in question["links"] %}
               {% if link %}
@@ -43,7 +43,8 @@
             {% endfor %}
             </ul>
         </div>
-      {% else %}
+      {% endif %}
+      {% if question["relateds"] %}
         <div id="related" class="row">
           <h3>Related</h3>
           <ul>
