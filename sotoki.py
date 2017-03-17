@@ -79,10 +79,7 @@ class QuestionRender(handler.ContentHandler):
         self.whatwedo="post"
         self.nb=0 #Nomber of post generate
         os.makedirs(os.path.join(output, 'question'))
-        for letter in list(map(chr, range(97, 123))):
-            os.makedirs(os.path.join(output, 'question',letter))
-        os.makedirs(os.path.join(output, 'question','other'))
-        self.request_queue = Queue(cores)
+        self.request_queue = Queue(cores*2)
         self.workers = []
         self.cores=cores
         self.conn=conn
@@ -221,13 +218,20 @@ def some_questions(templates, output, title, publisher, question, template_name,
             question["answers"] = sorted(question["answers"], key=lambda k: k['Accepted'],reverse=True) #sorted is stable so accepted will be always first, then other question will be sort in ascending order
             for ans in question["answers"]:
                 ans["Body"]=image(ans["Body"],output)
+            if question.has_key("links"):
+                for link in question["links"]:
+                    link=slugify(link)[:248]
+            if question.has_key("relateds"):
+                for related in question["relateds"]:
+                    related=slugify(related)[:248]
+
         if slugify(question["Title"]) != "":
             #Before we make thread for generation but with this stack increase, and increase and take to much memory
             #data_send = [ some_questions, self.templates, self.output, self.title, self.publisher, self.post, "question.html"]
             #self.request_queue.put(data_send)
             #some_questions(templates, output, title, publisher, self.post, "question.html")
-            filename = '%s.html' % slugify(question["Title"][:248])
-            filepath = os.path.join(output, 'question', path_lettre( filename))
+            filename = '%s.html' % slugify(question["Title"])[:248]
+            filepath = os.path.join(output, 'question', filename)
             question["Body"] = image(question["Body"],output)
             try:
                 jinja(
@@ -301,7 +305,7 @@ class TagsRender(handler.ContentHandler):
                         offset += 100
                     questions = questions[:100]
                     for question in questions:
-                        question["filepath"] = path_lettre(slugify(question["Title"][:248]))
+                        question["filepath"] = slugify(question["Title"])[:248]
                     jinja(
                         fullpath,
                         'tag.html',
@@ -332,7 +336,7 @@ class TagsRender(handler.ContentHandler):
                         offset += 100
                     questions = questions[:100]
                     for question in questions:
-                        question["filepath"] = path_lettre(slugify(question["Title"][:248]))
+                        question["filepath"] = slugify(question["Title"])[:248]
                     jinja(
                         fullpath,
                         'tag.html',
@@ -377,7 +381,7 @@ class UsersRender(handler.ContentHandler):
         # Instantiate a generator that will create 5x5 block identicons
         # using SHA1 digest.
         self.generator = pydenticon.Generator(5, 5, foreground=self.foreground, background=self.background)  # noqa
-        self.request_queue = Queue(cores)
+        self.request_queue = Queue(cores*2)
         self.workers = []
         self.cores=cores
         self.conn=conn
@@ -661,11 +665,6 @@ def resize_one(path,type):
     if type in ["gif", "png", "jpeg"]:
         exec_cmd("mogrify -resize 540x\> " + path, timeout=10)
 
-def path_lettre(name):
-    if name[0].lower() in list(map(chr, range(97, 123))):
-        return os.path.join(name[0].lower(),name)
-    else:
-        return os.path.join("other",name)
 #########################
 #     Zim generation    #
 #########################
@@ -752,7 +751,7 @@ if __name__ == '__main__':
         cursor.execute(sql)
         conn.commit()
 
-        prepare(dump)
+	prepare(dump)
         title, description = grab_title_description_favicon(url, output)
         jinja_init(templates)
 
