@@ -40,7 +40,7 @@
           <ul>
             {% for link in question["links"] %}
               {% if link %}
-                <li><a href="{{ rooturl }}/question/{{ link | slugify }}.html" >{{ link }}</a></li>
+                <li><a href="{{ rooturl }}/question/{{ link }}.html" >{{ link }}</a></li>
               {% endif %}
             {% endfor %}
             </ul>
@@ -52,7 +52,7 @@
           <ul>
             {% for related in question["relateds"] %}
               {% if related %}
-                <li><a href="{{ rooturl }}/question/{{ related | slugify }}.html" >{{ related }}</a></li>
+                <li><a href="{{ rooturl }}/question/{{ related }}.html" >{{ related }}</a></li>
               {% endif %}
             {% endfor %}
            </ul>
