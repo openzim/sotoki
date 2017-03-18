@@ -12,6 +12,8 @@ offline (without access to Internet).
 Download the last [stackexchange dump](https://archive.org/details/stackexchange)
 using BitTorrent (only "superuser.com.7z" is necessary) and put it in the Sotoki
 source code root.
+The use of btrfs as a file system is recommended (and required for stackoverflow)
+
 
 Clone this repository:
 
