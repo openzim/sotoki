@@ -19,7 +19,9 @@
         <h2>Answers</h2>
         <div id="answers">
           {% for post in question["answers"] %}
-            {% include "post.mixin.html" %} 
+            <div id="a{{ post["Id"] }}">
+              {% include "post.mixin.html" %} 
+            </div>
           {% endfor %}
         </div>
       {% else %}

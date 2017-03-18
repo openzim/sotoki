@@ -70,7 +70,7 @@ from itertools import chain
 #########################
 class QuestionRender(handler.ContentHandler):
 
-    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor,conn, deflate,site_url):
+    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor,conn, deflate,site_url, redirect_file):
         self.cursor=cursor
         self.conn=conn
         self.site_url=site_url
@@ -88,6 +88,7 @@ class QuestionRender(handler.ContentHandler):
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
             i.start()
+        self.f_redirect = open(redirect_file, "w")
 
     def startElement(self, name, attrs): #For each element
         if name == "comments" and self.whatwedo == "post": #We match if it's a comment of post
@@ -163,6 +164,9 @@ class QuestionRender(handler.ContentHandler):
                 self.post[k] = attrs[k]
             self.post["relateds"] = [] #Prepare list for relateds question
             self.post["duplicate"] = [] #Prepare list for duplicate question
+            self.post["slugify_name"] = slugify(self.post["Title"])[:248]
+            self.post["filename"] = '%s.html' % self.post["slugify_name"]
+
             if self.post.has_key("OwnerUserId"):#We put the good name of the user how made the post
                 user=cursor.execute("SELECT * FROM users WHERE id = ?", (int(self.post["OwnerUserId"]),)).fetchone()
                 if user != None:
@@ -193,6 +197,10 @@ class QuestionRender(handler.ContentHandler):
             for t in self.post["Tags"]: #We put tags into db
                 sql = "INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)"
                 self.cursor.execute(sql, (self.post["Score"], self.post["Title"], self.post["CreationDate"], t))
+            #Make redirection 
+            for ans in self.answers:
+                self.f_redirect.write("a/" + str(ans["Id"]) + ",Answer " + str(ans["Id"]) + ",question/" + self.post["filename"] + "#a" + str(ans["Id"]) + "\n")
+            self.f_redirect.write("q/" + str(self.post["Id"]) +",Question " + str(self.post["Id"]) + ",question/" + self.post["filename"] + "\n")
             data_send = [ some_questions, templates, output, title, publisher, self.post, "question.html", deflate, self.site_url ]
             self.request_queue.put(data_send)
             #some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
@@ -210,6 +218,7 @@ class QuestionRender(handler.ContentHandler):
             self.request_queue.put(None)
         for i in self.workers:
             i.join()
+        self.f_redirect.close()
 
 def some_questions(templates, output, title, publisher, question, template_name, deflate,site_url):
     try:
@@ -226,9 +235,8 @@ def some_questions(templates, output, title, publisher, question, template_name,
                 for related in question["relateds"]:
                     related=slugify(related)[:248]
 
-        if slugify(question["Title"]) != "":
-            filename = '%s.html' % slugify(question["Title"])[:248]
-            filepath = os.path.join(output, 'question', filename)
+        if question["slugify_name"] != "":
+            filepath = os.path.join(output, 'question', question["filename"])
             question["Body"] = image(question["Body"],output)
             try:
                 jinja(
@@ -671,7 +679,7 @@ def resize_one(path,type):
 #     Zim generation    #
 #########################
 
-def create_zims(title, publisher, description):
+def create_zims(title, publisher, description,redirect_file):
     print 'Creating ZIM files'
     # Check, if the folder exists. Create it, if it doesn't.
     lang_input = "en"
@@ -686,10 +694,10 @@ def create_zims(title, publisher, description):
 
     title = title.replace("-", " ")
     creator = title
-    return create_zim(html_dir, zim_path, title, description, lang_input, publisher, creator)
+    return create_zim(html_dir, zim_path, title, description, lang_input, publisher, creator,redirect_file)
 
 
-def create_zim(static_folder, zim_path, title, description, lang_input, publisher, creator):
+def create_zim(static_folder, zim_path, title, description, lang_input, publisher, creator,redirect_file):
     print "\tWritting ZIM for {}".format(title)
     context = {
         'languages': lang_input,
@@ -700,10 +708,11 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
         'home': 'index.html',
         'favicon': 'favicon.png',
         'static': static_folder,
-        'zim': zim_path
+        'zim': zim_path,
+        'redirect_csv' : redirect_file
     }
 
-    cmd = ('zimwriterfs --inflateHtml --welcome="{home}" --favicon="{favicon}" '
+    cmd = ('zimwriterfs --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" '
            '--language="{languages}" --title="{title}" '
            '--description="{description}" '
            '--creator="{creator}" --publisher="{publisher}" "{static}" "{zim}"'
@@ -754,6 +763,7 @@ if __name__ == '__main__':
         sql = "CREATE TABLE IF NOT EXISTS links(id INTEGER, title TEXT)"
         cursor.execute(sql)
         conn.commit()
+        redirect_file = os.path.join('work', 'redirection.csv')
 
         prepare(dump)
         title, description = grab_title_description_favicon(url, output)
@@ -768,7 +778,7 @@ if __name__ == '__main__':
 
         #Generate question !
         parser = make_parser()
-        parser.setContentHandler(QuestionRender(templates, database, output, title, publisher, dump, cores, cursor,conn, deflate,url))
+        parser.setContentHandler(QuestionRender(templates, database, output, title, publisher, dump, cores, cursor,conn, deflate,url,redirect_file))
         parser.parse(os.path.join(dump, "prepare.xml"))
         conn.commit()
 
@@ -781,10 +791,10 @@ if __name__ == '__main__':
         # copy static
         copy_tree('static', os.path.join(output, 'static'))
         if not arguments['--nozim']:
-            done=create_zims(title, publisher, description)
+            done=create_zims(title, publisher, description, redirect_file)
             if done == True:
                 print "remove " + output
                 shutil.rmtree(output)
                 print "remove " + db
                 os.remove(db)
-
+                os.remove(redirect_file)
