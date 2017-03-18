@@ -427,11 +427,17 @@ class UsersRender(handler.ContentHandler):
 
 def some_user(user,generator,templates, output, publisher, site_url):
     username = slugify(user["DisplayName"])
-    filename = username + '.png'
+    filename = username + ".png"
     fullpath = os.path.join(output, 'static', 'identicon', filename)
     try:
         url=user["ProfileImageUrl"]
-        download(url, fullpath)
+        ext = os.path.splitext(url.split("?")[0])[1]
+        headers=download(url, fullpath)
+        if ext == "":
+            ext = "."+get_filetype(headers,fullpath)
+        if ext != ".png" :
+            convert_to_png(fullpath)
+        resize_one(fullpath,type,128)
     except Exception,e:
         # Generate big identicon
         padding = (20, 20, 20, 20)
@@ -581,7 +587,7 @@ def image(text_post, output):
                     type=get_filetype(headers,out)
                     # update post's html
                     src = '../static/images/' + filename
-                    resize_one(out,type)
+                    resize_one(out,type,"540")
                     optimize_one(out,type)
                     img.attrib['src'] = src
                 except Exception,e:
@@ -671,10 +677,12 @@ def optimize_one(path,type):
     elif type == "gif":
         exec_cmd("gifsicle --batch -O3 -i " + path, timeout=10)
 
-def resize_one(path,type):
+def resize_one(path,type,nb_pix):
     if type in ["gif", "png", "jpeg"]:
-        exec_cmd("mogrify -resize 540x\> " + path, timeout=10)
+        exec_cmd("mogrify -resize "+nb_pix+"x\> " + path, timeout=10)
 
+def convert_to_png(path):
+    exec_cmd("mogrify -format png " + path)
 #########################
 #     Zim generation    #
 #########################
