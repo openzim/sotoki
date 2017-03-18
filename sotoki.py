@@ -41,7 +41,7 @@ import sqlite3
 
 from xml.sax import make_parser, handler
 
-from hashlib import sha1
+from hashlib import sha256
 from urllib2 import urlopen
 
 from jinja2 import Environment
@@ -380,7 +380,7 @@ class UsersRender(handler.ContentHandler):
         self.background = "rgb(224,224,224)"
 
         # Instantiate a generator that will create 5x5 block identicons
-        # using SHA1 digest.
+        # using SHA256 digest.
         self.generator = pydenticon.Generator(5, 5, foreground=self.foreground, background=self.background)  # noqa
         self.request_queue = Queue(cores*2)
         self.workers = []
@@ -564,7 +564,7 @@ def image(text_post, output):
     for img in imgs:
             src = img.attrib['src']
             ext = os.path.splitext(src)[1]
-            filename = sha1(src).hexdigest() + ext
+            filename = sha256(src).hexdigest() + ext
             out = os.path.join(images, filename)
             # download the image only if it's not already downloaded
             if not os.path.exists(out) : 
