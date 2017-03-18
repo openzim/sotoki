@@ -1,5 +1,4 @@
 Jinja2==2.8
-Markdown==2.6.2
 lxml==3.4.4
 MarkupSafe==0.23
 Pillow==3.0.0
@@ -11,3 +10,4 @@ bs4
 envoy
 subprocess32
 filemagic
+mistune

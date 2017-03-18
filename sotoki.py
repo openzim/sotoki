@@ -53,7 +53,7 @@ from lxml.html import fromstring as string2html
 from lxml.html import tostring as html2string
 from docopt import docopt
 from slugify import slugify
-from markdown import markdown as md
+import mistune #markdown
 import pydenticon
 from string import punctuation
 import zlib
@@ -490,9 +490,7 @@ def intspace(value):
 
 
 def markdown(text):
-    # FIXME: add postprocess step to transform 'http://' into a link
-    # strip p tags
-    return md(text)[3:-4]
+    return MARKDOWN(text)[3:-5]
 
 
 def dict_factory(cursor, row):
@@ -776,6 +774,9 @@ if __name__ == '__main__':
         prepare(dump)
         title, description = grab_title_description_favicon(url, output)
         jinja_init(templates)
+        #init markdown
+        global MARKDOWN
+        MARKDOWN = mistune.Markdown()
 
         #Generate users !
         parser = make_parser()
