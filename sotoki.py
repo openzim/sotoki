@@ -70,9 +70,10 @@ from itertools import chain
 #########################
 class QuestionRender(handler.ContentHandler):
 
-    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor,conn, deflate):
+    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor,conn, deflate,site_url):
         self.cursor=cursor
         self.conn=conn
+        self.site_url=site_url
         self.post={}
         self.comments=[]
         self.answers=[]
@@ -192,7 +193,7 @@ class QuestionRender(handler.ContentHandler):
             for t in self.post["Tags"]: #We put tags into db
                 sql = "INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)"
                 self.cursor.execute(sql, (self.post["Score"], self.post["Title"], self.post["CreationDate"], t))
-            data_send = [ some_questions, templates, output, title, publisher, self.post, "question.html", deflate ]
+            data_send = [ some_questions, templates, output, title, publisher, self.post, "question.html", deflate, self.site_url ]
             self.request_queue.put(data_send)
             #some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
             #Reset element
@@ -210,7 +211,7 @@ class QuestionRender(handler.ContentHandler):
         for i in self.workers:
             i.join()
 
-def some_questions(templates, output, title, publisher, question, template_name, deflate):
+def some_questions(templates, output, title, publisher, question, template_name, deflate,site_url):
     try:
         question["Score"] = int(question["Score"])
         if question.has_key("answers"):
@@ -226,10 +227,6 @@ def some_questions(templates, output, title, publisher, question, template_name,
                     related=slugify(related)[:248]
 
         if slugify(question["Title"]) != "":
-            #Before we make thread for generation but with this stack increase, and increase and take to much memory
-            #data_send = [ some_questions, self.templates, self.output, self.title, self.publisher, self.post, "question.html"]
-            #self.request_queue.put(data_send)
-            #some_questions(templates, output, title, publisher, self.post, "question.html")
             filename = '%s.html' % slugify(question["Title"])[:248]
             filepath = os.path.join(output, 'question', filename)
             question["Body"] = image(question["Body"],output)
@@ -244,6 +241,7 @@ def some_questions(templates, output, title, publisher, question, template_name,
                     rooturl="..",
                     title=title,
                     publisher=publisher,
+                    site_url=site_url,
                     )
             except Exception, e:
                 print ' * failed to generate: %s' % filename
@@ -362,9 +360,10 @@ class TagsRender(handler.ContentHandler):
 #########################
 class UsersRender(handler.ContentHandler):
 
-    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor, deflate):
+    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor, deflate, site_url):
         self.identicon_path = os.path.join(output, 'static', 'identicon')
         self.id=0
+        self.site_url=site_url
         os.makedirs(self.identicon_path)
         os.makedirs(os.path.join(output, 'user'))
         # Set-up a list of foreground colours (taken from Sigil).
@@ -406,7 +405,7 @@ class UsersRender(handler.ContentHandler):
             sql = "INSERT INTO users(id, DisplayName, Reputation) VALUES(?, ?, ?)"
             cursor.execute(sql, (int(user["Id"]),  user["DisplayName"], user["Reputation"]))
 
-            data_send = [some_user, user, self.generator, templates, output, publisher]
+            data_send = [some_user, user, self.generator, templates, output, publisher, self.site_url]
             self.request_queue.put(data_send)
 
     def endDocument(self):
@@ -418,7 +417,7 @@ class UsersRender(handler.ContentHandler):
         for i in self.workers:
             i.join()
 
-def some_user(user,generator,templates, output, publisher):
+def some_user(user,generator,templates, output, publisher, site_url):
     username = slugify(user["DisplayName"])
     filename = username + '.png'
     fullpath = os.path.join(output, 'static', 'identicon', filename)
@@ -445,6 +444,7 @@ def some_user(user,generator,templates, output, publisher):
         title=title,
         rooturl="..",
         publisher=publisher,
+        site_url=site_url,
     )
 
 #########################
@@ -761,14 +761,14 @@ if __name__ == '__main__':
 
         #Generate users !
         parser = make_parser()
-        parser.setContentHandler(UsersRender(templates, database, output, title, publisher, dump, cores, cursor, deflate))
+        parser.setContentHandler(UsersRender(templates, database, output, title, publisher, dump, cores, cursor, deflate,url))
         parser.parse(os.path.join(dump, "users.xml"))
         conn.commit()
 
 
         #Generate question !
         parser = make_parser()
-        parser.setContentHandler(QuestionRender(templates, database, output, title, publisher, dump, cores, cursor,conn, deflate))
+        parser.setContentHandler(QuestionRender(templates, database, output, title, publisher, dump, cores, cursor,conn, deflate,url))
         parser.parse(os.path.join(dump, "prepare.xml"))
         conn.commit()
 
@@ -783,7 +783,8 @@ if __name__ == '__main__':
         if not arguments['--nozim']:
             done=create_zims(title, publisher, description)
             if done == True:
-                print "remove" + output
+                print "remove " + output
                 shutil.rmtree(output)
+                print "remove " + db
                 os.remove(db)
 
