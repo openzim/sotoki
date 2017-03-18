@@ -686,7 +686,7 @@ def create_zims(title, publisher, description):
 
     title = title.replace("-", " ")
     creator = title
-    create_zim(html_dir, zim_path, title, description, lang_input, publisher, creator)
+    return create_zim(html_dir, zim_path, title, description, lang_input, publisher, creator)
 
 
 def create_zim(static_folder, zim_path, title, description, lang_input, publisher, creator):
@@ -712,8 +712,10 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
 
     if exec_cmd(cmd) == 0:
         print "Successfuly created ZIM file at {}".format(zim_path)
+        return True
     else:
         print "Unable to create ZIM file :("
+        return False
 
 
 if __name__ == '__main__':
@@ -777,7 +779,11 @@ if __name__ == '__main__':
 
         conn.close()
         # copy static
-        copy_tree('static', os.path.join('work', 'output', 'static'))
+        copy_tree('static', os.path.join(output, 'static'))
         if not arguments['--nozim']:
-            create_zims(title, publisher, description)
+            done=create_zims(title, publisher, description)
+            if done == True:
+                print "remove" + output
+                shutil.rmtree(output)
+                os.remove(db)
 
