@@ -53,7 +53,7 @@ from lxml.html import fromstring as string2html
 from lxml.html import tostring as html2string
 from docopt import docopt
 from slugify import slugify
-import mistune #markdown
+import cMarkdown as markdown_gen
 import pydenticon
 from string import punctuation
 import zlib
@@ -88,7 +88,7 @@ class QuestionRender(handler.ContentHandler):
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
             i.start()
-        self.f_redirect = open(redirect_file, "w")
+        self.f_redirect = open(redirect_file, "a")
 
     def startElement(self, name, attrs): #For each element
         if name == "comments" and self.whatwedo == "post": #We match if it's a comment of post
@@ -199,8 +199,8 @@ class QuestionRender(handler.ContentHandler):
                 self.cursor.execute(sql, (self.post["Score"], self.post["Title"], self.post["CreationDate"], t))
             #Make redirection 
             for ans in self.answers:
-                self.f_redirect.write("a/" + str(ans["Id"]) + ",Answer " + str(ans["Id"]) + ",question/" + self.post["filename"] + "#a" + str(ans["Id"]) + "\n")
-            self.f_redirect.write("q/" + str(self.post["Id"]) +",Question " + str(self.post["Id"]) + ",question/" + self.post["filename"] + "\n")
+                self.f_redirect.write("a/" + str(ans["Id"]) + "\tAnswer " + str(ans["Id"]) + "\tquestion/" + self.post["filename"] + "\n")
+            self.f_redirect.write("q/" + str(self.post["Id"]) +"\tQuestion " + str(self.post["Id"]) + "\tquestion/" + self.post["filename"] + "\n")
             data_send = [ some_questions, templates, output, title, publisher, self.post, "question.html", deflate, self.site_url ]
             self.request_queue.put(data_send)
             #some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
@@ -368,7 +368,7 @@ class TagsRender(handler.ContentHandler):
 #########################
 class UsersRender(handler.ContentHandler):
 
-    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor, deflate, site_url):
+    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor, deflate, site_url,redirect_file):
         self.identicon_path = os.path.join(output, 'static', 'identicon')
         self.id=0
         self.site_url=site_url
@@ -398,6 +398,7 @@ class UsersRender(handler.ContentHandler):
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
             i.start()
+        self.f_redirect = open(redirect_file, "a")
 
     def startElement(self, name, attrs): #For each element
         if name != "row": #If it's not a user (row in users.xml) we pass
@@ -412,8 +413,9 @@ class UsersRender(handler.ContentHandler):
         if user != {}:
             sql = "INSERT INTO users(id, DisplayName, Reputation) VALUES(?, ?, ?)"
             cursor.execute(sql, (int(user["Id"]),  user["DisplayName"], user["Reputation"]))
-
-            data_send = [some_user, user, self.generator, templates, output, publisher, self.site_url]
+            username = slugify(user["DisplayName"])
+            self.f_redirect.write("u/" + str(user["Id"]) +"\tUser " + str(user["Id"]) + "\tuser/" + username  + ".html\n")
+            data_send = [some_user, user, self.generator, templates, output, publisher, self.site_url,username]
             self.request_queue.put(data_send)
 
     def endDocument(self):
@@ -424,9 +426,9 @@ class UsersRender(handler.ContentHandler):
             self.request_queue.put(None)
         for i in self.workers:
             i.join()
+        self.f_redirect.close()
 
-def some_user(user,generator,templates, output, publisher, site_url):
-    username = slugify(user["DisplayName"])
+def some_user(user,generator,templates, output, publisher, site_url,username):
     filename = username + ".png"
     fullpath = os.path.join(output, 'static', 'identicon', filename)
     try:
@@ -477,7 +479,7 @@ class Worker(Process):
                 data[0](*data[1:])
                 #some_questions(*data)
             except Exception as exc:
-                print 'error while rendering question:', data[-1]['Id']
+                print 'error while rendering :', data
                 print exc
 
 def intspace(value):
@@ -490,7 +492,7 @@ def intspace(value):
 
 
 def markdown(text):
-    return MARKDOWN(text)[3:-5]
+    return markdown_gen.markdown(text.encode('utf-8'),fenced_code=True)[3:-5].decode('utf-8')
 
 
 def dict_factory(cursor, row):
@@ -774,13 +776,10 @@ if __name__ == '__main__':
         prepare(dump)
         title, description = grab_title_description_favicon(url, output)
         jinja_init(templates)
-        #init markdown
-        global MARKDOWN
-        MARKDOWN = mistune.Markdown()
 
         #Generate users !
         parser = make_parser()
-        parser.setContentHandler(UsersRender(templates, database, output, title, publisher, dump, cores, cursor, deflate,url))
+        parser.setContentHandler(UsersRender(templates, database, output, title, publisher, dump, cores, cursor, deflate,url,redirect_file))
         parser.parse(os.path.join(dump, "users.xml"))
         conn.commit()
 
@@ -806,4 +805,5 @@ if __name__ == '__main__':
                 shutil.rmtree(output)
                 print "remove " + db
                 os.remove(db)
+                print "remove " + redirect_file
                 os.remove(redirect_file)
