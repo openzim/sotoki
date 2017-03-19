@@ -439,7 +439,7 @@ def some_user(user,generator,templates, output, publisher, site_url,username):
             ext = "."+get_filetype(headers,fullpath)
         if ext != ".png" :
             convert_to_png(fullpath)
-        resize_one(fullpath,type,128)
+        resize_one(fullpath,"png",128)
     except Exception,e:
         # Generate big identicon
         padding = (20, 20, 20, 20)
