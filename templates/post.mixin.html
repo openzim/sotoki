@@ -64,7 +64,9 @@
       {% for comment in post["comments"] %}
         <div class="comment">
           <p>
-            <span class="score {{ comment["Score"] | scale }}">{% if comment["Score"] != 0 %}{{ comment["Score"] }}{% endif %}</span>
+            {% if comment["Score"] != 0 %}
+              <span class="score {{ comment["Score"] | scale }}">{{ comment["Score"] }}</span>
+            {% endif %}
             <span class="text">{{ comment["Text"] | urlize | markdown }}</span>
             –
             <a href="{{ rooturl }}/user/{{ comment["UserDisplayName"] | slugify }}.html">{{ comment["UserDisplayName"] }}</a>

@@ -34,14 +34,12 @@
         <p>viewed: {{ question["ViewCount"] | intspace }} times</p>
         <p>active: <span class="date" title="{{ question["LastActivityDate"] }}">{{ question["LastActivityDate"] }}</span></p>
       </div>
-      {% if question["links"] %}
+      {% if question["duplicate"] %}
         <div id="related" class="row">
-          <h3>Linked</h3>
+          <h3>Duplicate</h3>
           <ul>
-            {% for link in question["links"] %}
-              {% if link %}
-                <li><a href="{{ rooturl }}/question/{{ link }}.html" >{{ link }}</a></li>
-              {% endif %}
+            {% for dupe in question["duplicate"] %}
+                <li><a href="{{ rooturl }}/question/{{ dupe["slugify"] }}.html" >{{ dupe["text"] }}</a></li>
             {% endfor %}
             </ul>
         </div>
@@ -51,15 +49,13 @@
           <h3>Related</h3>
           <ul>
             {% for related in question["relateds"] %}
-              {% if related %}
-                <li><a href="{{ rooturl }}/question/{{ related }}.html" >{{ related }}</a></li>
-              {% endif %}
+                <li><a href="{{ rooturl }}/question/{{ related["slugify"] }}.html" >{{ related["text"] }}</a></li>
             {% endfor %}
            </ul>
         </div>
     {% endif %}
     </div>
   </div>
-  <script src="/static/main.js"></script>
+  <script src="{{ rooturl }}/static/main.js"></script>
   <div id="footer">This question is issued from <a href="{{ site_url }}/questions/{{ question["Id"] }}">{{ site_url }}</a>. The text is available under the <a href="https://creativecommons.org/licenses/by-sa/3.0/"> Creative Commons Attribution/Share Alike </a>.</div>
 {% endblock %}

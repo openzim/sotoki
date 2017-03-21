@@ -228,12 +228,16 @@ def some_questions(templates, output, title, publisher, question, template_name,
             question["answers"] = sorted(question["answers"], key=lambda k: k['Accepted'],reverse=True) #sorted is stable so accepted will be always first, then other question will be sort in ascending order
             for ans in question["answers"]:
                 ans["Body"]=image(ans["Body"],output)
-            if question.has_key("links"):
-                for link in question["links"]:
-                    link=slugify(link)[:248]
-            if question.has_key("relateds"):
-                for related in question["relateds"]:
-                    related=slugify(related)[:248]
+        if question["duplicate"] != [] :
+            duplicate=[]
+            for dupe in question["duplicate"]:
+                duplicate.append({ "slugify" : slugify(dupe)[:248] , "text" : dupe })
+            question["duplicate"]=duplicate
+        if question["relateds"] != []:
+            relateds=[]
+            for related in question["relateds"]:
+                relateds.append({ "slugify" : slugify(related)[:248] , "text" : related })
+            question["relateds"]=relateds
 
         if question["slugify_name"] != "":
             filepath = os.path.join(output, 'question', question["filename"])
