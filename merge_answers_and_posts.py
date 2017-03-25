@@ -29,7 +29,7 @@ for line in f1:
 	line_to_print += "<answers>" + answers + "</answers>"
 	link=""
 	while line_id == line_3_id:
-		link += re.sub("\n$", "", line_3) #TODO re.sub(row => link
+		link += re.sub("\n$", "", line_3) 
 		line_3=f3.readline()
 		if line_3:
 			line_3_id=line_3.split(sep)[int(sys.argv[5])-1]
