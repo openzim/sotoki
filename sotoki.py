@@ -443,7 +443,7 @@ def some_user(user,generator,templates, output, publisher, site_url,username):
             ext = "."+get_filetype(headers,fullpath)
         if ext != ".png" :
             convert_to_png(fullpath)
-        resize_one(fullpath,"png",128)
+        resize_one(fullpath,"png","128")
     except Exception,e:
         # Generate big identicon
         padding = (20, 20, 20, 20)
@@ -777,7 +777,7 @@ if __name__ == '__main__':
         conn.commit()
         redirect_file = os.path.join('work', 'redirection.csv')
 
-        prepare(dump)
+        #prepare(dump)
         title, description = grab_title_description_favicon(url, output)
         jinja_init(templates)
 
