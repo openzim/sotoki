@@ -777,7 +777,7 @@ if __name__ == '__main__':
         conn.commit()
         redirect_file = os.path.join('work', 'redirection.csv')
 
-        #prepare(dump)
+        prepare(dump)
         title, description = grab_title_description_favicon(url, output)
         jinja_init(templates)
 
