@@ -438,7 +438,6 @@ def some_user(user,generator,templates, output, publisher, site_url,username):
     fullpath = os.path.join(output, 'static', 'identicon', filename)
     try:
         url=user["ProfileImageUrl"]
-        print "try " + url + " " + fullpath
         ext = os.path.splitext(url.split("?")[0])[1]
         headers=download(url, fullpath, timeout=60)
         if ext == "":
