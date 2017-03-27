@@ -23,6 +23,7 @@ import shutil
 import os
 import re
 import os.path
+import tempfile
 from distutils.dir_util import copy_tree
 
 #from subprocess32 import check_output
@@ -437,13 +438,15 @@ def some_user(user,generator,templates, output, publisher, site_url,username):
     fullpath = os.path.join(output, 'static', 'identicon', filename)
     try:
         url=user["ProfileImageUrl"]
+        print "try " + url + " " + fullpath
         ext = os.path.splitext(url.split("?")[0])[1]
-        headers=download(url, fullpath)
+        headers=download(url, fullpath, timeout=60)
         if ext == "":
             ext = "."+get_filetype(headers,fullpath)
         if ext != ".png" :
-            convert_to_png(fullpath)
-        resize_one(fullpath,"png","128")
+            convert_to_png(fullpath, ext)
+        if ext != ".gif":
+            resize_one(fullpath,"png","128") 
     except Exception,e:
         # Generate big identicon
         padding = (20, 20, 20, 20)
@@ -546,10 +549,10 @@ def jinja_init(templates):
     ENV.filters.update(filters)
 
 
-def download(url, output):
+def download(url, output, timeout=None):
     if url[0:2] == "//":
         url="http:"+url
-    response = urlopen(url)
+    response = urlopen(url, timeout=timeout)
     output_content = response.read()
     with open(output, 'w') as f:
         f.write(output_content)
@@ -685,8 +688,18 @@ def resize_one(path,type,nb_pix):
     if type in ["gif", "png", "jpeg"]:
         exec_cmd("mogrify -resize "+nb_pix+"x\> " + path, timeout=10)
 
-def convert_to_png(path):
-    exec_cmd("mogrify -format png " + path)
+def create_temporary_copy(path):
+        temp_path = tempfile.mkstemp()[1]
+        shutil.copy2(path, temp_path)
+        return temp_path
+
+def convert_to_png(path,ext):
+    if ext == ".gif":
+        path_tmp=create_temporary_copy(path)
+        exec_cmd("gif2apng " + path_tmp + " " + path)
+        os.remove(path_tmp)
+    else:
+        exec_cmd("mogrify -format png " + path)
 #########################
 #     Zim generation    #
 #########################

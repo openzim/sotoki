@@ -24,7 +24,7 @@ git clone https://github.com/kiwix/sotoki.git
 Install non python dependencies:
 
 ```
-sudo apt-get install jpegoptim pngquant gifsicle advancecomp python-pip python-virtualenv python-dev libxml2-dev libxslt1-dev libbz2-dev p7zip-full python-pillow
+sudo apt-get install jpegoptim pngquant gifsicle advancecomp python-pip python-virtualenv python-dev libxml2-dev libxslt1-dev libbz2-dev p7zip-full python-pillow gif2apng
 ```
 
 Create a virtual environment for python:
