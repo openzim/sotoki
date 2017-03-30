@@ -117,14 +117,20 @@ class QuestionRender(handler.ContentHandler):
 
             if tmp.has_key("OwnerUserId"): #We put the good name of the user how made the post
                 user=cursor.execute("SELECT * FROM users WHERE id = ?", (int(tmp["OwnerUserId"]),)).fetchone()
+                id=tmp["OwnerUserId"]
                 if user != None:
+                    
                     tmp["OwnerUserId"] =  dict_to_unicodedict(user)
+                    tmp["OwnerUserId"]["Id"] = id
                 else:
                     tmp["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
+                    tmp["OwnerUserId"]["Id"] = id
             elif tmp.has_key("OwnerDisplayName"):
                 tmp["OwnerUserId"] = dict_to_unicodedict({ "DisplayName" : tmp["OwnerDisplayName"] })
+                tmp["OwnerUserId"]["Id"] = id
             else:
                 tmp["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
+                tmp["OwnerUserId"]["Id"] = id
             #print "        new answers"
             self.answers.append(tmp)
             return
@@ -150,9 +156,9 @@ class QuestionRender(handler.ContentHandler):
 
         if name == "link": #We add link
             if attrs["LinkTypeId"] == "1":
-                self.post["relateds"].append(attrs["PostId"])
+                self.post["relateds"].append( { "PostId" : attrs["PostId"] , "PostName" : attrs["PostName"]})
             elif attrs["LinkTypeId"] == "3":
-                self.post["duplicate"].append(attrs["PostId"])
+                self.post["duplicate"].append( { "PostId": attrs["PostId"] , "PostName" : attrs["PostName"]})
             return
 
         if name != 'post': #We go out if it's not a post, we because we have see all name of posible tag (answers, row,comments,comment and we will see after post) This normally match only this root
@@ -165,19 +171,23 @@ class QuestionRender(handler.ContentHandler):
                 self.post[k] = attrs[k]
             self.post["relateds"] = [] #Prepare list for relateds question
             self.post["duplicate"] = [] #Prepare list for duplicate question
-            self.post["slugify_name"] = slugify(self.post["Title"])[:248]
-            self.post["filename"] = '%s.html' % self.post["slugify_name"]
+            self.post["filename"] = '%s.html' % self.post["Id"]
 
             if self.post.has_key("OwnerUserId"):#We put the good name of the user how made the post
                 user=cursor.execute("SELECT * FROM users WHERE id = ?", (int(self.post["OwnerUserId"]),)).fetchone()
+                id=self.post["OwnerUserId"]
                 if user != None:
                     self.post["OwnerUserId"] =  dict_to_unicodedict(user)
+                    self.post["OwnerUserId"]["Id"] = id
                 else:
                     self.post["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
+                    self.post["OwnerUserId"]["Id"] = id
             elif self.post.has_key("OwnerDisplayName"):
                 self.post["OwnerUserId"] = dict_to_unicodedict({ "DisplayName" : self.post["OwnerDisplayName"] })
+                self.post["OwnerUserId"]["Id"] = id
             else:
                 self.post["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
+                self.post["OwnerUserId"]["Id"] = id
 
     def endElement(self, name):
         if self.whatwedo=="post/answers/comments": #If we have a post with answer and comment on this answer, we put comment into the anwer
@@ -196,12 +206,12 @@ class QuestionRender(handler.ContentHandler):
                 self.conn.commit()
             self.post["Tags"] = self.post["Tags"][1:-1].split('><')
             for t in self.post["Tags"]: #We put tags into db
-                sql = "INSERT INTO QuestionTag(Score, Title, CreationDate, Tag) VALUES(?, ?, ?, ?)"
-                self.cursor.execute(sql, (self.post["Score"], self.post["Title"], self.post["CreationDate"], t))
+                sql = "INSERT INTO QuestionTag(Score, Title, QId, CreationDate, Tag) VALUES(?, ?, ?, ?, ?)"
+                self.cursor.execute(sql, (self.post["Score"], self.post["Title"], self.post["Id"], self.post["CreationDate"], t))
             #Make redirection 
             for ans in self.answers:
                 self.f_redirect.write("a/" + str(ans["Id"]) + "\tAnswer " + str(ans["Id"]) + "\tquestion/" + self.post["filename"] + "\n")
-            self.f_redirect.write("q/" + str(self.post["Id"]) +"\tQuestion " + str(self.post["Id"]) + "\tquestion/" + self.post["filename"] + "\n")
+            #self.f_redirect.write("q/" + str(self.post["Id"]) +"\tQuestion " + str(self.post["Id"]) + "\tquestion/" + self.post["filename"] + "\n")
             data_send = [ some_questions, templates, output, title, publisher, self.post, "question.html", deflate, self.site_url ]
             self.request_queue.put(data_send)
             #some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
@@ -229,39 +239,26 @@ def some_questions(templates, output, title, publisher, question, template_name,
             question["answers"] = sorted(question["answers"], key=lambda k: k['Accepted'],reverse=True) #sorted is stable so accepted will be always first, then other question will be sort in ascending order
             for ans in question["answers"]:
                 ans["Body"]=image(ans["Body"],output)
-        if question["duplicate"] != [] :
-            duplicate=[]
-            for dupe in question["duplicate"]:
-                duplicate.append({ "slugify" : slugify(dupe)[:248] , "text" : dupe })
-            question["duplicate"]=duplicate
-        if question["relateds"] != []:
-            relateds=[]
-            for related in question["relateds"]:
-                relateds.append({ "slugify" : slugify(related)[:248] , "text" : related })
-            question["relateds"]=relateds
 
-        if question["slugify_name"] != "":
-            filepath = os.path.join(output, 'question', question["filename"])
-            question["Body"] = image(question["Body"],output)
-            try:
-                jinja(
-                    filepath,
-                    template_name,
-                    templates,
-                    False,
-                    deflate,
-                    question=question,
-                    rooturl="..",
-                    title=title,
-                    publisher=publisher,
-                    site_url=site_url,
-                    )
-            except Exception, e:
-                print ' * failed to generate: %s' % filename
-                print "erreur jinja" + str(e)
-                print question
-        else: #Sometime (when title only have caratere that we can't sluglify) 
-                print "erreur avec le titre" #lever une exception ?
+        filepath = os.path.join(output, 'question', question["filename"])
+        question["Body"] = image(question["Body"],output)
+        try:
+            jinja(
+                filepath,
+                template_name,
+                templates,
+                False,
+                deflate,
+                question=question,
+                rooturl="..",
+                title=title,
+                publisher=publisher,
+                site_url=site_url,
+                )
+        except Exception, e:
+            print ' * failed to generate: %s' % filename
+            print "erreur jinja" + str(e)
+            print question
     except Exception, e:
         print "Erreur with one post : " + str(e)
 
@@ -316,7 +313,7 @@ class TagsRender(handler.ContentHandler):
                         offset += 100
                     questions = questions[:100]
                     for question in questions:
-                        question["filepath"] = slugify(question["Title"])[:248]
+                        question["filepath"] = question["QId"]
                     jinja(
                         fullpath,
                         'tag.html',
@@ -349,7 +346,7 @@ class TagsRender(handler.ContentHandler):
                         offset = None
                     questions = questions[:100]
                     for question in questions:
-                        question["filepath"] = slugify(question["Title"])[:248]
+                        question["filepath"] = question["QId"]
                     jinja(
                         fullpath,
                         'tag.html',
@@ -419,7 +416,7 @@ class UsersRender(handler.ContentHandler):
             sql = "INSERT INTO users(id, DisplayName, Reputation) VALUES(?, ?, ?)"
             cursor.execute(sql, (int(user["Id"]),  user["DisplayName"], user["Reputation"]))
             username = slugify(user["DisplayName"])
-            self.f_redirect.write("u/" + str(user["Id"]) +"\tUser " + str(user["Id"]) + "\tuser/" + username  + ".html\n")
+            #self.f_redirect.write("u/" + str(user["Id"]) +"\tUser " + str(user["Id"]) + "\tuser/" + username  + ".html\n")
             data_send = [some_user, user, self.generator, templates, output, publisher, self.site_url,username]
             self.request_queue.put(data_send)
 
@@ -434,7 +431,7 @@ class UsersRender(handler.ContentHandler):
         self.f_redirect.close()
 
 def some_user(user,generator,templates, output, publisher, site_url,username):
-    filename = username + ".png"
+    filename = user["Id"] + ".png"
     fullpath = os.path.join(output, 'static', 'identicon', filename)
     try:
         url=user["ProfileImageUrl"]
@@ -454,8 +451,13 @@ def some_user(user,generator,templates, output, publisher, site_url,username):
         with open(fullpath, "wb") as f:
             f.write(identicon)
 
+    #
+    """
+    if user.has_key("AboutMe"):
+        user["AboutMe"] = image(user["AboutMe"],output)
+    """
     # generate user profile page
-    filename = '%s.html' % username
+    filename = '%s.html' % user["Id"]
     fullpath = os.path.join(output, 'user', filename)
     jinja(
         fullpath,
@@ -778,7 +780,7 @@ if __name__ == '__main__':
         conn.row_factory = dict_factory
         cursor = conn.cursor()
         # create table tags-questions
-        sql = "CREATE TABLE IF NOT EXISTS questiontag(id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, Score INTEGER, Title TEXT, CreationDate TEXT, Tag TEXT)"
+        sql = "CREATE TABLE IF NOT EXISTS questiontag(id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, Score INTEGER, Title TEXT, QId INTEGER, CreationDate TEXT, Tag TEXT)"
         cursor.execute(sql)
         #creater user table
         sql = "CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY UNIQUE, DisplayName TEXT, Reputation TEXT)"

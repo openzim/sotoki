@@ -40,9 +40,9 @@
     <div class="author">
       <div>
         <p>asked <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
-        <a class="profile" href="../user/{{ post["OwnerUserId"]["DisplayName"] | slugify  }}.html">
+        <a class="profile" href="../user/{{ post["OwnerUserId"]["Id"] }}.html">
           <div> 
-            <img src="../static/identicon/{{ post["OwnerUserId"]["DisplayName"] | slugify }}.png" style="width:32px; height:32px;" /> 
+            <img src="../static/identicon/{{ post["OwnerUserId"]["Id"] }}.png" style="width:32px; height:32px;" /> 
           </div> 
           <div>
             <p>{{ post["OwnerUserId"]["DisplayName"] }}</p>
@@ -69,7 +69,7 @@
             {% endif %}
             <span class="text">{{ comment["Text"] | urlize | markdown }}</span>
             –
-            <a href="{{ rooturl }}/user/{{ comment["UserDisplayName"] | slugify }}.html">{{ comment["UserDisplayName"] }}</a>
+            <a href="{{ rooturl }}/user/{{ comment["UserId"] }}.html">{{ comment["UserDisplayName"] }}</a>
             <span class="date" title="{{ comment["CreationDate"] }}">{{ comment["CreationDate"] }}</span>
             </p>
         </div>

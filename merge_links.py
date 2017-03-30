@@ -23,6 +23,7 @@ for line in f1:
 
 	if line_id == line_2_id:
 		line_split=line.split('"')
-		line_split[5]=line_2[1]
-		print re.sub("\n$","", '"'.join(line_split))
+	        #line_split[5]=line_2[1]
+	        new_line=line_split[0:6] + [ " PostName=" , line_2[1] ] + line_split[6:]
+		print re.sub("\n$","", '"'.join(new_line))
 	#else => Title doesn't exist

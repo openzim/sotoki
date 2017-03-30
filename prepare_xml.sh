@@ -42,10 +42,10 @@ sed 's/.*row Id="\([0-9]*\).*Title="\([^"]*\).*/\1,"\2"/g' tmp_posts1.xml > id_t
 sed -e '1d' -e '2d' -e '$d' postlinks.xml > postlinks_withoutstartend.xml || exit 1
 sort -t '"' -k6,6n postlinks_withoutstartend.xml > postlinks_sort.xml || exit 1
 python merge_links.py postlinks_sort.xml id_title.csv > links_prepare.xml || exit 1
-sort -t '"' -k8,8n links_prepare.xml | sed 's/<row/<link/g' > links_prepare_sort.xml || exit 1
+sort -t '"' -k10,10n links_prepare.xml | sed 's/<row/<link/g' > links_prepare_sort.xml || exit 1
 
 #Associate posts and answers
-python merge_answers_and_posts.py 2 tmp_posts1.xml 6 tmp_posts2.xml 8 links_prepare_sort.xml > prepare.xml || exit 1
+python merge_answers_and_posts.py 2 tmp_posts1.xml 6 tmp_posts2.xml 10 links_prepare_sort.xml > prepare.xml || exit 1
 
 rm merge_links.py merge_answers_and_posts.py merge_comments_and_postsanswers.py comments_sort.xml tmp.xml tmp_posts2.xml tmp_posts1.xml comments_withoutstartend.xml posts_withoutstartend.xml postlinks_sort.xml id_title.csv postlinks_withoutstartend.xml links_prepare.xml links_prepare_sort.xml
 
