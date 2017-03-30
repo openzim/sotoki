@@ -446,6 +446,7 @@ def some_user(user,generator,templates, output, publisher, site_url,username):
             convert_to_png(fullpath, ext)
         if ext != ".gif":
             resize_one(fullpath,"png","128") 
+            optimize_one(fullpath,"png")
     except Exception,e:
         # Generate big identicon
         padding = (20, 20, 20, 20)
