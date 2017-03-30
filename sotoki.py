@@ -452,10 +452,8 @@ def some_user(user,generator,templates, output, publisher, site_url,username):
             f.write(identicon)
 
     #
-    """
     if user.has_key("AboutMe"):
-        user["AboutMe"] = image(user["AboutMe"],output)
-    """
+        user["AboutMe"] = image("<p>" + user["AboutMe"] + "</p>",output)
     # generate user profile page
     filename = '%s.html' % user["Id"]
     fullpath = os.path.join(output, 'user', filename)
