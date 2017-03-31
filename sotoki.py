@@ -131,6 +131,7 @@ class QuestionRender(handler.ContentHandler):
             else:
                 tmp["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
                 tmp["OwnerUserId"]["Id"] = id
+            tmp["OwnerUserId"]["Path"] =  page_url(tmp["OwnerUserId"]["Id"], tmp["OwnerUserId"]["DisplayName"])
             #print "        new answers"
             self.answers.append(tmp)
             return
@@ -148,6 +149,7 @@ class QuestionRender(handler.ContentHandler):
                     tmp["UserDisplayName"] = u"None"
             else:
                 tmp["UserDisplayName"] = u"None"
+            tmp["Path"] =  page_url(tmp["UserId"], tmp["UserDisplayName"])
 
             if tmp.has_key("Score"):
                 tmp["Score"] = int(tmp["Score"])
@@ -156,9 +158,9 @@ class QuestionRender(handler.ContentHandler):
 
         if name == "link": #We add link
             if attrs["LinkTypeId"] == "1":
-                self.post["relateds"].append( { "PostId" : attrs["PostId"] , "PostName" : attrs["PostName"]})
+                self.post["relateds"].append( { "PostId" : page_url(attrs["PostId"], attrs["PostName"]) , "PostName" : attrs["PostName"]})
             elif attrs["LinkTypeId"] == "3":
-                self.post["duplicate"].append( { "PostId": attrs["PostId"] , "PostName" : attrs["PostName"]})
+                self.post["duplicate"].append( { "PostId": page_url(attrs["PostId"], attrs["PostName"]) , "PostName" : attrs["PostName"]})
             return
 
         if name != 'post': #We go out if it's not a post, we because we have see all name of posible tag (answers, row,comments,comment and we will see after post) This normally match only this root
@@ -188,6 +190,7 @@ class QuestionRender(handler.ContentHandler):
             else:
                 self.post["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
                 self.post["OwnerUserId"]["Id"] = id
+            self.post["OwnerUserId"]["Path"] =  page_url(self.post["OwnerUserId"]["Id"], self.post["OwnerUserId"]["DisplayName"])
 
     def endElement(self, name):
         if self.whatwedo=="post/answers/comments": #If we have a post with answer and comment on this answer, we put comment into the anwer
@@ -210,8 +213,8 @@ class QuestionRender(handler.ContentHandler):
                 self.cursor.execute(sql, (self.post["Score"], self.post["Title"], self.post["Id"], self.post["CreationDate"], t))
             #Make redirection 
             for ans in self.answers:
-                self.f_redirect.write("a/" + str(ans["Id"]) + "\tAnswer " + str(ans["Id"]) + "\tquestion/" + self.post["filename"] + "\n")
-            #self.f_redirect.write("q/" + str(self.post["Id"]) +"\tQuestion " + str(self.post["Id"]) + "\tquestion/" + self.post["filename"] + "\n")
+                self.f_redirect.write("a/" + str(ans["Id"]) + "\tAnswer " + str(ans["Id"]) + "\tquestion/" + page_url( self.post["Id"], self.post["Title"]) + ".html\n")
+            self.f_redirect.write("question/" + page_url( self.post["Id"], self.post["Title"]) +".html\tQuestion " + str(self.post["Id"]) + "\tquestion/" + self.post["Id"] + "\n")
             data_send = [ some_questions, templates, output, title, publisher, self.post, "question.html", deflate, self.site_url ]
             self.request_queue.put(data_send)
             #some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
@@ -313,7 +316,7 @@ class TagsRender(handler.ContentHandler):
                         offset += 100
                     questions = questions[:100]
                     for question in questions:
-                        question["filepath"] = question["QId"]
+                        question["filepath"] = page_url(question["QId"] , question["Title"])
                     jinja(
                         fullpath,
                         'tag.html',
@@ -346,7 +349,7 @@ class TagsRender(handler.ContentHandler):
                         offset = None
                     questions = questions[:100]
                     for question in questions:
-                        question["filepath"] = question["QId"]
+                        question["filepath"] = page_url(question["QId"] , question["Title"])
                     jinja(
                         fullpath,
                         'tag.html',
@@ -415,9 +418,8 @@ class UsersRender(handler.ContentHandler):
         if user != {}:
             sql = "INSERT INTO users(id, DisplayName, Reputation) VALUES(?, ?, ?)"
             cursor.execute(sql, (int(user["Id"]),  user["DisplayName"], user["Reputation"]))
-            username = slugify(user["DisplayName"])
-            #self.f_redirect.write("u/" + str(user["Id"]) +"\tUser " + str(user["Id"]) + "\tuser/" + username  + ".html\n")
-            data_send = [some_user, user, self.generator, templates, output, publisher, self.site_url,username]
+            self.f_redirect.write("user/" + page_url(user["Id"], user["DisplayName"]) +".html\tUser " + user["DisplayName"] + "\tuser/" + user["Id"] + ".html\n")
+            data_send = [some_user, user, self.generator, templates, output, publisher, self.site_url]
             self.request_queue.put(data_send)
 
     def endDocument(self):
@@ -430,7 +432,7 @@ class UsersRender(handler.ContentHandler):
             i.join()
         self.f_redirect.close()
 
-def some_user(user,generator,templates, output, publisher, site_url,username):
+def some_user(user,generator,templates, output, publisher, site_url):
     filename = user["Id"] + ".png"
     fullpath = os.path.join(output, 'static', 'identicon', filename)
     try:
@@ -447,7 +449,7 @@ def some_user(user,generator,templates, output, publisher, site_url,username):
     except Exception,e:
         # Generate big identicon
         padding = (20, 20, 20, 20)
-        identicon = generator.generate(username, 128, 128, padding=padding, output_format="png")  # noqa
+        identicon = generator.generate(slugify(user["DisplayName"]), 128, 128, padding=padding, output_format="png")  # noqa
         with open(fullpath, "wb") as f:
             f.write(identicon)
 
@@ -520,6 +522,9 @@ def scale(number):
     if number < 8:
         return 'good'
     return 'verygood'
+
+def page_url(id,name):
+    return str(id) + "/" + slugify(name)
 
 ENV = None  # Jinja environment singleton
 
