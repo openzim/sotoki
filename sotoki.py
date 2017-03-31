@@ -212,12 +212,9 @@ class QuestionRender(handler.ContentHandler):
                 sql = "INSERT INTO QuestionTag(Score, Title, QId, CreationDate, Tag) VALUES(?, ?, ?, ?, ?)"
                 self.cursor.execute(sql, (self.post["Score"], self.post["Title"], self.post["Id"], self.post["CreationDate"], t))
             #Make redirection 
-            """
-            #TODO : we need redirection on redirection for make this working
             for ans in self.answers:
-                self.f_redirect.write("a/" + str(ans["Id"]) + "\tAnswer " + str(ans["Id"]) + "\tquestion/" + page_url( self.post["Id"], self.post["Title"]) + ".html\n")
-            """
-            self.f_redirect.write("question/" + page_url( self.post["Id"], self.post["Title"]) +".html\tQuestion " + str(self.post["Id"]) + "\tA/question/" + self.post["Id"] + ".html\n")
+                self.f_redirect.write("A/answer/" + str(ans["Id"]) + "\tAnswer " + str(ans["Id"]) + "\tquestion/" + self.post["Id"] + ".html\n")
+            self.f_redirect.write("A/question/" + page_url( self.post["Id"], self.post["Title"]) +".html\tQuestion " + str(self.post["Id"]) + "\tquestion/" + self.post["Id"] + ".html\n")
             data_send = [ some_questions, templates, output, title, publisher, self.post, "question.html", deflate, self.site_url ]
             self.request_queue.put(data_send)
             #some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
@@ -421,7 +418,7 @@ class UsersRender(handler.ContentHandler):
         if user != {}:
             sql = "INSERT INTO users(id, DisplayName, Reputation) VALUES(?, ?, ?)"
             cursor.execute(sql, (int(user["Id"]),  user["DisplayName"], user["Reputation"]))
-            self.f_redirect.write("user/" + page_url(user["Id"], user["DisplayName"]) +".html\tUser " + slugify(user["DisplayName"]) + "\tA/user/" + user["Id"] + ".html\n")
+            self.f_redirect.write("A/user/" + page_url(user["Id"], user["DisplayName"]) +".html\tUser " + slugify(user["DisplayName"]) + "\tuser/" + user["Id"] + ".html\n")
             data_send = [some_user, user, self.generator, templates, output, publisher, self.site_url]
             self.request_queue.put(data_send)
 
