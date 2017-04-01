@@ -70,6 +70,7 @@
             <span class="text">{{ comment["Text"] | urlize | markdown }}</span>
             –
 {% if comment["Path"] %}<a href="{{ rooturl }}/user/{{ comment["Path"] }}.html">{% endif %}{{ comment["UserDisplayName"] }} {% if comment["Path"] %}</a>{% endif %}
+             –
             <span class="date" title="{{ comment["CreationDate"] }}">{{ comment["CreationDate"] }}</span>
             </p>
         </div>
