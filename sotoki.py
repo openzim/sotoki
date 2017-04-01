@@ -434,11 +434,10 @@ def some_user(user,generator,templates, output, publisher, site_url):
         url=user["ProfileImageUrl"]
         ext = os.path.splitext(url.split("?")[0])[1]
         headers=download(url, fullpath, timeout=60)
-        if ext == "":
-            ext = "."+get_filetype(headers,fullpath)
-        if ext != ".png" :
+        ext=get_filetype(headers,fullpath)
+        if ext != "png" :
             convert_to_png(fullpath, ext)
-        if ext != ".gif":
+        if ext != "gif":
             resize_one(fullpath,"png","128") 
             optimize_one(fullpath,"png")
     except Exception,e:
@@ -693,7 +692,7 @@ def create_temporary_copy(path):
         return temp_path
 
 def convert_to_png(path,ext):
-    if ext == ".gif":
+    if ext == "gif":
         path_tmp=create_temporary_copy(path)
         exec_cmd("gif2apng " + path_tmp + " " + path)
         os.remove(path_tmp)
