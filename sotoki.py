@@ -119,19 +119,16 @@ class QuestionRender(handler.ContentHandler):
                 user=cursor.execute("SELECT * FROM users WHERE id = ?", (int(tmp["OwnerUserId"]),)).fetchone()
                 id=tmp["OwnerUserId"]
                 if user != None:
-                    
                     tmp["OwnerUserId"] =  dict_to_unicodedict(user)
                     tmp["OwnerUserId"]["Id"] = id
+                    tmp["OwnerUserId"]["Path"] =  page_url(tmp["OwnerUserId"]["Id"], tmp["OwnerUserId"]["DisplayName"])
                 else:
                     tmp["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
                     tmp["OwnerUserId"]["Id"] = id
             elif tmp.has_key("OwnerDisplayName"):
                 tmp["OwnerUserId"] = dict_to_unicodedict({ "DisplayName" : tmp["OwnerDisplayName"] })
-                tmp["OwnerUserId"]["Id"] = id
             else:
                 tmp["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
-                tmp["OwnerUserId"]["Id"] = id
-            tmp["OwnerUserId"]["Path"] =  page_url(tmp["OwnerUserId"]["Id"], tmp["OwnerUserId"]["DisplayName"])
             #print "        new answers"
             self.answers.append(tmp)
             return
@@ -145,11 +142,11 @@ class QuestionRender(handler.ContentHandler):
                 user=cursor.execute("SELECT * FROM users WHERE id = ?", (int(tmp["UserId"]),)).fetchone()
                 if tmp.has_key("UserId") and  user != None :
                     tmp["UserDisplayName"] = dict_to_unicodedict(user)["DisplayName"]
+                    tmp["Path"] =  page_url(tmp["UserId"], tmp["UserDisplayName"])
                 else:
                     tmp["UserDisplayName"] = u"None"
             else:
                 tmp["UserDisplayName"] = u"None"
-            tmp["Path"] =  page_url(tmp["UserId"], tmp["UserDisplayName"])
 
             if tmp.has_key("Score"):
                 tmp["Score"] = int(tmp["Score"])
@@ -181,16 +178,14 @@ class QuestionRender(handler.ContentHandler):
                 if user != None:
                     self.post["OwnerUserId"] =  dict_to_unicodedict(user)
                     self.post["OwnerUserId"]["Id"] = id
+                    self.post["OwnerUserId"]["Path"] =  page_url(self.post["OwnerUserId"]["Id"], self.post["OwnerUserId"]["DisplayName"])
                 else:
                     self.post["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
                     self.post["OwnerUserId"]["Id"] = id
             elif self.post.has_key("OwnerDisplayName"):
                 self.post["OwnerUserId"] = dict_to_unicodedict({ "DisplayName" : self.post["OwnerDisplayName"] })
-                self.post["OwnerUserId"]["Id"] = id
             else:
                 self.post["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
-                self.post["OwnerUserId"]["Id"] = id
-            self.post["OwnerUserId"]["Path"] =  page_url(self.post["OwnerUserId"]["Id"], self.post["OwnerUserId"]["DisplayName"])
 
     def endElement(self, name):
         if self.whatwedo=="post/answers/comments": #If we have a post with answer and comment on this answer, we put comment into the anwer

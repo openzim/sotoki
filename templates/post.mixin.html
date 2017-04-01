@@ -40,15 +40,15 @@
     <div class="author">
       <div>
         <p>asked <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
-        <a class="profile" href="../user/{{ post["OwnerUserId"]["Path"] }}.html">
+        {% if post["OwnerUserId"]["Path"] %}<a class="profile" href="../user/{{ post["OwnerUserId"]["Path"] }}.html"> {% endif %}
           <div> 
-            <img src="../static/identicon/{{ post["OwnerUserId"]["Id"] }}.png" style="width:32px; height:32px;" /> 
+{% if post["OwnerUserId"]["Id"] %}<img src="../static/identicon/{{ post["OwnerUserId"]["Id"] }}.png" style="width:32px; height:32px;" /> {% endif %}
           </div> 
           <div>
             <p>{{ post["OwnerUserId"]["DisplayName"] }}</p>
             <p>{{ post["OwnerUserId"]["Reputation"] | intspace }}</p>
           </div>
-        </a>
+{% if post["OwnerUserId"]["Path"] %}</a>{% endif %}
       </div>
     </div>
   {% endif %} 
@@ -69,7 +69,7 @@
             {% endif %}
             <span class="text">{{ comment["Text"] | urlize | markdown }}</span>
             –
-            <a href="{{ rooturl }}/user/{{ comment["Path"] }}.html">{{ comment["UserDisplayName"] }}</a>
+{% if comment["Path"] %}<a href="{{ rooturl }}/user/{{ comment["Path"] }}.html">{% endif %}{{ comment["UserDisplayName"] }} {% if comment["Path"] %}</a>{% endif %}
             <span class="date" title="{{ comment["CreationDate"] }}">{{ comment["CreationDate"] }}</span>
             </p>
         </div>
