@@ -394,6 +394,7 @@ class UsersRender(handler.ContentHandler):
         self.workers = []
         self.cores=cores
         self.conn=conn
+        self.user={}
         for i in range(self.cores): 
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
@@ -401,21 +402,30 @@ class UsersRender(handler.ContentHandler):
         self.f_redirect = open(redirect_file, "a")
 
     def startElement(self, name, attrs): #For each element
-        if name != "row": #If it's not a user (row in users.xml) we pass
-            return
-        self.id +=1
-        if self.id % 1000 == 0:
-            print "Already " + str(self.id) + " Users done !"
-            self.conn.commit()
-        user={}
-        for k in attrs.keys(): #get all item
-            user[k] = attrs[k]
-        if user != {}:
+        if name == "badges":
+            self.user["badges"] = []
+        if name == "badge":
+            tmp={}
+            for k in attrs.keys():
+                tmp[k] = attrs[k]
+            self.user["badges"].append(tmp)
+        if name == "row":
+            self.id +=1
+            if self.id % 1000 == 0:
+                print "Already " + str(self.id) + " Users done !"
+                self.conn.commit()
+            self.user={}
+            for k in attrs.keys(): #get all item
+                self.user[k] = attrs[k]
+    def endElement(self, name):
+        if name == "row":
+            user=self.user
             sql = "INSERT INTO users(id, DisplayName, Reputation) VALUES(?, ?, ?)"
             cursor.execute(sql, (int(user["Id"]),  user["DisplayName"], user["Reputation"]))
             self.f_redirect.write("A/user/" + page_url(user["Id"], user["DisplayName"]) +".html\tUser " + slugify(user["DisplayName"]) + "\tuser/" + user["Id"] + ".html\n")
             data_send = [some_user, user, self.generator, templates, output, publisher, self.site_url]
             self.request_queue.put(data_send)
+           
 
     def endDocument(self):
         print "---END--"
@@ -797,7 +807,7 @@ if __name__ == '__main__':
         #Generate users !
         parser = make_parser()
         parser.setContentHandler(UsersRender(templates, database, output, title, publisher, dump, cores, cursor, deflate,url,redirect_file))
-        parser.parse(os.path.join(dump, "users.xml"))
+        parser.parse(os.path.join(dump, "usersbadges.xml"))
         conn.commit()
 
 
