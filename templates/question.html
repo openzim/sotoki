@@ -29,13 +29,13 @@
       {% endif %}
     </div>
     <div class="row col-md-3">
-      <div class="row">
+      <div class="metadata">
         <p>asked: <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
         <p>viewed: {{ question["ViewCount"] | intspace }} times</p>
         <p>active: <span class="date" title="{{ question["LastActivityDate"] }}">{{ question["LastActivityDate"] }}</span></p>
       </div>
       {% if question["duplicate"] %}
-        <div id="related" class="row">
+        <div id="related" class="metadata">
           <h3>Duplicate</h3>
           <ul>
             {% for dupe in question["duplicate"] %}
@@ -45,7 +45,7 @@
         </div>
       {% endif %}
       {% if question["relateds"] %}
-        <div id="related" class="row">
+        <div id="related" class="metadata" >
           <h3>Related</h3>
           <ul>
             {% for related in question["relateds"] %}

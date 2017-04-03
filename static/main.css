@@ -257,3 +257,7 @@ body.user .reputation span {
     font-size: 2em;
     font-weight: bold;
 }
+.metadata {
+	margin-right: 15px;
+	margin-left: 15px;
+}
