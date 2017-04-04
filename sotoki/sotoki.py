@@ -3,9 +3,9 @@
 """sotoki.
 
 Usage:
-  sotoki.py run <url> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>]
-  sotoki.py (-h | --help)
-  sotoki.py --version
+  sotoki run <url> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>]
+  sotoki (-h | --help)
+  sotoki --version
 
 Options:
   -h --help     Show this screen.
