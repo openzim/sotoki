@@ -72,8 +72,16 @@ from itertools import chain
 class QuestionRender(handler.ContentHandler):
 
     def __init__(self, templates, database, output, title, publisher, dump, cores, cursor,conn, deflate,site_url, redirect_file):
+        self.templates=templates
+        self.database=database
+        self.output=output
+        self.title=title
+        self.publisher=publisher
+        self.dump=dump
+        self.cores=cores
         self.cursor=cursor
         self.conn=conn
+        self.deflate=deflate
         self.site_url=site_url
         self.post={}
         self.comments=[]
@@ -116,7 +124,7 @@ class QuestionRender(handler.ContentHandler):
                 tmp["Accepted"] = False
 
             if tmp.has_key("OwnerUserId"): #We put the good name of the user how made the post
-                user=cursor.execute("SELECT * FROM users WHERE id = ?", (int(tmp["OwnerUserId"]),)).fetchone()
+                user=self.cursor.execute("SELECT * FROM users WHERE id = ?", (int(tmp["OwnerUserId"]),)).fetchone()
                 id=tmp["OwnerUserId"]
                 if user != None:
                     tmp["OwnerUserId"] =  dict_to_unicodedict(user)
@@ -139,7 +147,7 @@ class QuestionRender(handler.ContentHandler):
                 tmp[k] = attrs[k]
             #print "                 new comments"
             if tmp.has_key("UserId"): #We put the good name of the user how made the comment
-                user=cursor.execute("SELECT * FROM users WHERE id = ?", (int(tmp["UserId"]),)).fetchone()
+                user=self.cursor.execute("SELECT * FROM users WHERE id = ?", (int(tmp["UserId"]),)).fetchone()
                 if tmp.has_key("UserId") and  user != None :
                     tmp["UserDisplayName"] = dict_to_unicodedict(user)["DisplayName"]
                     tmp["Path"] =  page_url(tmp["UserId"], tmp["UserDisplayName"])
@@ -173,7 +181,7 @@ class QuestionRender(handler.ContentHandler):
             self.post["filename"] = '%s.html' % self.post["Id"]
 
             if self.post.has_key("OwnerUserId"):#We put the good name of the user how made the post
-                user=cursor.execute("SELECT * FROM users WHERE id = ?", (int(self.post["OwnerUserId"]),)).fetchone()
+                user=self.cursor.execute("SELECT * FROM users WHERE id = ?", (int(self.post["OwnerUserId"]),)).fetchone()
                 id=self.post["OwnerUserId"]
                 if user != None:
                     self.post["OwnerUserId"] =  dict_to_unicodedict(user)
@@ -210,7 +218,7 @@ class QuestionRender(handler.ContentHandler):
             for ans in self.answers:
                 self.f_redirect.write("A/answer/" + str(ans["Id"]) + "\tAnswer " + str(ans["Id"]) + "\tquestion/" + self.post["Id"] + ".html\n")
             self.f_redirect.write("A/question/" + page_url( self.post["Id"], self.post["Title"]) +".html\tQuestion " + str(self.post["Id"]) + "\tquestion/" + self.post["Id"] + ".html\n")
-            data_send = [ some_questions, templates, output, title, publisher, self.post, "question.html", deflate, self.site_url ]
+            data_send = [ some_questions, self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.deflate, self.site_url ]
             self.request_queue.put(data_send)
             #some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
             #Reset element
@@ -267,8 +275,19 @@ def some_questions(templates, output, title, publisher, question, template_name,
 
 class TagsRender(handler.ContentHandler):
 
-    def __init__(self, templates, database, output, title, publisher, dump, cursor, conn, deflate, tag_depth):
+    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor, conn, deflate, tag_depth):
         # index page
+        self.templates=templates
+        self.database=database
+        self.output=output
+        self.title=title
+        self.publisher=publisher
+        self.dump=dump
+        self.cores=cores
+        self.cursor=cursor
+        self.conn=conn
+        self.deflate=deflate
+        self.tag_depth=tag_depth
         self.tags = []
 
     def startElement(self, name, attrs): #For each element
@@ -277,32 +296,32 @@ class TagsRender(handler.ContentHandler):
 
     def endDocument(self):
         jinja(
-            os.path.join(output, 'index.html'),
+            os.path.join(self.output, 'index.html'),
             'tags.html',
-            templates,
+            self.templates,
             False,
-            deflate,
+            self.deflate,
             tags=self.tags,
             rooturl=".",
-            title=title,
-            publisher=publisher,
+            title=self.title,
+            publisher=self.publisher,
         )
         # tag page
         print "Render tag page"
         list_tag = map(lambda d: d['TagName'], self.tags)
-        os.makedirs(os.path.join(output, 'tag'))
+        os.makedirs(os.path.join(self.output, 'tag'))
         for tag in list(set(list_tag)):
-            dirpath = os.path.join(output, 'tag')
+            dirpath = os.path.join(self.output, 'tag')
             tagpath = os.path.join(dirpath, '%s' % tag)
             os.makedirs(tagpath)
             print tagpath
             # build page using pagination
-            if tag_depth==-1:
+            if self.tag_depth==-1:
                 offset = 0
                 page = 1
                 while offset is not None:
                     fullpath = os.path.join(tagpath, '%s.html' % page)
-                    questions = cursor.execute("SELECT * FROM questiontag WHERE Tag = ? LIMIT 101 OFFSET ? ", (str(tag), offset,)).fetchall()
+                    questions = self.cursor.execute("SELECT * FROM questiontag WHERE Tag = ? LIMIT 101 OFFSET ? ", (str(tag), offset,)).fetchall()
                     try:
                         questions[100]
                     except IndexError:
@@ -315,32 +334,32 @@ class TagsRender(handler.ContentHandler):
                     jinja(
                         fullpath,
                         'tag.html',
-                        templates,
+                        self.templates,
                         False,
-                        deflate,
+                        self.deflate,
                         tag=tag,
                         index=page,
                         questions=questions,
                         rooturl="../..",
                         hasnext=bool(offset),
                         next=page + 1,
-                        title=title,
-                        publisher=publisher,
+                        title=self.title,
+                        publisher=self.publisher,
                     )
                     page += 1
             else:
                 offset = 0
                 page = 1
-                while offset is not None and offset < tag_depth:
+                while offset is not None and offset < self.tag_depth:
                     fullpath = os.path.join(tagpath, '%s.html' % page)
-                    questions = cursor.execute("SELECT * FROM questiontag WHERE Tag = ? ORDER BY Score DESC LIMIT 101 OFFSET ? ", (str(tag), offset,)).fetchall()
+                    questions = self.cursor.execute("SELECT * FROM questiontag WHERE Tag = ? ORDER BY Score DESC LIMIT 101 OFFSET ? ", (str(tag), offset,)).fetchall()
                     try:
                         questions[100]
                     except IndexError:
                         offset = None
                     else:
                         offset += 100
-                    if offset > tag_depth:
+                    if offset > self.tag_depth:
                         offset = None
                     questions = questions[:100]
                     for question in questions:
@@ -348,17 +367,17 @@ class TagsRender(handler.ContentHandler):
                     jinja(
                         fullpath,
                         'tag.html',
-                        templates,
+                        self.templates,
                         False,
-                        deflate,
+                        self.deflate,
                         tag=tag,
                         index=page,
                         questions=questions,
                         rooturl="../..",
                         hasnext=bool(offset),
                         next=page + 1,
-                        title=title,
-                        publisher=publisher,
+                        title=self.title,
+                        publisher=self.publisher,
                     )
                     page += 1
 
@@ -368,10 +387,20 @@ class TagsRender(handler.ContentHandler):
 #########################
 class UsersRender(handler.ContentHandler):
 
-    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor, deflate, site_url,redirect_file):
+    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor, conn, deflate, site_url,redirect_file):
         self.identicon_path = os.path.join(output, 'static', 'identicon')
-        self.id=0
+        self.templates=templates
+        self.database=database
+        self.output=output
+        self.title=title
+        self.publisher=publisher
+        self.dump=dump
+        self.cores=cores
+        self.cursor=cursor
+        self.conn=conn
+        self.deflate=deflate
         self.site_url=site_url
+        self.id=0
         os.makedirs(self.identicon_path)
         os.makedirs(os.path.join(output, 'user'))
         # Set-up a list of foreground colours (taken from Sigil).
@@ -392,8 +421,6 @@ class UsersRender(handler.ContentHandler):
         self.generator = pydenticon.Generator(5, 5, foreground=self.foreground, background=self.background)  # noqa
         self.request_queue = Queue(cores*2)
         self.workers = []
-        self.cores=cores
-        self.conn=conn
         self.user={}
         for i in range(self.cores): 
             self.workers.append(Worker(self.request_queue))
@@ -421,9 +448,9 @@ class UsersRender(handler.ContentHandler):
         if name == "row":
             user=self.user
             sql = "INSERT INTO users(id, DisplayName, Reputation) VALUES(?, ?, ?)"
-            cursor.execute(sql, (int(user["Id"]),  user["DisplayName"], user["Reputation"]))
+            self.cursor.execute(sql, (int(user["Id"]),  user["DisplayName"], user["Reputation"]))
             self.f_redirect.write("A/user/" + page_url(user["Id"], user["DisplayName"]) +".html\tUser " + slugify(user["DisplayName"]) + "\tuser/" + user["Id"] + ".html\n")
-            data_send = [some_user, user, self.generator, templates, output, publisher, self.site_url]
+            data_send = [some_user, user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.deflate, self.title]
             self.request_queue.put(data_send)
            
 
@@ -437,7 +464,7 @@ class UsersRender(handler.ContentHandler):
             i.join()
         self.f_redirect.close()
 
-def some_user(user,generator,templates, output, publisher, site_url):
+def some_user(user,generator,templates, output, publisher, site_url, deflate, title):
     filename = user["Id"] + ".png"
     fullpath = os.path.join(output, 'static', 'identicon', filename)
     try:
@@ -676,8 +703,8 @@ def dict_to_unicodedict(dictionnary):
 
     return dict_
 
-def prepare(dump_path):
-    cmd="bash prepare_xml.sh " + dump_path
+def prepare(dump_path, bin_dir):
+    cmd="bash "+ bin_dir + "prepare_xml.sh " + dump_path + " " + bin_dir
     if exec_cmd(cmd) == 0:
         print "Prepare xml ok"
     else:
@@ -759,8 +786,7 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
         print "Unable to create ZIM file :("
         return False
 
-
-if __name__ == '__main__':
+def run():
     arguments = docopt(__doc__, version='sotoki 0.1')
     if arguments['run']:
         if not arguments['--nozim'] and not bin_is_present("zimwriterfs"):
@@ -775,7 +801,7 @@ if __name__ == '__main__':
         database = 'work'
         # render templates into `output`
         #templates = 'templates'
-        templates = 'templates_mini'
+        templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini')
         output = os.path.join('work', 'output')
         os.makedirs(output)
         os.makedirs(os.path.join(output, 'static', 'images'))
@@ -798,7 +824,7 @@ if __name__ == '__main__':
         conn.commit()
         redirect_file = os.path.join('work', 'redirection.csv')
 
-        prepare(dump)
+        prepare(dump, os.path.abspath(os.path.dirname(__file__)) + "/")
         title, description = grab_title_description_favicon(url, output)
         jinja_init(templates)
         global MARKDOWN
@@ -806,25 +832,25 @@ if __name__ == '__main__':
 
         #Generate users !
         parser = make_parser()
-        parser.setContentHandler(UsersRender(templates, database, output, title, publisher, dump, cores, cursor, deflate,url,redirect_file))
+        parser.setContentHandler(UsersRender(templates, database, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file))
         parser.parse(os.path.join(dump, "usersbadges.xml"))
         conn.commit()
 
 
         #Generate question !
         parser = make_parser()
-        parser.setContentHandler(QuestionRender(templates, database, output, title, publisher, dump, cores, cursor,conn, deflate,url,redirect_file))
+        parser.setContentHandler(QuestionRender(templates, database, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file))
         parser.parse(os.path.join(dump, "prepare.xml"))
         conn.commit()
 
         #Generate tags !
         parser = make_parser()
-        parser.setContentHandler(TagsRender(templates, database, output, title, publisher, dump, cores, cursor, deflate,tag_depth))
+        parser.setContentHandler(TagsRender(templates, database, output, title, publisher, dump, cores, cursor, conn, deflate,tag_depth))
         parser.parse(os.path.join(dump, "tags.xml"))
 
         conn.close()
         # copy static
-        copy_tree('static', os.path.join(output, 'static'))
+        copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static'), os.path.join(output, 'static'))
         if not arguments['--nozim']:
             done=create_zims(title, publisher, description, redirect_file)
             if done == True:
@@ -834,3 +860,7 @@ if __name__ == '__main__':
                 os.remove(db)
                 print "remove " + redirect_file
                 os.remove(redirect_file)
+
+if __name__ == '__main__':
+    run()
+

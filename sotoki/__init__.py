@@ -1,0 +1,1 @@
+from sotoki import run
