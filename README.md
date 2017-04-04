@@ -56,7 +56,7 @@ rename 'y/A-Z/a-z/' *
 Go back at the sotoki root and run the pipeline:
 
 ```
-sotokirun [url of stackechange website] [publisher] [--directory (optional)] [--nozim (optional)]
+sotoki run [url of stackechange website] [publisher] [--directory (optional)] [--nozim (optional)]
 
 ```
 
