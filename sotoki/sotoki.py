@@ -3,7 +3,7 @@
 """sotoki.
 
 Usage:
-  sotoki run <url> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>]
+  sotoki run <url> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>]
   sotoki (-h | --help)
   sotoki --version
 
@@ -13,6 +13,7 @@ Options:
   --directory=<dir>   Specify a directory for xml files [default: work/dump/]
   --nozim       doesn't make zim file, output will be in work/output/ in normal html (otherwise work/ouput/ will be in deflate form and will produice a zim file)
   --tag-depth=<tag_depth>   Specify number of question, order by Score, to show in tags pages (should be a multiple of 100, default all question are in tags pages) [default: -1]
+  --threads=<threads>   Number of threads to use, default is number_of_cores/2
 
 """
 import sys
@@ -805,7 +806,10 @@ def run():
         output = os.path.join('work', 'output')
         os.makedirs(output)
         os.makedirs(os.path.join(output, 'static', 'images'))
-        cores = cpu_count() / 2 or 1
+        if arguments["--threads"] is not None :
+            cores=int(arguments['--threads'])
+        else:
+            cores = cpu_count() / 2 or 1
 
         #prepare db
         db = os.path.join(database, 'se-dump.db')
