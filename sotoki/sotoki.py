@@ -3,7 +3,7 @@
 """sotoki.
 
 Usage:
-  sotoki run <url> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>]
+  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>]
   sotoki (-h | --help)
   sotoki --version
 
@@ -44,7 +44,9 @@ import sqlite3
 from xml.sax import make_parser, handler
 
 from hashlib import sha256
+from hashlib import sha1
 from urllib2 import urlopen
+from urllib import URLopener
 
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
@@ -53,6 +55,7 @@ import bs4 as BeautifulSoup
 from lxml.etree import parse as string2xml
 from lxml.html import fromstring as string2html
 from lxml.html import tostring as html2string
+from lxml import etree
 from docopt import docopt
 from slugify import slugify
 import mistune #markdown
@@ -646,18 +649,25 @@ def image(text_post, output):
         text_post = html2string(body)
     return text_post
 
-def grab_title_description_favicon(url, output_dir):
+def grab_title_description_favicon_lang(url, output_dir):
     output = urlopen(url).read()
     soup = BeautifulSoup.BeautifulSoup(output, 'html.parser')
     title = soup.find('meta', attrs={"name": u"twitter:title"})['content']
     description = soup.find('meta', attrs={"name": u"twitter:description"})['content']
+    jss = soup.find_all('script')
+    lang="en"
+    for js in jss:
+        search= re.search('StackExchange.init\({"locale":"[^"]*', output)
+        if search != None:
+            lang=re.sub('StackExchange.init\({"locale":"', "" , search.group(0))
+
     favicon = soup.find('link', attrs={"rel": u"image_src"})['href']
     if favicon[:2] == "//":
         favicon = "http:" + favicon
     favicon_out = os.path.join(output_dir, 'favicon.png')
     download(favicon, favicon_out)
     resize_image_profile(favicon_out)
-    return [title, description]
+    return [title, description, lang]
 
 
 def resize_image_profile(image_path):
@@ -736,17 +746,46 @@ def convert_to_png(path,ext):
         os.remove(path_tmp)
     else:
         exec_cmd("mogrify -format png " + path)
+
+def get_hash(site_name):
+    hash=None
+    sha1hash_url="https://archive.org/download/stackexchange/stackexchange_files.xml"
+    output = urlopen(sha1hash_url).read()
+    tree = etree.fromstring(output)
+    for file in tree.xpath("/files/file"):
+            if file.get("name") == site_name + ".7z":
+                        print "found"
+                        hash=file.xpath("sha1")[0].text
+    return hash
+
+def download_dump(domain, dump_path):
+    url_dump="https://archive.org/download/stackexchange/" + domain + ".7z"
+    hash=get_hash(domain)
+    f=open( domain + ".hash", "w")
+    f.write(hash + " " + domain + ".7z")
+    f.close()
+    exec_cmd("wget "+url_dump)
+    if exec_cmd("sha1sum -c " + domain + ".hash") == 0:
+        print "Ok we have get dump"
+    else:
+        print "KO, error will downloading the dump"
+        os.remove(domain + ".hash")
+        os.remove(domain + ".7z")
+        sys.exit(1)
+    exec_cmd("7z e " + domain + ".7z -o" + dump_path)
+    os.remove(domain + ".hash")
+    os.remove(domain + ".7z")
+
 #########################
 #     Zim generation    #
 #########################
 
-def create_zims(title, publisher, description,redirect_file):
+def create_zims(title, publisher, description,redirect_file,domain,lang_input):
     print 'Creating ZIM files'
     # Check, if the folder exists. Create it, if it doesn't.
-    lang_input = "en"
     html_dir = os.path.join("work", "output")
     zim_path = dict(
-        title=title.lower(),
+        title=domain.lower(),
         lang=lang_input,
         date=datetime.datetime.now().strftime('%Y-%m')
     )
@@ -789,81 +828,98 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
 
 def run():
     arguments = docopt(__doc__, version='sotoki 0.1')
-    if arguments['run']:
-        if not arguments['--nozim'] and not bin_is_present("zimwriterfs"):
-            sys.exit("zimwriterfs is not available, please install it.")
-        tag_depth = int(arguments['--tag-depth'])
-        if tag_depth != -1 and tag_depth <= 0:
-            sys.exit("--tag-depth should be a positive integer")
-        url = arguments['<url>']
-        publisher = arguments['<publisher>']
-        dump = arguments['--directory']
-        deflate = not arguments['--nozim']
-        database = 'work'
-        # render templates into `output`
-        #templates = 'templates'
-        templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini')
-        output = os.path.join('work', 'output')
-        os.makedirs(output)
-        os.makedirs(os.path.join(output, 'static', 'images'))
-        if arguments["--threads"] is not None :
-            cores=int(arguments['--threads'])
-        else:
-            cores = cpu_count() / 2 or 1
+    if not arguments['--nozim'] and not bin_is_present("zimwriterfs"):
+        sys.exit("zimwriterfs is not available, please install it.")
+    tag_depth = int(arguments['--tag-depth'])
+    if tag_depth != -1 and tag_depth <= 0:
+        sys.exit("--tag-depth should be a positive integer")
+    domain = arguments['<domain>']
+    if re.match("^https?://", domain):
+        url = domain
+        domain = re.sub("^https?://" , "", domain).split("/")[0]
+    else:
+        url = "http://" + domain
+    print domain
+    print url
+    publisher = arguments['<publisher>']
+    dump = arguments['--directory']
+    
+    deflate = not arguments['--nozim']
+    database = 'work'
+    # render templates into `output`
+    #templates = 'templates'
+    templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini')
+    if not os.path.exists("work"):
+        os.makedirs("work")
+    output = os.path.join('work', 'output')
+    os.makedirs(output)
+    os.makedirs(os.path.join(output, 'static', 'images'))
+    if arguments["--threads"] is not None :
+        cores=int(arguments['--threads'])
+    else:
+        cores = cpu_count() / 2 or 1
 
-        #prepare db
-        db = os.path.join(database, 'se-dump.db')
-        conn = sqlite3.connect(db) #can be :memory: for small dump  
-        conn.row_factory = dict_factory
-        cursor = conn.cursor()
-        # create table tags-questions
-        sql = "CREATE TABLE IF NOT EXISTS questiontag(id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, Score INTEGER, Title TEXT, QId INTEGER, CreationDate TEXT, Tag TEXT)"
-        cursor.execute(sql)
-        #creater user table
-        sql = "CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY UNIQUE, DisplayName TEXT, Reputation TEXT)"
-        cursor.execute(sql)
-        #create table for links
-        sql = "CREATE TABLE IF NOT EXISTS links(id INTEGER, title TEXT)"
-        cursor.execute(sql)
-        conn.commit()
-        redirect_file = os.path.join('work', 'redirection.csv')
+    #prepare db
+    db = os.path.join(database, 'se-dump.db')
+    conn = sqlite3.connect(db) #can be :memory: for small dump  
+    conn.row_factory = dict_factory
+    cursor = conn.cursor()
+    # create table tags-questions
+    sql = "CREATE TABLE IF NOT EXISTS questiontag(id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, Score INTEGER, Title TEXT, QId INTEGER, CreationDate TEXT, Tag TEXT)"
+    cursor.execute(sql)
+    #creater user table
+    sql = "CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY UNIQUE, DisplayName TEXT, Reputation TEXT)"
+    cursor.execute(sql)
+    #create table for links
+    sql = "CREATE TABLE IF NOT EXISTS links(id INTEGER, title TEXT)"
+    cursor.execute(sql)
+    conn.commit()
+    redirect_file = os.path.join('work', 'redirection.csv')
 
-        prepare(dump, os.path.abspath(os.path.dirname(__file__)) + "/")
-        title, description = grab_title_description_favicon(url, output)
-        jinja_init(templates)
-        global MARKDOWN
-        MARKDOWN = mistune.Markdown()
+    if dump == "work/dump/":
+        dump_dowloaded=True
+        dump=os.path.join("work", re.sub("\.", "_", domain))
+        os.makedirs(dump)
+        download_dump(domain, dump)
 
-        #Generate users !
-        parser = make_parser()
-        parser.setContentHandler(UsersRender(templates, database, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file))
-        parser.parse(os.path.join(dump, "usersbadges.xml"))
-        conn.commit()
+    title, description, lang_input = grab_title_description_favicon_lang(url, output)
+    jinja_init(templates)
+    global MARKDOWN
+    MARKDOWN = mistune.Markdown()
+    prepare(dump, os.path.abspath(os.path.dirname(__file__)) + "/")
+
+    #Generate users !
+    parser = make_parser()
+    parser.setContentHandler(UsersRender(templates, database, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file))
+    parser.parse(os.path.join(dump, "usersbadges.xml"))
+    conn.commit()
 
 
-        #Generate question !
-        parser = make_parser()
-        parser.setContentHandler(QuestionRender(templates, database, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file))
-        parser.parse(os.path.join(dump, "prepare.xml"))
-        conn.commit()
+    #Generate question !
+    parser = make_parser()
+    parser.setContentHandler(QuestionRender(templates, database, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file))
+    parser.parse(os.path.join(dump, "prepare.xml"))
+    conn.commit()
 
-        #Generate tags !
-        parser = make_parser()
-        parser.setContentHandler(TagsRender(templates, database, output, title, publisher, dump, cores, cursor, conn, deflate,tag_depth))
-        parser.parse(os.path.join(dump, "tags.xml"))
+    #Generate tags !
+    parser = make_parser()
+    parser.setContentHandler(TagsRender(templates, database, output, title, publisher, dump, cores, cursor, conn, deflate,tag_depth))
+    parser.parse(os.path.join(dump, "Tags.xml"))
 
-        conn.close()
-        # copy static
-        copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static'), os.path.join(output, 'static'))
-        if not arguments['--nozim']:
-            done=create_zims(title, publisher, description, redirect_file)
-            if done == True:
-                print "remove " + output
-                shutil.rmtree(output)
-                print "remove " + db
-                os.remove(db)
-                print "remove " + redirect_file
-                os.remove(redirect_file)
+    conn.close()
+    # copy static
+    copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static'), os.path.join(output, 'static'))
+    if not arguments['--nozim']:
+        done=create_zims(title, publisher, description, redirect_file, domain, lang_input)
+        if done == True:
+            if dump_dowloaded==True:
+                shutil.rmtree(dump)
+            print "remove " + output
+            shutil.rmtree(output)
+            print "remove " + db
+            os.remove(db)
+            print "remove " + redirect_file
+            os.remove(redirect_file)
 
 if __name__ == '__main__':
     run()
