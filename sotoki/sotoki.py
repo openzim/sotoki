@@ -44,9 +44,7 @@ import sqlite3
 from xml.sax import make_parser, handler
 
 from hashlib import sha256
-from hashlib import sha1
 from urllib2 import urlopen
-from urllib import URLopener
 
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
