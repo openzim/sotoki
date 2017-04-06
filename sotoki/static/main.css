@@ -104,9 +104,10 @@ a[href*="//"]:after {  /* all external links are absolute */
 /** tags  **/
 
 .post .tags ul li {
-    display: inline;
+    display: inline-block;
     background: #eee;
     padding: 5px 10px;
+    margin-right: 5px;
 }
 
 .post .tags ul li a {
