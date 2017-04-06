@@ -637,7 +637,6 @@ def interne_link(text_post, domain,id):
                 link=a_href[len(domain)+1:]
         else:
             continue
-        print link
         if link[0:2] == "q/" or (link[0:10] == "questions/" and link[10:17] != "tagged/"):
             is_a=link.split("/")[-1].split("#")
             if len(is_a)==2 and is_a[0] == is_a[1]:

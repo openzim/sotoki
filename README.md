@@ -43,21 +43,8 @@ pip install sotoki
 ```
 
 
-Copy your stackexchange site dump (.7z file, for example `superuser.com.7z`) and `unzip` it to `work/dump/`:
-
 ```
-mkdir -p work/dump/
-cp superuser.com.7z work/dump/
-cd work/dump
-7z e superuser.com.7z
-rename 'y/A-Z/a-z/' *
-```
-
-Go back at the sotoki root and run the pipeline:
-
-```
-sotoki run [url of stackechange website] [publisher] [--directory (optional)] [--nozim (optional)]
+sotoki [domain of stackechange website] [publisher] [--directory (optional)] [--nozim (optional)]
 
 ```
 
-If you want to restart sotoki after a run, you must remove work/output directory
