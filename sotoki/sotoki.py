@@ -219,7 +219,7 @@ class QuestionRender(handler.ContentHandler):
                 self.cursor.execute(sql, (self.post["Score"], self.post["Title"], self.post["Id"], self.post["CreationDate"], t))
             #Make redirection 
             for ans in self.answers:
-                self.f_redirect.write("A/answer/" + str(ans["Id"]) + "\tAnswer " + str(ans["Id"]) + "\tquestion/" + self.post["Id"] + ".html\n")
+                self.f_redirect.write("A/answer/" + str(ans["Id"]) + ".html\tAnswer " + str(ans["Id"]) + "\tquestion/" + self.post["Id"] + ".html\n")
             self.f_redirect.write("A/question/" + page_url( self.post["Id"], self.post["Title"]) +".html\tQuestion " + str(self.post["Id"]) + "\tquestion/" + self.post["Id"] + ".html\n")
             data_send = [ some_questions, self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.deflate, self.site_url, self.domain ]
             self.request_queue.put(data_send)
@@ -642,7 +642,7 @@ def interne_link(text_post, domain,id):
             if len(is_a)==2 and is_a[0] == is_a[1]:
                 #it a answers
                 qans=is_a[0]
-                a.attrib['href']="../a/" + qans + "#" + qans
+                a.attrib['href']="../answer/" + qans + ".html#a" + qans
             else:
                 #question
                 qid=link.split("/")[1]
@@ -652,7 +652,7 @@ def interne_link(text_post, domain,id):
             a.attrib['href']="../tag/" + tag + ".html"
         elif link[0:2] == "a/":
             qans=link.split("/")[2]
-            a.attrib['href']="../a/" + qans + "#" + qans
+            a.attrib['href']="../answer/" + qans + ".html#a" + qans
         elif link[0:6] == "users/":
             userid=link.split("/")[1]
             a.attrib['href']="../user/" + userid + ".html"
