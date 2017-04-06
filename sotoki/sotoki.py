@@ -73,7 +73,7 @@ from itertools import chain
 #########################
 class QuestionRender(handler.ContentHandler):
 
-    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor,conn, deflate,site_url, redirect_file):
+    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor,conn, deflate,site_url, redirect_file,domain):
         self.templates=templates
         self.database=database
         self.output=output
@@ -85,6 +85,7 @@ class QuestionRender(handler.ContentHandler):
         self.conn=conn
         self.deflate=deflate
         self.site_url=site_url
+        self.domain=domain
         self.post={}
         self.comments=[]
         self.answers=[]
@@ -160,6 +161,7 @@ class QuestionRender(handler.ContentHandler):
 
             if tmp.has_key("Score"):
                 tmp["Score"] = int(tmp["Score"])
+            tmp["Text"]=markdown(tmp["Text"])
             self.comments.append(tmp)
             return
 
@@ -220,7 +222,7 @@ class QuestionRender(handler.ContentHandler):
             for ans in self.answers:
                 self.f_redirect.write("A/answer/" + str(ans["Id"]) + "\tAnswer " + str(ans["Id"]) + "\tquestion/" + self.post["Id"] + ".html\n")
             self.f_redirect.write("A/question/" + page_url( self.post["Id"], self.post["Title"]) +".html\tQuestion " + str(self.post["Id"]) + "\tquestion/" + self.post["Id"] + ".html\n")
-            data_send = [ some_questions, self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.deflate, self.site_url ]
+            data_send = [ some_questions, self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.deflate, self.site_url, self.domain ]
             self.request_queue.put(data_send)
             #some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
             #Reset element
@@ -239,17 +241,25 @@ class QuestionRender(handler.ContentHandler):
             i.join()
         self.f_redirect.close()
 
-def some_questions(templates, output, title, publisher, question, template_name, deflate,site_url):
+def some_questions(templates, output, title, publisher, question, template_name, deflate,site_url,domain):
     try:
         question["Score"] = int(question["Score"])
         if question.has_key("answers"):
             question["answers"] = sorted(question["answers"], key=lambda k: k['Score'],reverse=True) 
             question["answers"] = sorted(question["answers"], key=lambda k: k['Accepted'],reverse=True) #sorted is stable so accepted will be always first, then other question will be sort in ascending order
             for ans in question["answers"]:
+                ans["Body"]=interne_link(ans["Body"], domain, question["Id"])
                 ans["Body"]=image(ans["Body"],output)
+                if ans.has_key("comments"):
+                    for comment in ans["comments"]:
+                        comment["Text"]==interne_link(comment["Text"], domain,question["Id"])
 
         filepath = os.path.join(output, 'question', question["filename"])
+        question["Body"] = interne_link(question["Body"], domain, question["Id"])
         question["Body"] = image(question["Body"],output)
+        if question.has_key("comments"):
+            for comment in question["comments"]:
+                comment["Text"]==interne_link(comment["Text"], domain,question["Id"])
         try:
             jinja(
                 filepath,
@@ -614,6 +624,43 @@ def get_filetype(headers,path):
             elif "GIF" in mine:
                 type="gif"
     return type
+def interne_link(text_post, domain,id):
+    body = string2html(text_post)
+    links = body.xpath('//a')
+    for a in links:
+        a_href=re.sub("^https?://","",a.attrib['href'])
+        if a_href[0] == "/" and a_href['href'][1] != "/":
+            link=a_href
+        elif a_href[0:len(domain)] == domain or a_href[0:len(domain)+2] == "//" + domain :
+            if a_href[0] == "/":
+                link=a_href[2:]
+            else:
+                link=a_href[len(domain)+1:]
+        else:
+            continue
+        print link
+        if link[0:2] == "q/" or (link[0:10] == "questions/" and link[10:17] != "tagged/"):
+            is_a=link.split("/")[-1].split("#")
+            if len(is_a)==2 and is_a[0] == is_a[1]:
+                #it a answers
+                qans=is_a[0]
+                a.attrib['href']="../a/" + qans + "#" + qans
+            else:
+                #question
+                qid=link.split("/")[1]
+                a.attrib['href']= qid + ".html"
+        elif link[0:10] == "questions/" and link[10:17] == "tagged/" :
+            tag=link.split("/")[-1]
+            a.attrib['href']="../tag/" + tag + ".html"
+        elif link[0:2] == "a/":
+            qans=link.split("/")[2]
+            a.attrib['href']="../a/" + qans + "#" + qans
+        elif link[0:6] == "users/":
+            userid=link.split("/")[1]
+            a.attrib['href']="../user/" + userid + ".html"
+    if links:
+        text_post = html2string(body)
+    return text_post
 
 def image(text_post, output):
     images = os.path.join(output, 'static', 'images')
@@ -837,8 +884,6 @@ def run():
         domain = re.sub("^https?://" , "", domain).split("/")[0]
     else:
         url = "http://" + domain
-    print domain
-    print url
     publisher = arguments['<publisher>']
     dump = arguments['--directory']
     
@@ -874,6 +919,7 @@ def run():
     conn.commit()
     redirect_file = os.path.join('work', 'redirection.csv')
 
+    dump_dowloaded=False
     if dump == "work/dump/":
         dump_dowloaded=True
         dump=os.path.join("work", re.sub("\.", "_", domain))
@@ -886,24 +932,27 @@ def run():
     MARKDOWN = mistune.Markdown()
     prepare(dump, os.path.abspath(os.path.dirname(__file__)) + "/")
 
+    """
+    #TODO
     #Generate users !
     parser = make_parser()
     parser.setContentHandler(UsersRender(templates, database, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file))
     parser.parse(os.path.join(dump, "usersbadges.xml"))
     conn.commit()
-
+    """
 
     #Generate question !
     parser = make_parser()
-    parser.setContentHandler(QuestionRender(templates, database, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file))
+    parser.setContentHandler(QuestionRender(templates, database, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file,domain))
     parser.parse(os.path.join(dump, "prepare.xml"))
     conn.commit()
 
+    """
     #Generate tags !
     parser = make_parser()
     parser.setContentHandler(TagsRender(templates, database, output, title, publisher, dump, cores, cursor, conn, deflate,tag_depth))
     parser.parse(os.path.join(dump, "Tags.xml"))
-
+    """
     conn.close()
     # copy static
     copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static'), os.path.join(output, 'static'))

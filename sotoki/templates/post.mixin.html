@@ -67,11 +67,7 @@
             {% if comment["Score"] != 0 %}
               <span class="score {{ comment["Score"] | scale }}">{{ comment["Score"] }}</span>
             {% endif %}
-            <span class="text">{{ comment["Text"] | urlize | markdown }}</span>
-            –
-{% if comment["Path"] %}<a href="{{ rooturl }}/user/{{ comment["Path"] }}.html">{% endif %}{{ comment["UserDisplayName"] }} {% if comment["Path"] %}</a>{% endif %}
-             –
-            <span class="date" title="{{ comment["CreationDate"] }}">{{ comment["CreationDate"] }}</span>
+            <span class="text">{{ comment["Text"] }}</span> – {% if comment["Path"] %}<a href="{{ rooturl }}/user/{{ comment["Path"] }}.html">{% endif %}{{ comment["UserDisplayName"] }} {% if comment["Path"] %}</a>{% endif %} – <span class="date" title="{{ comment["CreationDate"] }}">{{ comment["CreationDate"] }}</span>
             </p>
         </div>
       {% endfor %}
