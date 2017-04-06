@@ -17,7 +17,6 @@ setup(
         'lxml==3.4.4',
         'MarkupSafe==0.23',
         'docopt==0.6.2',
-        'python-resize-image==1.1.10',
         'slugify==0.0.1',
         'pydenticon==0.2',
         'bs4',

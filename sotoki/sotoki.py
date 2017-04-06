@@ -62,7 +62,6 @@ from string import punctuation
 import zlib
 
 from PIL import Image
-from resizeimage import resizeimage
 import magic
 
 from itertools import chain
