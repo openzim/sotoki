@@ -932,14 +932,11 @@ def run():
     MARKDOWN = mistune.Markdown()
     prepare(dump, os.path.abspath(os.path.dirname(__file__)) + "/")
 
-    """
-    #TODO
     #Generate users !
     parser = make_parser()
     parser.setContentHandler(UsersRender(templates, database, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file))
     parser.parse(os.path.join(dump, "usersbadges.xml"))
     conn.commit()
-    """
 
     #Generate question !
     parser = make_parser()
@@ -947,12 +944,10 @@ def run():
     parser.parse(os.path.join(dump, "prepare.xml"))
     conn.commit()
 
-    """
     #Generate tags !
     parser = make_parser()
     parser.setContentHandler(TagsRender(templates, database, output, title, publisher, dump, cores, cursor, conn, deflate,tag_depth))
     parser.parse(os.path.join(dump, "Tags.xml"))
-    """
     conn.close()
     # copy static
     copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static'), os.path.join(output, 'static'))
