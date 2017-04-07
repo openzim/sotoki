@@ -12,23 +12,21 @@ offline (without access to Internet).
 Download the last [stackexchange dump](https://archive.org/details/stackexchange)
 using BitTorrent (only "superuser.com.7z" is necessary) and put it in the Sotoki
 source code root.
+The use of btrfs as a file system is recommended (and required for stackoverflow)
 
-Clone this repository:
 
-```
-git clone https://github.com/kiwix/sotoki.git
-```
 
 Install non python dependencies:
 
 ```
-sudo apt-get install jpegoptim pngquant gifsicle advancecomp python-pip python-virtualenv python-dev libxml2-dev libxslt1-dev libbz2-dev p7zip-full
+sudo apt-get install jpegoptim pngquant gifsicle advancecomp python-pip python-virtualenv python-dev libxml2-dev libxslt1-dev libbz2-dev p7zip-full python-pillow gif2apng
 ```
+
 
 Create a virtual environment for python:
 
 ```
-virtualenv --with-system-site-packages venv
+virtualenv --system-site-packages venv
 ```
 
 Activate the virtual enviroment:
@@ -37,27 +35,16 @@ Activate the virtual enviroment:
 source venv/bin/activate
 ```
 
-Install the python requirements:
+
+Install this lib:
 
 ```
-pip install -r requirements.txt
+pip install sotoki
 ```
 
-Copy `superuser.com.7z` and `unzip` it to `work/dump/`:
 
 ```
-mkdir -p work/dump/
-cp superuser.com.7z work/dump/
-cd work/dump
-7z e superuser.com.7z
-rename 'y/A-Z/a-z/' *
-```
-
-Go back at the sotoki root and run the pipeline:
-
-```
-python sotoki.py run [url of stackechange website] [publisher] [--directory (optional)]
+sotoki [domain of stackechange website] [publisher] [--directory (optional)] [--nozim (optional)]
 
 ```
 
-It's use https://github.com/testlnord/sedumpy

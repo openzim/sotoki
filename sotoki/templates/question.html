@@ -19,7 +19,9 @@
         <h2>Answers</h2>
         <div id="answers">
           {% for post in question["answers"] %}
-            {% include "post.mixin.html" %} 
+            <div id="a{{ post["Id"] }}">
+              {% include "post.mixin.html" %} 
+            </div>
           {% endfor %}
         </div>
       {% else %}
@@ -27,35 +29,33 @@
       {% endif %}
     </div>
     <div class="row col-md-3">
-      <div class="row">
+      <div class="metadata">
         <p>asked: <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
         <p>viewed: {{ question["ViewCount"] | intspace }} times</p>
         <p>active: <span class="date" title="{{ question["LastActivityDate"] }}">{{ question["LastActivityDate"] }}</span></p>
       </div>
-      {% if question["links"] %}
-        <div id="related" class="row">
-          <h3>Related :D</h3>
+      {% if question["duplicate"] %}
+        <div id="related" class="metadata">
+          <h3>Duplicate</h3>
           <ul>
-            {% for link in question["links"] %}
-              {% if link %}
-                <li><a href="{{ rooturl }}/question/{{ link | slugify }}.html" >{{ link }}<a></li>
-              {% endif %}
+            {% for dupe in question["duplicate"] %}
+                <li><a href="{{ rooturl }}/question/{{ dupe["PostId"] }}.html" >{{ dupe["PostName"] }}</a></li>
             {% endfor %}
-            <ul>
+            </ul>
         </div>
-      {% else %}
-        <div id="related" class="row">
+      {% endif %}
+      {% if question["relateds"] %}
+        <div id="related" class="metadata" >
           <h3>Related</h3>
           <ul>
             {% for related in question["relateds"] %}
-              {% if related %}
-                <li><a href="{{ rooturl }}/question/{{ related | slugify }}.html" >{{ related }}<a></li>
-              {% endif %}
+                <li><a href="{{ rooturl }}/question/{{ related["PostId"] }}.html" >{{ related["PostName"] }}</a></li>
             {% endfor %}
-            <ul>
+           </ul>
         </div>
     {% endif %}
     </div>
   </div>
-  <script src="/static/main.js"></script>
+  <script src="{{ rooturl }}/static/main.js"></script>
+  <div id="footer">This question is issued from <a href="{{ site_url }}/questions/{{ question["Id"] }}">{{ site_url }}</a>. The text is available under the <a href="https://creativecommons.org/licenses/by-sa/3.0/"> Creative Commons Attribution/Share Alike </a>.</div>
 {% endblock %}

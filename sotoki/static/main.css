@@ -94,12 +94,20 @@ a[href*="//"]:after {  /* all external links are absolute */
     font-size: 0.8em;
 }
 
+/** accepted **/
+.post .accepted {
+  font-size: 36px;
+  color: hsl(120, 50%, 40%);
+  margin: 0px;
+}
+
 /** tags  **/
 
 .post .tags ul li {
-    display: inline;
+    display: inline-block;
     background: #eee;
     padding: 5px 10px;
+    margin-right: 5px;
 }
 
 .post .tags ul li a {
@@ -249,4 +257,8 @@ body.user .col-md-3 {
 body.user .reputation span {
     font-size: 2em;
     font-weight: bold;
+}
+.metadata {
+	margin-right: 15px;
+	margin-left: 15px;
 }

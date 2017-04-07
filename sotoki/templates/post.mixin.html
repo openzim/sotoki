@@ -18,6 +18,11 @@
           <p><span>{{ post["FavoriteCount"] | intspace }}</span></p>
         </div>
       {% endif %}
+      {% if post["Accepted"] and post["Accepted"] == True %}
+        <div class="accepted">
+          <p><span class="glyphicon glyphicon-ok"></span></p>
+        </div>
+      {% endif %}
     </div>
     {# FIXME, remove the decode #}
     <div class="body">{{ post["Body"] | safe }}</div>
@@ -28,21 +33,22 @@
         {% for tag in post["Tags"] %}
           <li><a href="{{ rooturl }}/tag/{{ tag }}/1.html">{{ tag }}</a></li>
         {% endfor %}
+      </ul>
     </div>
   {% endif %}
   {% if post["OwnerUserId"] %}
     <div class="author">
       <div>
         <p>asked <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
-        <a class="profile" href="../user/{{ post["OwnerUserId"]["DisplayName"] | slugify  }}.html">
+        {% if post["OwnerUserId"]["Path"] %}<a class="profile" href="../user/{{ post["OwnerUserId"]["Path"] }}.html"> {% endif %}
           <div> 
-            <img src="../static/identicon/{{ post["OwnerUserId"]["DisplayName"] | slugify }}.small.png" /> 
+{% if post["OwnerUserId"]["Id"] %}<img src="../static/identicon/{{ post["OwnerUserId"]["Id"] }}.png" style="width:32px; height:32px;" /> {% endif %}
           </div> 
           <div>
             <p>{{ post["OwnerUserId"]["DisplayName"] }}</p>
             <p>{{ post["OwnerUserId"]["Reputation"] | intspace }}</p>
           </div>
-        </a>
+{% if post["OwnerUserId"]["Path"] %}</a>{% endif %}
       </div>
     </div>
   {% endif %} 
@@ -58,11 +64,10 @@
       {% for comment in post["comments"] %}
         <div class="comment">
           <p>
-            <span class="score {{ comment["Score"] | scale }}">{% if comment["Score"] != 0 %}{{ comment["Score"] }}{% endif %}</span>
-            <span class="text">{{ comment["Text"] | urlize | markdown }}</span>
-            –
-            <a href="{{ rooturl }}/user/{{ comment["UserDisplayName"] | slugify }}.html">{{ comment["UserDisplayName"] }}</a>
-            <span class="date" title="{{ comment["CreationDate"] }}">{{ comment["CreationDate"] }}</span>
+            {% if comment["Score"] != 0 %}
+              <span class="score {{ comment["Score"] | scale }}">{{ comment["Score"] }}</span>
+            {% endif %}
+            <span class="text">{{ comment["Text"] }}</span> – {% if comment["Path"] %}<a href="{{ rooturl }}/user/{{ comment["Path"] }}.html">{% endif %}{{ comment["UserDisplayName"] }} {% if comment["Path"] %}</a>{% endif %} – <span class="date" title="{{ comment["CreationDate"] }}">{{ comment["CreationDate"] }}</span>
             </p>
         </div>
       {% endfor %}

@@ -11,7 +11,7 @@
   <div class="row">
     <div class="col-md-3">
       <div> 
-        <img src="../static/identicon/{{ user["DisplayName"] | slugify }}.png" /> 
+        <img src="../static/identicon/{{ user["Id"] }}.png" style="width:164px; height:164px;" /> 
       </div> 
       <p class="reputation"><span>{{ user["Reputation"] | intspace }}</span> reputation</p>
     </div>
@@ -26,5 +26,16 @@
       </div>
     </div>
   </div>
-  <script src="/static/main.js"></script>  
+  {% if user["badges"] %}
+  <div class="tags">
+    <h3> Badges </h3>
+    <ul>
+    {% for tag in user["badges"] %}
+      <li>{{ tag["Name"] }}</li>
+    {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+  <script src="{{ rooturl }}/static/main.js"></script>  
+  <div id="footer">This user page is issued from <a href="{{ site_url }}/users/{{ user["Id"] }}">{{ site_url }}</a>. The text is available under the <a href="https://creativecommons.org/licenses/by-sa/3.0/"> Creative Commons Attribution/Share Alike </a>.</div>
 {% endblock %}
