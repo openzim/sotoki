@@ -704,7 +704,7 @@ def grab_title_description_favicon_lang(url, output_dir):
         search= re.search('StackExchange.init\({"locale":"[^"]*', output)
         if search != None:
             lang=re.sub('StackExchange.init\({"locale":"', "" , search.group(0))
-
+    lang=languageToAlpha3(lang)
     favicon = soup.find('link', attrs={"rel": u"image_src"})['href']
     if favicon[:2] == "//":
         favicon = "http:" + favicon
@@ -821,6 +821,11 @@ def download_dump(domain, dump_path):
     exec_cmd("7z e " + domain + ".7z -o" + dump_path)
     os.remove(domain + ".hash")
     os.remove(domain + ".7z")
+
+def languageToAlpha3(lang):
+    tab={ "en" :"eng", "ru": "rus" , "pt-BR": "por" ,"ja":"jpn" ,"es": "spa"}
+    return tab[lang]
+
 
 #########################
 #     Zim generation    #
