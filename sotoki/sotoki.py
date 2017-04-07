@@ -10,7 +10,7 @@ Usage:
 Options:
   -h --help     Show this screen.
   --version     Show version.
-  --directory=<dir>   Specify a directory for xml files [default: work/dump/]
+  --directory=<dir>   Specify a directory for xml files [default: download]
   --nozim       doesn't make zim file, output will be in work/output/ in normal html (otherwise work/ouput/ will be in deflate form and will produice a zim file)
   --tag-depth=<tag_depth>   Specify number of question, order by Score, to show in tags pages (should be a multiple of 100, default all question are in tags pages) [default: -1]
   --threads=<threads>   Number of threads to use, default is number_of_cores/2
@@ -918,11 +918,21 @@ def run():
     redirect_file = os.path.join('work', 'redirection.csv')
 
     dump_dowloaded=False
-    if dump == "work/dump/":
+    if dump == "download":
         dump_dowloaded=True
         dump=os.path.join("work", re.sub("\.", "_", domain))
         os.makedirs(dump)
-        download_dump(domain, dump)
+        if domain == "stackoverflow.com":
+            for part in ["stackoverflow.com-Badges" , "stackoverflow.com-Comments" , "stackoverflow.com-PostLinks", "stackoverflow.com-Posts" , "stackoverflow.com-Tags", "stackoverflow.com-Users" ]:
+                dump_tmp=os.path.join("work", re.sub("\.", "_", part))
+                os.makedirs(dump_tmp)
+                download_dump(part, dump_tmp)
+            for path in [ os.path.join("work","stackoverflow_com-Badges", "Badges.xml") , os.path.join("work","stackoverflow_com-Comments", "Comments.xml") , os.path.join("work","stackoverflow_com-PostLinks", "PostLinks.xml"), os.path.join("work","stackoverflow_com-Posts", "Posts.xml") , os.path.join("work","stackoverflow_com-Tags", "Tags.xml"), os.path.join("work","stackoverflow_com-Users", "Users.xml")]:
+                filename=os.path.basename(path)
+                os.rename(path, os.path.join(dump,filename))
+                shutil.rmtree(os.path.dirname(path))
+        else:
+            download_dump(domain, dump)
 
     title, description, lang_input = grab_title_description_favicon_lang(url, output)
     jinja_init(templates)
