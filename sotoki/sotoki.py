@@ -3,7 +3,7 @@
 """sotoki.
 
 Usage:
-  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>]
+  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>]
   sotoki (-h | --help)
   sotoki --version
 
@@ -14,6 +14,7 @@ Options:
   --nozim       doesn't make zim file, output will be in work/output/ in normal html (otherwise work/ouput/ will be in deflate form and will produice a zim file)
   --tag-depth=<tag_depth>   Specify number of question, order by Score, to show in tags pages (should be a multiple of 100, default all question are in tags pages) [default: -1]
   --threads=<threads>   Number of threads to use, default is number_of_cores/2
+  --zimpath=<zimpath>   Final path of the zim file
 
 """
 import sys
@@ -799,6 +800,8 @@ def get_hash(site_name):
             if file.get("name") == site_name + ".7z":
                         print "found"
                         hash=file.xpath("sha1")[0].text
+    if hash==None:
+        print "File :" + site_name + ".7z no found"
     return hash
 
 def download_dump(domain, dump_path):
@@ -823,17 +826,16 @@ def download_dump(domain, dump_path):
 #     Zim generation    #
 #########################
 
-def create_zims(title, publisher, description,redirect_file,domain,lang_input):
+def create_zims(title, publisher, description,redirect_file,domain,lang_input, zim_path):
     print 'Creating ZIM files'
-    # Check, if the folder exists. Create it, if it doesn't.
     html_dir = os.path.join("work", "output")
-    zim_path = dict(
-        title=domain.lower(),
-        lang=lang_input,
-        date=datetime.datetime.now().strftime('%Y-%m')
-    )
-#    zim_path = "work/", "{title}_{lang}_all_{date}.zim".format(**zim_path)
-    zim_path = os.path.join("work/", "{title}_{lang}_all_{date}.zim".format(**zim_path))
+    if zim_path == None:
+        zim_path = dict(
+            title=domain.lower(),
+            lang=lang_input,
+            date=datetime.datetime.now().strftime('%Y-%m')
+        )
+        zim_path = os.path.join("work/", "{title}_{lang}_all_{date}.zim".format(**zim_path))
 
     title = title.replace("-", " ")
     creator = title
@@ -960,7 +962,7 @@ def run():
     # copy static
     copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static'), os.path.join(output, 'static'))
     if not arguments['--nozim']:
-        done=create_zims(title, publisher, description, redirect_file, domain, lang_input)
+        done=create_zims(title, publisher, description, redirect_file, domain, lang_input,arguments["--zimpath"])
         if done == True:
             if dump_dowloaded==True:
                 shutil.rmtree(dump)
