@@ -10,7 +10,7 @@ setup(
     author_email='taz@dattaz.fr',
     url='http://github.com/kiwix/sotoki',
     keywords="kiwix zim stackexchange offline",
-    license="TODO",
+    license="GPL",
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
     install_requires=[
         'Jinja2==2.8',
