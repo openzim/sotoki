@@ -15,7 +15,10 @@ line_2_id=int(line_2[0])
 for line in f1:
 	line_id=int(line.split('"')[5])
 	while (line_2_id < line_id):
-        	line_2=csvreader.next()
+		try:
+	        	line_2=csvreader.next()
+		except:
+			break
 		if line_2:
         		line_2_id=int(line_2[0])
 	        else:
