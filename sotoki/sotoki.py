@@ -46,6 +46,7 @@ from xml.sax import make_parser, handler
 
 from hashlib import sha256
 from urllib2 import urlopen
+import ssl
 
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
@@ -599,7 +600,10 @@ def jinja_init(templates):
 def download(url, output, timeout=None):
     if url[0:2] == "//":
         url="http:"+url
-    response = urlopen(url, timeout=timeout)
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    response = urlopen(url, timeout=timeout, context=ctx)
     output_content = response.read()
     with open(output, 'w') as f:
         f.write(output_content)
