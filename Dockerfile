@@ -10,6 +10,7 @@ RUN apt-get install -y libbz2-dev
 RUN apt-get install -y p7zip-full
 RUN apt-get install -y python-pillow
 RUN apt-get install -y gif2apng
+RUN apt-get install -y imagemagick
 
 # Install jpegoptim
 RUN apt-get install -y libjpeg-dev
