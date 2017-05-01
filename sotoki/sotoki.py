@@ -3,7 +3,7 @@
 """sotoki.
 
 Usage:
-  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--reset]
+  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--reset] [--reset-images]
   sotoki (-h | --help)
   sotoki --version
 
@@ -15,7 +15,8 @@ Options:
   --tag-depth=<tag_depth>   Specify number of question, order by Score, to show in tags pages (should be a multiple of 100, default all question are in tags pages) [default: -1]
   --threads=<threads>   Number of threads to use, default is number_of_cores/2
   --zimpath=<zimpath>   Final path of the zim file
-  --reset  Reset dump 
+  --reset  Reset dump
+  --reset-images  Remove image in cache
 
 """
 import sys
@@ -415,7 +416,8 @@ class UsersRender(handler.ContentHandler):
         self.deflate=deflate
         self.site_url=site_url
         self.id=0
-        os.makedirs(self.identicon_path)
+        if not os.path.exists(self.identicon_path):
+            os.makedirs(self.identicon_path)
         os.makedirs(os.path.join(output, 'user'))
         # Set-up a list of foreground colours (taken from Sigil).
         self.foreground = [
@@ -481,22 +483,23 @@ class UsersRender(handler.ContentHandler):
 def some_user(user,generator,templates, output, publisher, site_url, deflate, title):
     filename = user["Id"] + ".png"
     fullpath = os.path.join(output, 'static', 'identicon', filename)
-    try:
-        url=user["ProfileImageUrl"]
-        ext = os.path.splitext(url.split("?")[0])[1]
-        headers=download(url, fullpath, timeout=60)
-        ext=get_filetype(headers,fullpath)
-        if ext != "png" :
-            convert_to_png(fullpath, ext)
-        if ext != "gif":
-            resize_one(fullpath,"png","128") 
-            optimize_one(fullpath,"png")
-    except Exception,e:
-        # Generate big identicon
-        padding = (20, 20, 20, 20)
-        identicon = generator.generate(slugify(user["DisplayName"]), 128, 128, padding=padding, output_format="png")  # noqa
-        with open(fullpath, "wb") as f:
-            f.write(identicon)
+    if not os.path.exists(fullpath):
+        try:
+            url=user["ProfileImageUrl"]
+            ext = os.path.splitext(url.split("?")[0])[1]
+            headers=download(url, fullpath, timeout=60)
+            ext=get_filetype(headers,fullpath)
+            if ext != "png" :
+                convert_to_png(fullpath, ext)
+            if ext != "gif":
+                resize_one(fullpath,"png","128") 
+                optimize_one(fullpath,"png")
+        except Exception,e:
+            # Generate big identicon
+            padding = (20, 20, 20, 20)
+            identicon = generator.generate(slugify(user["DisplayName"]), 128, 128, padding=padding, output_format="png")  # noqa
+            with open(fullpath, "wb") as f:
+                f.write(identicon)
 
     #
     if user.has_key("AboutMe"):
@@ -895,18 +898,20 @@ def run():
     else:
         url = "http://" + domain
     publisher = arguments['<publisher>']
-    dump = arguments['--directory']
+
+    if not os.path.exists("work"):
+        os.makedirs("work")
+
+    if arguments['--directory'] == "download":
+        dump=os.path.join("work", re.sub("\.", "_", domain))
+    else:
+        dump= arguments['--directory']
     
     deflate = not arguments['--nozim']
     database = 'work'
     # render templates into `output`
     #templates = 'templates'
     templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini')
-    if not os.path.exists("work"):
-        os.makedirs("work")
-    output = os.path.join('work', 'output')
-    os.makedirs(output)
-    os.makedirs(os.path.join(output, 'static', 'images'))
     if arguments["--threads"] is not None :
         cores=int(arguments['--threads'])
     else:
@@ -929,25 +934,35 @@ def run():
     conn.commit()
     redirect_file = os.path.join('work', 'redirection.csv')
 
-    if dump == "download" or arguments["--reset"] == True:
-        if dump == "download":
-            dump=os.path.join("work", re.sub("\.", "_", domain), "dump")
-        if arguments["--reset"] == True:
-            if os.path.exists(dump):
-                shutil.rmtree(dump)
-        if not os.path.exists(dump):
-            os.makedirs(dump)
-            if domain == "stackoverflow.com":
-                for part in ["stackoverflow.com-Badges" , "stackoverflow.com-Comments" , "stackoverflow.com-PostLinks", "stackoverflow.com-Posts" , "stackoverflow.com-Tags", "stackoverflow.com-Users" ]:
-                    dump_tmp=os.path.join("work", re.sub("\.", "_", part))
-                    os.makedirs(dump_tmp)
-                    download_dump(part, dump_tmp)
-                for path in [ os.path.join("work","stackoverflow_com-Badges", "Badges.xml") , os.path.join("work","stackoverflow_com-Comments", "Comments.xml") , os.path.join("work","stackoverflow_com-PostLinks", "PostLinks.xml"), os.path.join("work","stackoverflow_com-Posts", "Posts.xml") , os.path.join("work","stackoverflow_com-Tags", "Tags.xml"), os.path.join("work","stackoverflow_com-Users", "Users.xml")]:
-                    filename=os.path.basename(path)
-                    os.rename(path, os.path.join(dump,filename))
-                    shutil.rmtree(os.path.dirname(path))
-            else:
-                download_dump(domain, dump)
+    if arguments["--reset"] == True:
+        if os.path.exists(dump):
+            for elem in [ "Badges.xml", "Comments.xml", "PostHistory.xml", "Posts.xml", "Tags.xml", "usersbadges.xml", "Votes.xml","PostLinks.xml" ,"prepare.xml","Users.xml"]:
+                elem_path = os.path.join(dump, elem)
+                if os.path.exists(elem_path):
+                    os.remove(elem_path)
+    if arguments["--reset-images"] == True:
+        if os.path.exists(os.path.join(dump,"output")):
+            shutil.rmtree(os.path.join(dump,"output"))
+
+    if arguments['--directory'] == "download" and not os.path.exists(dump):
+        os.makedirs(dump)
+        if domain == "stackoverflow.com":
+            for part in ["stackoverflow.com-Badges" , "stackoverflow.com-Comments" , "stackoverflow.com-PostLinks", "stackoverflow.com-Posts" , "stackoverflow.com-Tags", "stackoverflow.com-Users" ]:
+                dump_tmp=os.path.join("work", re.sub("\.", "_", part))
+                os.makedirs(dump_tmp)
+                download_dump(part, dump_tmp)
+            for path in [ os.path.join("work","stackoverflow_com-Badges", "Badges.xml") , os.path.join("work","stackoverflow_com-Comments", "Comments.xml") , os.path.join("work","stackoverflow_com-PostLinks", "PostLinks.xml"), os.path.join("work","stackoverflow_com-Posts", "Posts.xml") , os.path.join("work","stackoverflow_com-Tags", "Tags.xml"), os.path.join("work","stackoverflow_com-Users", "Users.xml")]:
+                filename=os.path.basename(path)
+                os.rename(path, os.path.join(dump,filename))
+                shutil.rmtree(os.path.dirname(path))
+        else:
+            download_dump(domain, dump)
+
+    output = os.path.join(dump, 'output')
+    if not os.path.exists(output):
+        os.makedirs(output)
+    if not os.path.exists(os.path.join(output, 'static', 'images')):
+        os.makedirs(os.path.join(output, 'static', 'images'))
 
     title, description, lang_input = grab_title_description_favicon_lang(url, output)
     jinja_init(templates)
@@ -955,6 +970,7 @@ def run():
     MARKDOWN = mistune.Markdown()
     if not os.path.exists(os.path.join(dump, "prepare.xml")):
         prepare(dump, os.path.abspath(os.path.dirname(__file__)) + "/")
+
 
     #Generate users !
     parser = make_parser()
@@ -978,8 +994,12 @@ def run():
     if not arguments['--nozim']:
         done=create_zims(title, publisher, description, redirect_file, domain, lang_input,arguments["--zimpath"])
         if done == True:
-            print "remove " + output
-            shutil.rmtree(output)
+            for elem in [ "question",  "tag","user"]:
+                elem_path=os.path.join(output,elem)
+                print "remove " + elem_path
+                shutil.rmtree(elem_path)
+            os.remove(os.path.join(output,"favicon.png"))
+            os.remove(os.path.join(output,"index.html"))
             print "remove " + db
             os.remove(db)
             print "remove " + redirect_file

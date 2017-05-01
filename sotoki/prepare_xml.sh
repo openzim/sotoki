@@ -29,7 +29,7 @@ sort -t '"' -k4,4n comments_withoutstartend.xml > comments_sort.xml || exit 1
 #Associate comment and posts/answers
 python ${2}merge_comments_and_postsanswers.py 2 posts_withoutstartend.xml 4 comments_sort.xml > tmp.xml || exit 1
 
-rm comments_sort.xml posts_withoutstartend.xml
+rm comments_sort.xml posts_withoutstartend.xml comments_withoutstartend.xml
 
 #Split file 
 #Posttype2 in tmp_posts2.xml
@@ -38,6 +38,7 @@ sed 's/.*PostTypeId="[^2]".*//g' tmp.xml |grep -v "^$"|sort -t '"' -k6,6n > tmp_
 #posttype1 in tmp_posts1.xml
 sed 's/.*PostTypeId="[^1]".*//g' tmp.xml |grep -v "^$"|sort -t '"' -k2,2n> tmp_posts1.xml || exit 1
 
+rm tmp.xml
 
 #get liste of id<=>title
 sed 's/.*row Id="\([0-9]*\).*Title="\([^"]*\).*/\1,"\2"/g' tmp_posts1.xml > id_title.csv || exit 1
