@@ -940,12 +940,15 @@ def run():
                 elem_path = os.path.join(dump, elem)
                 if os.path.exists(elem_path):
                     os.remove(elem_path)
+        arguments['--directory'] = "download"
+
     if arguments["--reset-images"] == True:
         if os.path.exists(os.path.join(dump,"output")):
             shutil.rmtree(os.path.join(dump,"output"))
 
-    if arguments['--directory'] == "download" and not os.path.exists(dump):
-        os.makedirs(dump)
+    if not os.path.exists(os.path.join(dump,"Posts.xml")): #If dump is not here, download it
+        if not os.path.exists(dump):
+            os.makedirs(dump)
         if domain == "stackoverflow.com":
             for part in ["stackoverflow.com-Badges" , "stackoverflow.com-Comments" , "stackoverflow.com-PostLinks", "stackoverflow.com-Posts" , "stackoverflow.com-Tags", "stackoverflow.com-Users" ]:
                 dump_tmp=os.path.join("work", re.sub("\.", "_", part))
@@ -968,7 +971,7 @@ def run():
     jinja_init(templates)
     global MARKDOWN
     MARKDOWN = mistune.Markdown()
-    if not os.path.exists(os.path.join(dump, "prepare.xml")):
+    if not os.path.exists(os.path.join(dump, "prepare.xml")): #If we haven't already prepare
         prepare(dump, os.path.abspath(os.path.dirname(__file__)) + "/")
 
 
