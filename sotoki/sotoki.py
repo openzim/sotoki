@@ -637,7 +637,7 @@ def interne_link(text_post, domain,id):
     links = body.xpath('//a')
     for a in links:
         a_href=re.sub("^https?://","",a.attrib['href'])
-        if a_href[0] == "/" and a_href['href'][1] != "/":
+        if a_href[0] == "/" and a_href[1] != "/":
             link=a_href
         elif a_href[0:len(domain)] == domain or a_href[0:len(domain)+2] == "//" + domain :
             if a_href[0] == "/":
@@ -660,7 +660,11 @@ def interne_link(text_post, domain,id):
             tag=link.split("/")[-1]
             a.attrib['href']="../tag/" + tag + ".html"
         elif link[0:2] == "a/":
-            qans=link.split("/")[2]
+            qans_split = link.split("/")
+            if len(qans_split) == 3:
+                qans=link.split("/")[2]
+            else:
+                qans=link.split("/")[1]
             a.attrib['href']="../answer/" + qans + ".html#a" + qans
         elif link[0:6] == "users/":
             userid=link.split("/")[1]
