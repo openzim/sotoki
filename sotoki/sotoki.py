@@ -636,39 +636,40 @@ def interne_link(text_post, domain,id):
     body = string2html(text_post)
     links = body.xpath('//a')
     for a in links:
-        a_href=re.sub("^https?://","",a.attrib['href'])
-        if a_href[0] == "/" and a_href[1] != "/":
-            link=a_href
-        elif a_href[0:len(domain)] == domain or a_href[0:len(domain)+2] == "//" + domain :
-            if a_href[0] == "/":
-                link=a_href[2:]
+        if a.attrib.has_key("href"):
+            a_href=re.sub("^https?://","",a.attrib['href'])
+            if a_href[0] == "/" and a_href[1] != "/":
+                link=a_href
+            elif a_href[0:len(domain)] == domain or a_href[0:len(domain)+2] == "//" + domain :
+                if a_href[0] == "/":
+                    link=a_href[2:]
+                else:
+                    link=a_href[len(domain)+1:]
             else:
-                link=a_href[len(domain)+1:]
-        else:
-            continue
-        if link[0:2] == "q/" or (link[0:10] == "questions/" and link[10:17] != "tagged/"):
-            is_a=link.split("/")[-1].split("#")
-            if len(is_a)==2 and is_a[0] == is_a[1]:
-                #it a answers
-                qans=is_a[0]
+                continue
+            if link[0:2] == "q/" or (link[0:10] == "questions/" and link[10:17] != "tagged/"):
+                is_a=link.split("/")[-1].split("#")
+                if len(is_a)==2 and is_a[0] == is_a[1]:
+                    #it a answers
+                    qans=is_a[0]
+                    a.attrib['href']="../answer/" + qans + ".html#a" + qans
+                else:
+                    #question
+                    qid=link.split("/")[1]
+                    a.attrib['href']= qid + ".html"
+            elif link[0:10] == "questions/" and link[10:17] == "tagged/" :
+                tag=link.split("/")[-1]
+                a.attrib['href']="../tag/" + tag + ".html"
+            elif link[0:2] == "a/":
+                qans_split = link.split("/")
+                if len(qans_split) == 3:
+                    qans=link.split("/")[2]
+                else:
+                    qans=link.split("/")[1]
                 a.attrib['href']="../answer/" + qans + ".html#a" + qans
-            else:
-                #question
-                qid=link.split("/")[1]
-                a.attrib['href']= qid + ".html"
-        elif link[0:10] == "questions/" and link[10:17] == "tagged/" :
-            tag=link.split("/")[-1]
-            a.attrib['href']="../tag/" + tag + ".html"
-        elif link[0:2] == "a/":
-            qans_split = link.split("/")
-            if len(qans_split) == 3:
-                qans=link.split("/")[2]
-            else:
-                qans=link.split("/")[1]
-            a.attrib['href']="../answer/" + qans + ".html#a" + qans
-        elif link[0:6] == "users/":
-            userid=link.split("/")[1]
-            a.attrib['href']="../user/" + userid + ".html"
+            elif link[0:6] == "users/":
+                userid=link.split("/")[1]
+                a.attrib['href']="../user/" + userid + ".html"
     if links:
         text_post = html2string(body)
     return text_post
