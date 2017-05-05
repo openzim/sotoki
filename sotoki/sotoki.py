@@ -681,7 +681,7 @@ def image(text_post, output):
             # download the image only if it's not already downloaded
             if not os.path.exists(out) : 
                 try:
-                    headers=download(src, out)
+                    headers=download(src, out, timeout=180)
                     type=get_filetype(headers,out)
                     # update post's html
                     src = '../static/images/' + filename
