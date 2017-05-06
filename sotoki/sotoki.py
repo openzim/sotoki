@@ -638,7 +638,7 @@ def interne_link(text_post, domain,id):
     for a in links:
         if a.attrib.has_key("href"):
             a_href=re.sub("^https?://","",a.attrib['href'])
-            if a_href[0] == "/" and a_href[1] != "/":
+            if len(a_href) >= 2 and a_href[0] == "/" and a_href[1] != "/":
                 link=a_href
             elif a_href[0:len(domain)] == domain or a_href[0:len(domain)+2] == "//" + domain :
                 if a_href[0] == "/":
@@ -844,9 +844,8 @@ def languageToAlpha3(lang):
 #     Zim generation    #
 #########################
 
-def create_zims(title, publisher, description,redirect_file,domain,lang_input, zim_path):
+def create_zims(title, publisher, description,redirect_file,domain,lang_input, zim_path, html_dir):
     print 'Creating ZIM files'
-    html_dir = os.path.join("work", "output")
     if zim_path == None:
         zim_path = dict(
             title=domain.lower(),
@@ -1000,7 +999,7 @@ def run():
     # copy static
     copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static'), os.path.join(output, 'static'))
     if not arguments['--nozim']:
-        done=create_zims(title, publisher, description, redirect_file, domain, lang_input,arguments["--zimpath"])
+        done=create_zims(title, publisher, description, redirect_file, domain, lang_input,arguments["--zimpath"], output)
         if done == True:
             for elem in [ "question",  "tag","user"]:
                 elem_path=os.path.join(output,elem)
