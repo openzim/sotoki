@@ -331,70 +331,37 @@ class TagsRender(handler.ContentHandler):
             os.makedirs(tagpath)
             print tagpath
             # build page using pagination
+            offset = 0
+            page = 1
             if self.tag_depth==-1:
-                offset = 0
-                page = 1
-                while offset is not None:
-                    fullpath = os.path.join(tagpath, '%s.html' % page)
-                    questions = self.cursor.execute("SELECT * FROM questiontag WHERE Tag = ? LIMIT 101 OFFSET ? ", (str(tag), offset,)).fetchall()
-                    try:
-                        questions[100]
-                    except IndexError:
-                        offset = None
-                    else:
-                        offset += 100
-                    questions = questions[:100]
-                    for question in questions:
-                        question["filepath"] = page_url(question["QId"] , question["Title"])
-                    jinja(
-                        fullpath,
-                        'tag.html',
-                        self.templates,
-                        False,
-                        self.deflate,
-                        tag=tag,
-                        index=page,
-                        questions=questions,
-                        rooturl="../..",
-                        hasnext=bool(offset),
-                        next=page + 1,
-                        title=self.title,
-                        publisher=self.publisher,
-                    )
-                    page += 1
+                questions = self.cursor.execute("SELECT * FROM questiontag WHERE Tag = ? ORDER BY Score DESC", (str(tag),))
             else:
-                offset = 0
-                page = 1
-                while offset is not None and offset < self.tag_depth:
-                    fullpath = os.path.join(tagpath, '%s.html' % page)
-                    questions = self.cursor.execute("SELECT * FROM questiontag WHERE Tag = ? ORDER BY Score DESC LIMIT 101 OFFSET ? ", (str(tag), offset,)).fetchall()
-                    try:
-                        questions[100]
-                    except IndexError:
-                        offset = None
-                    else:
-                        offset += 100
-                    if offset > self.tag_depth:
-                        offset = None
-                    questions = questions[:100]
-                    for question in questions:
-                        question["filepath"] = page_url(question["QId"] , question["Title"])
-                    jinja(
-                        fullpath,
-                        'tag.html',
-                        self.templates,
-                        False,
-                        self.deflate,
-                        tag=tag,
-                        index=page,
-                        questions=questions,
-                        rooturl="../..",
-                        hasnext=bool(offset),
-                        next=page + 1,
-                        title=self.title,
-                        publisher=self.publisher,
-                    )
-                    page += 1
+                questions = self.cursor.execute("SELECT * FROM questiontag WHERE Tag = ? ORDER BY Score DESC LIMIT ?", (str(tag), self.tag_depth,))
+
+            while offset != None:
+                fullpath = os.path.join(tagpath, '%s.html' % page)
+                some_questions=questions.fetchmany(100)
+                if len(some_questions) != 100:
+                    offset = None
+                some_questions = some_questions[:99]
+                for question in some_questions:
+                    question["filepath"] = page_url(question["QId"] , question["Title"])
+                jinja(
+                    fullpath,
+                    'tag.html',
+                    self.templates,
+                    False,
+                    self.deflate,
+                    tag=tag,
+                    index=page,
+                    questions=some_questions,
+                    rooturl="../..",
+                    hasnext=bool(offset),
+                    next=page + 1,
+                    title=self.title,
+                    publisher=self.publisher,
+                )
+                page += 1
 
 
 #########################
@@ -977,7 +944,6 @@ def run():
     MARKDOWN = mistune.Markdown()
     if not os.path.exists(os.path.join(dump, "prepare.xml")): #If we haven't already prepare
         prepare(dump, os.path.abspath(os.path.dirname(__file__)) + "/")
-
 
     #Generate users !
     parser = make_parser()
