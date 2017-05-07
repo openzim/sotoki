@@ -304,6 +304,8 @@ class TagsRender(handler.ContentHandler):
         self.deflate=deflate
         self.tag_depth=tag_depth
         self.tags = []
+        sql="CREATE INDEX index_tag ON questiontag (Tag)"
+        self.cursor.execute(sql)
 
     def startElement(self, name, attrs): #For each element
         if name == "row": #If it's a tag (row in tags.xml)
