@@ -875,7 +875,7 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
         return False
 
 def run():
-    arguments = docopt(__doc__, version='sotoki 0.4.1')
+    arguments = docopt(__doc__, version='sotoki 0.5.0')
     if not arguments['--nozim'] and not bin_is_present("zimwriterfs"):
         sys.exit("zimwriterfs is not available, please install it.")
     tag_depth = int(arguments['--tag-depth'])
