@@ -17,7 +17,7 @@ Options:
   --zimpath=<zimpath>   Final path of the zim file
   --reset  Reset dump
   --reset-images  Remove image in cache
-  --clean-previous  Delete only data from a previous run with --no-zim or which failed 
+  --clean-previous  Delete only data from a previous run with --nozim or which failed 
 """
 import sys
 import datetime
