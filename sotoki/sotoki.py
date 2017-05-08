@@ -345,6 +345,8 @@ class TagsRender(handler.ContentHandler):
                 some_questions=questions.fetchmany(100)
                 if len(some_questions) != 100:
                     offset = None
+                else:
+                    offset += len(some_questions)
                 some_questions = some_questions[:99]
                 for question in some_questions:
                     question["filepath"] = page_url(question["QId"] , question["Title"])
