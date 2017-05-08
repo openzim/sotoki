@@ -17,8 +17,7 @@ Options:
   --zimpath=<zimpath>   Final path of the zim file
   --reset  Reset dump
   --reset-images  Remove image in cache
-  --clean-previous  Delete only data from a previous run with --no-zim or which failed - Does not generate content ; --reset and --reset-images can also be use with this argument
-
+  --clean-previous  Delete only data from a previous run with --no-zim or which failed 
 """
 import sys
 import datetime
@@ -875,7 +874,7 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
         return False
 
 def run():
-    arguments = docopt(__doc__, version='sotoki 0.5.0')
+    arguments = docopt(__doc__, version='sotoki 0.5.1')
     if not arguments['--nozim'] and not bin_is_present("zimwriterfs"):
         sys.exit("zimwriterfs is not available, please install it.")
     tag_depth = int(arguments['--tag-depth'])
@@ -925,7 +924,6 @@ def run():
 
     if arguments["--clean-previous"] == True:
         clean(output,db,redirect_file)
-        sys.exit()
 
     if not os.path.exists(os.path.join(dump,"Posts.xml")): #If dump is not here, download it
         if not os.path.exists(dump):
