@@ -3,7 +3,7 @@
 """sotoki.
 
 Usage:
-  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--reset] [--reset-images]
+  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--reset] [--reset-images] [--clean-previous]
   sotoki (-h | --help)
   sotoki --version
 
@@ -17,6 +17,7 @@ Options:
   --zimpath=<zimpath>   Final path of the zim file
   --reset  Reset dump
   --reset-images  Remove image in cache
+  --clean-previous  Delete only data from a previous run with --no-zim or which failed - Does not generate content ; --reset and --reset-images can also be use with this argument
 
 """
 import sys
@@ -76,9 +77,8 @@ from itertools import chain
 #########################
 class QuestionRender(handler.ContentHandler):
 
-    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor,conn, deflate,site_url, redirect_file,domain):
+    def __init__(self, templates, output, title, publisher, dump, cores, cursor,conn, deflate,site_url, redirect_file,domain):
         self.templates=templates
-        self.database=database
         self.output=output
         self.title=title
         self.publisher=publisher
@@ -290,10 +290,9 @@ def some_questions(templates, output, title, publisher, question, template_name,
 
 class TagsRender(handler.ContentHandler):
 
-    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor, conn, deflate, tag_depth):
+    def __init__(self, templates, output, title, publisher, dump, cores, cursor, conn, deflate, tag_depth):
         # index page
         self.templates=templates
-        self.database=database
         self.output=output
         self.title=title
         self.publisher=publisher
@@ -373,10 +372,9 @@ class TagsRender(handler.ContentHandler):
 #########################
 class UsersRender(handler.ContentHandler):
 
-    def __init__(self, templates, database, output, title, publisher, dump, cores, cursor, conn, deflate, site_url,redirect_file):
+    def __init__(self, templates, output, title, publisher, dump, cores, cursor, conn, deflate, site_url,redirect_file):
         self.identicon_path = os.path.join(output, 'static', 'identicon')
         self.templates=templates
-        self.database=database
         self.output=output
         self.title=title
         self.publisher=publisher
@@ -810,6 +808,23 @@ def languageToAlpha3(lang):
     tab={ "en" :"eng", "ru": "rus" , "pt-BR": "por" ,"ja":"jpn" ,"es": "spa"}
     return tab[lang]
 
+def clean(output,db,redirect_file):
+    for elem in [ "question",  "tag","user"]:
+        elem_path=os.path.join(output,elem)
+        if os.path.exists(elem_path):
+            print "remove " + elem_path
+            shutil.rmtree(elem_path)
+    if os.path.exists(os.path.join(output,"favicon.png")):
+        os.remove(os.path.join(output,"favicon.png"))
+    if os.path.exists(os.path.join(output,"index.html")):
+        os.remove(os.path.join(output,"index.html"))
+    if os.path.exists(db):
+        print "remove " + db
+        os.remove(db)
+    if os.path.exists(redirect_file):
+        print "remove " + redirect_file
+        os.remove(redirect_file)
+
 
 #########################
 #     Zim generation    #
@@ -881,9 +896,12 @@ def run():
         dump=os.path.join("work", re.sub("\.", "_", domain))
     else:
         dump= arguments['--directory']
-    
+    output = os.path.join(dump, 'output')
+    db = os.path.join(dump, 'se-dump.db')
+    redirect_file = os.path.join(dump, 'redirection.csv')
+
     deflate = not arguments['--nozim']
-    database = 'work'
+
     # render templates into `output`
     #templates = 'templates'
     templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini')
@@ -892,22 +910,6 @@ def run():
     else:
         cores = cpu_count() / 2 or 1
 
-    #prepare db
-    db = os.path.join(database, 'se-dump.db')
-    conn = sqlite3.connect(db) #can be :memory: for small dump  
-    conn.row_factory = dict_factory
-    cursor = conn.cursor()
-    # create table tags-questions
-    sql = "CREATE TABLE IF NOT EXISTS questiontag(id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, Score INTEGER, Title TEXT, QId INTEGER, CreationDate TEXT, Tag TEXT)"
-    cursor.execute(sql)
-    #creater user table
-    sql = "CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY UNIQUE, DisplayName TEXT, Reputation TEXT)"
-    cursor.execute(sql)
-    #create table for links
-    sql = "CREATE TABLE IF NOT EXISTS links(id INTEGER, title TEXT)"
-    cursor.execute(sql)
-    conn.commit()
-    redirect_file = os.path.join('work', 'redirection.csv')
 
     if arguments["--reset"] == True:
         if os.path.exists(dump):
@@ -920,6 +922,10 @@ def run():
     if arguments["--reset-images"] == True:
         if os.path.exists(os.path.join(dump,"output")):
             shutil.rmtree(os.path.join(dump,"output"))
+
+    if arguments["--clean-previous"] == True:
+        clean(output,db,redirect_file)
+        sys.exit()
 
     if not os.path.exists(os.path.join(dump,"Posts.xml")): #If dump is not here, download it
         if not os.path.exists(dump):
@@ -936,11 +942,25 @@ def run():
         else:
             download_dump(domain, dump)
 
-    output = os.path.join(dump, 'output')
     if not os.path.exists(output):
         os.makedirs(output)
     if not os.path.exists(os.path.join(output, 'static', 'images')):
         os.makedirs(os.path.join(output, 'static', 'images'))
+
+    #prepare db
+    conn = sqlite3.connect(db) #can be :memory: for small dump  
+    conn.row_factory = dict_factory
+    cursor = conn.cursor()
+    # create table tags-questions
+    sql = "CREATE TABLE IF NOT EXISTS questiontag(id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, Score INTEGER, Title TEXT, QId INTEGER, CreationDate TEXT, Tag TEXT)"
+    cursor.execute(sql)
+    #creater user table
+    sql = "CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY UNIQUE, DisplayName TEXT, Reputation TEXT)"
+    cursor.execute(sql)
+    #create table for links
+    sql = "CREATE TABLE IF NOT EXISTS links(id INTEGER, title TEXT)"
+    cursor.execute(sql)
+    conn.commit()
 
     title, description, lang_input = grab_title_description_favicon_lang(url, output)
     jinja_init(templates)
@@ -951,19 +971,19 @@ def run():
 
     #Generate users !
     parser = make_parser()
-    parser.setContentHandler(UsersRender(templates, database, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file))
+    parser.setContentHandler(UsersRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file))
     parser.parse(os.path.join(dump, "usersbadges.xml"))
     conn.commit()
 
     #Generate question !
     parser = make_parser()
-    parser.setContentHandler(QuestionRender(templates, database, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file,domain))
+    parser.setContentHandler(QuestionRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file,domain))
     parser.parse(os.path.join(dump, "prepare.xml"))
     conn.commit()
 
     #Generate tags !
     parser = make_parser()
-    parser.setContentHandler(TagsRender(templates, database, output, title, publisher, dump, cores, cursor, conn, deflate,tag_depth))
+    parser.setContentHandler(TagsRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,tag_depth))
     parser.parse(os.path.join(dump, "Tags.xml"))
     conn.close()
     # copy static
@@ -971,17 +991,7 @@ def run():
     if not arguments['--nozim']:
         done=create_zims(title, publisher, description, redirect_file, domain, lang_input,arguments["--zimpath"], output)
         if done == True:
-            for elem in [ "question",  "tag","user"]:
-                elem_path=os.path.join(output,elem)
-                print "remove " + elem_path
-                shutil.rmtree(elem_path)
-            os.remove(os.path.join(output,"favicon.png"))
-            os.remove(os.path.join(output,"index.html"))
-            print "remove " + db
-            os.remove(db)
-            print "remove " + redirect_file
-            os.remove(redirect_file)
-
+            clean(output,db,redirect_file)
 if __name__ == '__main__':
     run()
 
