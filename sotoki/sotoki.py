@@ -877,6 +877,10 @@ def run():
     arguments = docopt(__doc__, version='sotoki 0.5.1')
     if not arguments['--nozim'] and not bin_is_present("zimwriterfs"):
         sys.exit("zimwriterfs is not available, please install it.")
+    #Check binary
+    for bin in [ "bash", "jpegoptim", "pngquant", "advdef", "gifsicle", "mogrify", "gif2apng", "wget", "sha1sum", "7z", "sed", "sort", "rm", "grep" ]:
+        if not bin_is_present(bin):
+            sys.exit(bin + " is not available, please install it.")
     tag_depth = int(arguments['--tag-depth'])
     if tag_depth != -1 and tag_depth <= 0:
         sys.exit("--tag-depth should be a positive integer")
