@@ -648,7 +648,7 @@ def image(text_post, output):
     imgs = body.xpath('//img')
     for img in imgs:
             src = img.attrib['src']
-            ext = os.path.splitext(src)[1]
+            ext = os.path.splitext(src.split("?")[0])[1]
             filename = sha256(src).hexdigest() + ext
             out = os.path.join(images, filename)
             # download the image only if it's not already downloaded
