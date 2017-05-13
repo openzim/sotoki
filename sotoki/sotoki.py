@@ -651,8 +651,8 @@ def image(text_post, output):
             ext = os.path.splitext(src.split("?")[0])[1]
             filename = sha256(src).hexdigest() + ext
             out = os.path.join(images, filename)
-            # download the image only if it's not already downloaded
-            if not os.path.exists(out) : 
+            # download the image only if it's not already downloaded and if it's not a html
+            if not os.path.exists(out) and ext != ".html": 
                 try:
                     headers=download(src, out, timeout=180)
                     type=get_filetype(headers,out)
