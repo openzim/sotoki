@@ -254,14 +254,14 @@ def some_questions(templates, output, title, publisher, question, template_name,
                 ans["Body"]=image(ans["Body"],output)
                 if ans.has_key("comments"):
                     for comment in ans["comments"]:
-                        comment["Text"]==interne_link(comment["Text"], domain,question["Id"])
+                        comment["Text"]=interne_link(comment["Text"], domain,question["Id"])
 
         filepath = os.path.join(output, 'question', question["filename"])
         question["Body"] = interne_link(question["Body"], domain, question["Id"])
         question["Body"] = image(question["Body"],output)
         if question.has_key("comments"):
             for comment in question["comments"]:
-                comment["Text"]==interne_link(comment["Text"], domain,question["Id"])
+                comment["Text"]=interne_link(comment["Text"], domain,question["Id"])
         question["Title"] = cgi.escape(question["Title"])
         try:
             jinja(
