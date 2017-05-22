@@ -685,7 +685,6 @@ def grab_title_description_favicon_lang(url, output_dir):
         search= re.search('StackExchange.init\({"locale":"[^"]*', output)
         if search != None:
             lang=re.sub('StackExchange.init\({"locale":"', "" , search.group(0))
-    lang=languageToAlpha3(lang)
     favicon = soup.find('link', attrs={"rel": u"image_src"})['href']
     if favicon[:2] == "//":
         favicon = "http:" + favicon
@@ -841,7 +840,7 @@ def create_zims(title, publisher, description,redirect_file,domain,lang_input, z
 
     title = title.replace("-", " ")
     creator = title
-    return create_zim(html_dir, zim_path, title, description, lang_input, publisher, creator,redirect_file)
+    return create_zim(html_dir, zim_path, title, description, languageToAlpha3(lang_input), publisher, creator,redirect_file)
 
 
 def create_zim(static_folder, zim_path, title, description, lang_input, publisher, creator,redirect_file):
