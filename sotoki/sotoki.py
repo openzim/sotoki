@@ -306,7 +306,8 @@ class TagsRender(handler.ContentHandler):
 
     def startElement(self, name, attrs): #For each element
         if name == "row": #If it's a tag (row in tags.xml)
-            self.tags.append({'TagUrl': urllib.quote(attrs["TagName"]), 'TagName': attrs["TagName"]})
+            if attrs["Count"] != "0":
+                self.tags.append({'TagUrl': urllib.quote(attrs["TagName"]), 'TagName': attrs["TagName"], 'nb_post': int(attrs["Count"])})
 
     def endDocument(self):
         jinja(
@@ -315,7 +316,7 @@ class TagsRender(handler.ContentHandler):
             self.templates,
             False,
             self.deflate,
-            tags=self.tags,
+            tags=sorted(self.tags, key=lambda k: k['nb_post'], reverse=True),
             rooturl=".",
             title=self.title,
             publisher=self.publisher,
