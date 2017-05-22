@@ -2,12 +2,12 @@
 
 {% block bodyclass %}question{% endblock %}
 
-{% block title %}{{ question["Title"] }}{% endblock %}
+{% block title %}{{ question["Title"] | safe }}{% endblock %}
 {% block keywords %}{% for tag in question["Tags"] %}{{ tag }} {% endfor %}{% endblock %} 
 
 {% block body %}
   <div class="row">
-    <h2 class="title">{{ question["Title"] }}</h2>
+    <h2 class="title">{{ question["Title"] | safe }}</h2>
   </div>
   <div class="row">
     <div class="col-md-7">

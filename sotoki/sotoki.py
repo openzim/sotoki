@@ -55,6 +55,7 @@ import bs4 as BeautifulSoup
 from lxml.etree import parse as string2xml
 from lxml.html import fromstring as string2html
 from lxml.html import tostring as html2string
+import cgi
 from lxml import etree
 from docopt import docopt
 from slugify import slugify
@@ -162,15 +163,15 @@ class QuestionRender(handler.ContentHandler):
 
             if tmp.has_key("Score"):
                 tmp["Score"] = int(tmp["Score"])
-            tmp["Text"]=markdown(tmp["Text"])
+            tmp["Text"]=markdown(cgi.escape(tmp["Text"]))
             self.comments.append(tmp)
             return
 
         if name == "link": #We add link
             if attrs["LinkTypeId"] == "1":
-                self.post["relateds"].append( { "PostId" : page_url(attrs["PostId"], attrs["PostName"]) , "PostName" : attrs["PostName"]})
+                self.post["relateds"].append( { "PostId" : page_url(attrs["PostId"], attrs["PostName"]) , "PostName" : cgi.escape(attrs["PostName"])})
             elif attrs["LinkTypeId"] == "3":
-                self.post["duplicate"].append( { "PostId": page_url(attrs["PostId"], attrs["PostName"]) , "PostName" : attrs["PostName"]})
+                self.post["duplicate"].append( { "PostId": page_url(attrs["PostId"], attrs["PostName"]) , "PostName" : cgi.escape(attrs["PostName"])})
             return
 
         if name != 'post': #We go out if it's not a post, we because we have see all name of posible tag (answers, row,comments,comment and we will see after post) This normally match only this root
@@ -261,6 +262,7 @@ def some_questions(templates, output, title, publisher, question, template_name,
         if question.has_key("comments"):
             for comment in question["comments"]:
                 comment["Text"]==interne_link(comment["Text"], domain,question["Id"])
+        question["Title"] = cgi.escape(question["Title"])
         try:
             jinja(
                 filepath,
@@ -347,6 +349,7 @@ class TagsRender(handler.ContentHandler):
                     offset += len(some_questions)
                 some_questions = some_questions[:99]
                 for question in some_questions:
+                    question["Title"] = cgi.escape(question["Title"])
                     question["filepath"] = page_url(question["QId"] , question["Title"])
                 jinja(
                     fullpath,
