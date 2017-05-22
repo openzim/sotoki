@@ -42,6 +42,7 @@ a[href*="//"]:after {  /* all external links are absolute */
 
 .post .reputation {
     padding-right: 15px;
+    width: 100px;
 }
 
 .post .reputation > div {
