@@ -210,7 +210,7 @@ body.tag p.question {
 
 body.tag p.question .score {
     height: 2em;
-    width: 2em;
+    width: 4em;
     padding: 5px;
     display: block;
     float: left;
