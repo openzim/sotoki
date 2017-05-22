@@ -417,12 +417,17 @@ class UsersRender(handler.ContentHandler):
 
     def startElement(self, name, attrs): #For each element
         if name == "badges":
-            self.user["badges"] = []
+            self.user["badges"] = {}
         if name == "badge":
             tmp={}
             for k in attrs.keys():
                 tmp[k] = attrs[k]
-            self.user["badges"].append(tmp)
+            print self.user["badges"]
+            print tmp["Name"]
+            if self.user["badges"].has_key(tmp["Name"]):
+                self.user["badges"][tmp["Name"]] = self.user["badges"][tmp["Name"]]  + 1
+            else:
+                self.user["badges"][tmp["Name"]]  = 1
         if name == "row":
             self.id +=1
             if self.id % 1000 == 0:
