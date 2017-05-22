@@ -30,8 +30,6 @@ import os.path
 import tempfile
 from distutils.dir_util import copy_tree
 
-#from subprocess32 import check_output
-#from subprocess32 import TimeoutExpired
 from subprocess32 import call
 import shlex
 
@@ -61,6 +59,7 @@ from lxml import etree
 from docopt import docopt
 from slugify import slugify
 import mistune #markdown
+import urllib
 import pydenticon
 from string import punctuation
 import zlib
@@ -307,7 +306,7 @@ class TagsRender(handler.ContentHandler):
 
     def startElement(self, name, attrs): #For each element
         if name == "row": #If it's a tag (row in tags.xml)
-            self.tags.append({'TagName': attrs["TagName"]})
+            self.tags.append({'TagUrl': urllib.quote(attrs["TagName"]), 'TagName': attrs["TagName"]})
 
     def endDocument(self):
         jinja(
@@ -600,6 +599,7 @@ def get_filetype(headers,path):
             elif "GIF" in mine:
                 type="gif"
     return type
+
 def interne_link(text_post, domain,id):
     body = string2html(text_post)
     links = body.xpath('//a')
@@ -626,7 +626,7 @@ def interne_link(text_post, domain,id):
                     qid=link.split("/")[1]
                     a.attrib['href']= qid + ".html"
             elif link[0:10] == "questions/" and link[10:17] == "tagged/" :
-                tag=link.split("/")[-1]
+                tag=urllib.quote(link.split("/")[-1])
                 a.attrib['href']="../tag/" + tag + ".html"
             elif link[0:2] == "a/":
                 qans_split = link.split("/")
