@@ -786,6 +786,7 @@ def get_hash(site_name):
                         hash=file.xpath("sha1")[0].text
     if hash==None:
         print "File :" + site_name + ".7z no found"
+        sys.exit(1)
     return hash
 
 def download_dump(domain, dump_path):
