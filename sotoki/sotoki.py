@@ -657,15 +657,15 @@ def image(text_post, output):
                     headers=download(src, out, timeout=180)
                     type=get_filetype(headers,out)
                     # update post's html
-                    src = '../static/images/' + filename
                     resize_one(out,type,"540")
                     optimize_one(out,type)
-                    img.attrib['src'] = src
                 except Exception,e:
                     # do nothing
                     print e
                     pass
-                img.attrib['style']= "max-width:100%"
+            src = '../static/images/' + filename
+            img.attrib['src'] = src
+            img.attrib['style']= "max-width:100%"
                 # finalize offlining
 
     # does the post contain images? if so, we surely modified
