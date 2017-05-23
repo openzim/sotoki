@@ -349,8 +349,8 @@ class TagsRender(handler.ContentHandler):
                     offset += len(some_questions)
                 some_questions = some_questions[:99]
                 for question in some_questions:
-                    question["Title"] = cgi.escape(question["Title"])
                     question["filepath"] = page_url(question["QId"] , question["Title"])
+                    question["Title"] = cgi.escape(question["Title"])
                 jinja(
                     fullpath,
                     'tag.html',
