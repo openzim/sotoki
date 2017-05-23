@@ -422,8 +422,6 @@ class UsersRender(handler.ContentHandler):
             tmp={}
             for k in attrs.keys():
                 tmp[k] = attrs[k]
-            print self.user["badges"]
-            print tmp["Name"]
             if self.user["badges"].has_key(tmp["Name"]):
                 self.user["badges"][tmp["Name"]] = self.user["badges"][tmp["Name"]]  + 1
             else:
