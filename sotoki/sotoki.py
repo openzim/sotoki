@@ -3,7 +3,7 @@
 """sotoki.
 
 Usage:
-  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--reset] [--reset-images] [--clean-previous]
+  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--reset] [--reset-images] [--clean-previous] [--noFulltextIndex]
   sotoki (-h | --help)
   sotoki --version
 
@@ -18,6 +18,7 @@ Options:
   --reset  Reset dump
   --reset-images  Remove image in cache
   --clean-previous  Delete only data from a previous run with --nozim or which failed 
+  --noFulltextIndex  Dont index content
 """
 import sys
 import datetime
@@ -836,7 +837,7 @@ def clean(output,db,redirect_file):
 #     Zim generation    #
 #########################
 
-def create_zims(title, publisher, description,redirect_file,domain,lang_input, zim_path, html_dir):
+def create_zims(title, publisher, description,redirect_file,domain,lang_input, zim_path, html_dir, noindex):
     print 'Creating ZIM files'
     if zim_path == None:
         zim_path = dict(
@@ -848,10 +849,10 @@ def create_zims(title, publisher, description,redirect_file,domain,lang_input, z
 
     title = title.replace("-", " ")
     creator = title
-    return create_zim(html_dir, zim_path, title, description, languageToAlpha3(lang_input), publisher, creator,redirect_file)
+    return create_zim(html_dir, zim_path, title, description, languageToAlpha3(lang_input), publisher, creator,redirect_file, noindex)
 
 
-def create_zim(static_folder, zim_path, title, description, lang_input, publisher, creator,redirect_file):
+def create_zim(static_folder, zim_path, title, description, lang_input, publisher, creator,redirect_file, noindex):
     print "\tWritting ZIM for {}".format(title)
     context = {
         'languages': lang_input,
@@ -866,7 +867,14 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
         'redirect_csv' : redirect_file
     }
 
-    cmd = ('zimwriterfs --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" '
+    if noindex:
+        cmd = ('zimwriterfs --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" '
+           '--language="{languages}" --title="{title}" '
+           '--description="{description}" '
+           '--creator="{creator}" --publisher="{publisher}" "{static}" "{zim}"'
+           .format(**context))
+    else:
+        cmd = ('zimwriterfs --withFullTextIndex --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" '
            '--language="{languages}" --title="{title}" '
            '--description="{description}" '
            '--creator="{creator}" --publisher="{publisher}" "{static}" "{zim}"'
@@ -998,7 +1006,7 @@ def run():
     # copy static
     copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static'), os.path.join(output, 'static'))
     if not arguments['--nozim']:
-        done=create_zims(title, publisher, description, redirect_file, domain, lang_input,arguments["--zimpath"], output)
+        done=create_zims(title, publisher, description, redirect_file, domain, lang_input,arguments["--zimpath"], output, arguments["--noFulltextIndex"])
         if done == True:
             clean(output,db,redirect_file)
 if __name__ == '__main__':
