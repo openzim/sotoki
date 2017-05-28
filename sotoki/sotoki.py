@@ -832,6 +832,8 @@ def clean(output,db,redirect_file):
         print "remove " + redirect_file
         os.remove(redirect_file)
 
+def use_mathjax(domain):
+    return domain in ["astronomy.stackexchange.com", "aviation.stackexchange.com", "biology.stackexchange.com", "chemistry.stackexchange.com", "codereview.stackexchange.com", "cogsci.stackexchange.com", "computergraphics.stackexchange.com", "crypto.stackexchange.com", "cs.stackexchange.com", "cstheory.stackexchange.com", "datascience.stackexchange.com", "dsp.stackexchange.com", "earthscience.stackexchange.com", "economics.stackexchange.com", "electronics.stackexchange.com", "engineering.stackexchange.com", "ham.stackexchange.com", "hsm.stackexchange.com", "math.stackexchange.com", "matheducators.stackexchange.com", "mathematica.stackexchange.com", "mathoverflow.net", "meta.astronomy.stackexchange.com", "meta.aviation.stackexchange.com", "meta.biology.stackexchange.com", "meta.blender.stackexchange.com", "meta.chemistry.stackexchange.com", "meta.codereview.stackexchange.com", "meta.computergraphics.stackexchange.com", "meta.crypto.stackexchange.com", "meta.cstheory.stackexchange.com", "meta.datascience.stackexchange.com", "meta.dsp.stackexchange.com", "meta.earthscience.stackexchange.com"]
 
 #########################
 #     Zim generation    #
@@ -920,7 +922,6 @@ def run():
 
     deflate = not arguments['--nozim']
 
-    # render templates into `output`
     #templates = 'templates'
     templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini')
     if arguments["--threads"] is not None :
@@ -964,6 +965,12 @@ def run():
     if not os.path.exists(os.path.join(output, 'static', 'images')):
         os.makedirs(os.path.join(output, 'static', 'images'))
 
+    if use_mathjax(domain):
+        templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini_mathjax')
+    else:
+        #templates = 'templates'
+        templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini')
+
     #prepare db
     conn = sqlite3.connect(db) #can be :memory: for small dump  
     conn.row_factory = dict_factory
@@ -1004,7 +1011,10 @@ def run():
     parser.parse(os.path.join(dump, "Tags.xml"))
     conn.close()
     # copy static
-    copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static'), os.path.join(output, 'static'))
+    if use_mathjax(domain):
+        copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static'), os.path.join(output, 'static_mathjax'))
+    else:
+        copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static'), os.path.join(output, 'static'))
     if not arguments['--nozim']:
         done=create_zims(title, publisher, description, redirect_file, domain, lang_input,arguments["--zimpath"], output, arguments["--noFulltextIndex"])
         if done == True:
