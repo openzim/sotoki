@@ -3,23 +3,23 @@
 """sotoki.
 
 Usage:
-  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--reset] [--reset-images] [--clean-previous] [--noFulltextIndex] [--IgnoreOldSite]
+  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite]
   sotoki (-h | --help)
   sotoki --version
 
 Options:
-  -h --help     Show this screen.
-  --version     Show version.
-  --directory=<dir>   Specify a directory for xml files [default: download]
-  --nozim       doesn't make zim file, output will be in work/output/ in normal html (otherwise work/ouput/ will be in deflate form and will produice a zim file)
-  --tag-depth=<tag_depth>   Specify number of question, order by Score, to show in tags pages (should be a multiple of 100, default all question are in tags pages) [default: -1]
-  --threads=<threads>   Number of threads to use, default is number_of_cores/2
-  --zimpath=<zimpath>   Final path of the zim file
-  --reset  Reset dump
-  --reset-images  Remove image in cache
-  --clean-previous  Delete only data from a previous run with --nozim or which failed 
-  --noFulltextIndex  Dont index content
-  --IgnoreOldSite  Ignore close site of stackexchange
+  -h --help                Show this screen.
+  --version                Show version.
+  --directory=<dir>        Specify a directory for xml files [default: download]
+  --nozim                  doesn't make zim file, output will be in work/output/ in normal html (otherwise work/ouput/ will be in deflate form and will produice a zim file)
+  --tag-depth=<tag_depth>  Specify number of question, order by Score, to show in tags pages (should be a multiple of 100, default all question are in tags pages) [default: -1]
+  --threads=<threads>      Number of threads to use, default is number_of_cores/2
+  --zimpath=<zimpath>      Final path of the zim file
+  --reset                  Reset dump
+  --reset-images           Remove image in cache
+  --clean-previous         Delete only data from a previous run with --nozim or which failed 
+  --nofulltextindex        Dont index content
+  --ignoreoldsite          Ignore close site of stackexchange
 """
 import sys
 import datetime
@@ -693,7 +693,7 @@ def grab_title_description_favicon_lang(url, output_dir, do_old):
             else:
                 sys.exit("This site is a close site and it's not supported by sotoki, please open a issue")
         else:
-            print "This site is a close site and --IgnoreOldSite has been pass as argument so we stop"
+            print "This site is a close site and --ignoreoldsite has been pass as argument so we stop"
             sys.exit(0)
 
     output = get_data.read()
@@ -980,7 +980,7 @@ def run():
     if not os.path.exists(os.path.join(output, 'static', 'images')):
         os.makedirs(os.path.join(output, 'static', 'images'))
 
-    title, description, lang_input = grab_title_description_favicon_lang(url, output, not arguments["--IgnoreOldSite"])
+    title, description, lang_input = grab_title_description_favicon_lang(url, output, not arguments["--ignoreoldsite"])
 
     if not os.path.exists(os.path.join(dump,"Posts.xml")): #If dump is not here, download it
         if domain == "stackoverflow.com":
@@ -1046,7 +1046,7 @@ def run():
     else:
         copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static'), os.path.join(output, 'static'))
     if not arguments['--nozim']:
-        done=create_zims(title, publisher, description, redirect_file, domain, lang_input,arguments["--zimpath"], output, arguments["--noFulltextIndex"])
+        done=create_zims(title, publisher, description, redirect_file, domain, lang_input,arguments["--zimpath"], output, arguments["--nofulltextindex"])
         if done == True:
             clean(output,db,redirect_file)
 if __name__ == '__main__':
