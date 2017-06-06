@@ -3,7 +3,7 @@
 """sotoki.
 
 Usage:
-  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--reset] [--reset-images] [--clean-previous] [--noFulltextIndex]
+  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--reset] [--reset-images] [--clean-previous] [--noFulltextIndex] [--IgnoreOldSite]
   sotoki (-h | --help)
   sotoki --version
 
@@ -19,6 +19,7 @@ Options:
   --reset-images  Remove image in cache
   --clean-previous  Delete only data from a previous run with --nozim or which failed 
   --noFulltextIndex  Dont index content
+  --IgnoreOldSite  Ignore close site of stackexchange
 """
 import sys
 import datetime
@@ -682,8 +683,20 @@ def image(text_post, output):
         text_post = html2string(body)
     return text_post
 
-def grab_title_description_favicon_lang(url, output_dir):
-    output = urlopen(url).read()
+def grab_title_description_favicon_lang(url, output_dir, do_old):
+    get_data = urlopen(url)
+    if "area51" in get_data.geturl():
+        if do_old:
+            close_site = { "http://arabic.stackexchange.com" : "https://web.archive.org/web/20150812150251/http://arabic.stackexchange.com/" }
+            if close_site.has_key(url):
+                get_data = urlopen(close_site[url])
+            else:
+                sys.exit("This site is a close site and it's not supported by sotoki, please open a issue")
+        else:
+            print "This site is a close site and --IgnoreOldSite has been pass as argument so we stop"
+            sys.exit(0)
+
+    output = get_data.read()
     soup = BeautifulSoup.BeautifulSoup(output, 'html.parser')
     title = soup.find('meta', attrs={"name": u"twitter:title"})['content']
     description = soup.find('meta', attrs={"name": u"twitter:description"})['content']
@@ -693,10 +706,11 @@ def grab_title_description_favicon_lang(url, output_dir):
         search= re.search('StackExchange.init\({"locale":"[^"]*', output)
         if search != None:
             lang=re.sub('StackExchange.init\({"locale":"', "" , search.group(0))
-    favicon = soup.find('link', attrs={"rel": u"image_src"})['href']
+    favicon = soup.find('link', attrs={"rel": u"icon"})['href']
     if favicon[:2] == "//":
         favicon = "http:" + favicon
     favicon_out = os.path.join(output_dir, 'favicon.png')
+    print favicon
     download(favicon, favicon_out)
     resize_image_profile(favicon_out)
     return [title, description, lang]
@@ -945,9 +959,16 @@ def run():
     if arguments["--clean-previous"] == True:
         clean(output,db,redirect_file)
 
+    if not os.path.exists(dump):
+        os.makedirs(dump)
+    if not os.path.exists(output):
+        os.makedirs(output)
+    if not os.path.exists(os.path.join(output, 'static', 'images')):
+        os.makedirs(os.path.join(output, 'static', 'images'))
+
+    title, description, lang_input = grab_title_description_favicon_lang(url, output, not arguments["--IgnoreOldSite"])
+
     if not os.path.exists(os.path.join(dump,"Posts.xml")): #If dump is not here, download it
-        if not os.path.exists(dump):
-            os.makedirs(dump)
         if domain == "stackoverflow.com":
             for part in ["stackoverflow.com-Badges" , "stackoverflow.com-Comments" , "stackoverflow.com-PostLinks", "stackoverflow.com-Posts" , "stackoverflow.com-Tags", "stackoverflow.com-Users" ]:
                 dump_tmp=os.path.join("work", re.sub("\.", "_", part))
@@ -960,10 +981,6 @@ def run():
         else:
             download_dump(domain, dump)
 
-    if not os.path.exists(output):
-        os.makedirs(output)
-    if not os.path.exists(os.path.join(output, 'static', 'images')):
-        os.makedirs(os.path.join(output, 'static', 'images'))
 
     if use_mathjax(domain):
         templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini_mathjax')
@@ -986,7 +1003,6 @@ def run():
     cursor.execute(sql)
     conn.commit()
 
-    title, description, lang_input = grab_title_description_favicon_lang(url, output)
     jinja_init(templates)
     global MARKDOWN
     MARKDOWN = mistune.Markdown()
