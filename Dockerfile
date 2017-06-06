@@ -1,6 +1,7 @@
 FROM openzim/zimwriterfs:latest
 
 # Install necessary packages
+RUN apt-get update
 RUN apt-get install -y advancecomp
 RUN apt-get install -y python-pip
 RUN apt-get install -y python-dev
