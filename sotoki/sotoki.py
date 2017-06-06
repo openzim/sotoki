@@ -710,7 +710,6 @@ def grab_title_description_favicon_lang(url, output_dir, do_old):
     if favicon[:2] == "//":
         favicon = "http:" + favicon
     favicon_out = os.path.join(output_dir, 'favicon.png')
-    print favicon
     download(favicon, favicon_out)
     resize_image_profile(favicon_out)
     return [title, description, lang]
@@ -845,6 +844,14 @@ def clean(output,db,redirect_file):
     if os.path.exists(redirect_file):
         print "remove " + redirect_file
         os.remove(redirect_file)
+def data_from_previous_run(output,db,redirect_file):
+    for elem in [ "question",  "tag","user"]:
+        elem_path=os.path.join(output,elem)
+        if os.path.exists(elem_path):
+            return True
+    if os.path.exists(os.path.join(output,"favicon.png")) or os.path.exists(os.path.join(output,"index.html")) or os.path.exists(db) or os.path.exists(redirect_file):
+        return True
+    return False
 
 def use_mathjax(domain):
     return domain in ["astronomy.stackexchange.com", "aviation.stackexchange.com", "biology.stackexchange.com", "chemistry.stackexchange.com", "codereview.stackexchange.com", "cogsci.stackexchange.com", "computergraphics.stackexchange.com", "crypto.stackexchange.com", "cs.stackexchange.com", "cstheory.stackexchange.com", "datascience.stackexchange.com", "dsp.stackexchange.com", "earthscience.stackexchange.com", "economics.stackexchange.com", "electronics.stackexchange.com", "engineering.stackexchange.com", "ham.stackexchange.com", "hsm.stackexchange.com", "math.stackexchange.com", "matheducators.stackexchange.com", "mathematica.stackexchange.com", "mathoverflow.net", "meta.astronomy.stackexchange.com", "meta.aviation.stackexchange.com", "meta.biology.stackexchange.com", "meta.blender.stackexchange.com", "meta.chemistry.stackexchange.com", "meta.codereview.stackexchange.com", "meta.computergraphics.stackexchange.com", "meta.crypto.stackexchange.com", "meta.cstheory.stackexchange.com", "meta.datascience.stackexchange.com", "meta.dsp.stackexchange.com", "meta.earthscience.stackexchange.com"]
@@ -958,6 +965,9 @@ def run():
 
     if arguments["--clean-previous"] == True:
         clean(output,db,redirect_file)
+
+    if data_from_previous_run(output,db,redirect_file):
+        sys.exit("There is still data from a previous run, you can trash them by adding --clean-previous as argument")
 
     if not os.path.exists(dump):
         os.makedirs(dump)
