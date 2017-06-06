@@ -59,7 +59,7 @@ from lxml.html import fromstring as string2html
 from lxml.html import tostring as html2string
 import cgi
 from lxml import etree
-from docopt import docopt
+from docopt import docopt,DocoptExit
 from slugify import slugify
 import mistune #markdown
 import urllib
@@ -912,7 +912,11 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
         return False
 
 def run():
-    arguments = docopt(__doc__, version='sotoki 0.6.3')
+    try:
+        arguments = docopt(__doc__, version='sotoki 0.6.3')
+    except DocoptExit:
+            print(__doc__)
+            sys.exit()
     if not arguments['--nozim'] and not bin_is_present("zimwriterfs"):
         sys.exit("zimwriterfs is not available, please install it.")
     #Check binary
