@@ -314,9 +314,27 @@ class TagsRender(handler.ContentHandler):
                 self.tags.append({'TagUrl': urllib.quote(attrs["TagName"]), 'TagName': attrs["TagName"], 'nb_post': int(attrs["Count"])})
 
     def endDocument(self):
-        jinja(
+	sql = "SELECT * FROM questiontag GROUP BY Tag ORDER BY Score DESC"
+        questions = self.cursor.execute(sql)
+	some_questions=questions.fetchmany(50)
+	for question in some_questions:
+	    question["filepath"] = page_url(question["QId"] , question["Title"])
+	    question["Title"] = cgi.escape(question["Title"])
+	jinja(
             os.path.join(self.output, 'index.html'),
             'tags.html',
+            self.templates,
+            False,
+            self.deflate,
+            tags=sorted(self.tags, key=lambda k: k['nb_post'], reverse=True),
+            rooturl=".",
+	    questions=some_questions,
+            title=self.title,
+            publisher=self.publisher,
+        )
+        jinja(
+            os.path.join(self.output, 'alltags.html'),
+            'alltags.html',
             self.templates,
             False,
             self.deflate,
@@ -948,7 +966,7 @@ def run():
     deflate = not arguments['--nozim']
 
     #templates = 'templates'
-    templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini')
+    templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates')
     if arguments["--threads"] is not None :
         cores=int(arguments['--threads'])
     else:
@@ -997,10 +1015,10 @@ def run():
 
 
     if use_mathjax(domain):
-        templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini_mathjax')
+        templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mathjax')
     else:
         #templates = 'templates'
-        templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini')
+        templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates')
 
     #prepare db
     conn = sqlite3.connect(db) #can be :memory: for small dump  
