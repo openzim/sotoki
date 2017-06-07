@@ -1,9 +1,3 @@
-body.question h2 {
-    border-bottom: 1px solid white;
-    padding: 15px;
-    margin-bottom: 15px;
-}
-
 a[href*="//"]:after {  /* all external links are absolute */
     content: " " url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAVklEQVR4Xn3PgQkAMQhDUXfqTu7kTtkpd5RA8AInfArtQ2iRXFWT2QedAfttj2FsPIOE1eCOlEuoWWjgzYaB/IkeGOrxXhqB+uA9Bfcm0lAZuh+YIeAD+cAqSz4kCMUAAAAASUVORK5CYII=);
 }
