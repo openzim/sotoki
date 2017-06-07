@@ -6,14 +6,15 @@
 
 {% block body %}
   <div class="row">
-    <h2 class="title">{{ user["DisplayName"] }}</h2>
+    <a href="{{ rooturl }}/index.html"><img src="{{ rooturl }}/static/img/se-logo.png" class=sclogo></a>
+    <h2 class="title">Profile of: {{ user["DisplayName"] }}</h2>
   </div>
   <div class="row">
     <div class="col-md-3">
       <div> 
         <img src="../static/identicon/{{ user["Id"] }}.png" style="width:164px; height:164px;" /> 
       </div> 
-      <p class="reputation"><span>{{ user["Reputation"] | intspace }}</span> reputation</p>
+      <p class="reputation">Reputation: <span>{{ user["Reputation"] | intspace }}</span></p>
     </div>
     <div class="col-md-4">
       <div>{{ user["AboutMe"] }}</div>

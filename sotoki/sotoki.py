@@ -315,7 +315,7 @@ class TagsRender(handler.ContentHandler):
                 self.tags.append({'TagUrl': urllib.quote(attrs["TagName"]), 'TagName': attrs["TagName"], 'nb_post': int(attrs["Count"])})
 
     def endDocument(self):
-	sql = "SELECT * FROM questiontag GROUP BY Tag ORDER BY Score DESC"
+	sql = "SELECT * FROM questiontag GROUP BY Tag ORDER BY Score DESC LIMIT 50"
         questions = self.cursor.execute(sql)
 	some_questions=questions.fetchmany(50)
 	for question in some_questions:
@@ -373,6 +373,10 @@ class TagsRender(handler.ContentHandler):
                 for question in some_questions:
                     question["filepath"] = page_url(question["QId"] , question["Title"])
                     question["Title"] = cgi.escape(question["Title"])
+		if (page != 1) :
+			hasprevious = True
+		else:
+			hasprevious = False
                 jinja(
                     fullpath,
                     'tag.html',
@@ -385,6 +389,8 @@ class TagsRender(handler.ContentHandler):
                     rooturl="../..",
                     hasnext=bool(offset),
                     next=page + 1,
+                    hasprevious=hasprevious,
+                    previous=page - 1,
                     title=self.title,
                     publisher=self.publisher,
                 )
@@ -896,7 +902,7 @@ def create_zims(title, publisher, description,redirect_file,domain,lang_input, z
 
 
 def create_zim(static_folder, zim_path, title, description, lang_input, publisher, creator,redirect_file, noindex):
-    print "\tWritting ZIM for {}".format(title)
+    print "\tWriting ZIM for {}".format(title)
     context = {
         'languages': lang_input,
         'title': title,

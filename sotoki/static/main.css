@@ -20,6 +20,7 @@ p.description {
 h2.title {
 	border-bottom: 1px solid white;
     padding: 30px;
+	text-align:center;
 }
 
 
@@ -30,28 +31,20 @@ h3.title {
 a.button {
 	border:1px solid grey;
 	padding:10px;
-	margin-top: 10px;
+	margin-right:20px;
 	background-color: white;
 	border-radius:15px;
+	display:inline-block;
 	font-weight: bold;
-	display: inherit;
 }
 
 #footer {
 	border-bottom:1px solid white;
-	margin-bottom:40px;
+	margin-bottom:30px;
+	margin-top:20px;
 	text-align: center;
 	padding-bottom:10px;
 }	
-
-.pagination a {
-	background-color: grey;
-	color:white;
-	font-weight:bold;
-	padding:10px;
-	border:1px solid darkgrey;
-	margin-right:20px;
-}
 
 .container {
 	background-color: #e0ebef;
@@ -158,13 +151,16 @@ a.button {
 
 /** tags  **/
 
-.post .tags ul li {
-    display: inline-block;
-    background: #eee;
-    padding: 5px 10px;
-    margin-right: 5px;
+.tagsblob {
+    background: white;
 	border: 1px solid grey;
 	border-radius: 15px;
+	padding:10px;
+}
+
+.post .tags ul li {
+    display: inline-block;
+    margin-right: 5px;
 	margin-bottom:15px;
 }
 
@@ -184,11 +180,6 @@ a.button {
     padding: 10px 20px;
     background: #eee;
 	width: 45%;
-}
-
-.post .author .profile {
-    display: flex;
-    justify-content: flex-begin;
 }
 
 .post .author img {
