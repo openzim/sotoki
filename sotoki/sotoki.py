@@ -1017,7 +1017,7 @@ def run():
 
 
     if use_mathjax(domain):
-        templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mathjax')
+        templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini_mathjax')
     else:
         #templates = 'templates'
         templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini')
