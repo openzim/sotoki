@@ -40,12 +40,12 @@
     <div class="author">
       <div>
           <div> 
-		{% if post["OwnerUserId"]["Path"] %}<a class="profile" href="../user/{{ post["OwnerUserId"]["Path"] }}.html"> {% endif %}
-		{% if post["OwnerUserId"]["Id"] %}<img src="../static/identicon/{{ post["OwnerUserId"]["Id"] }}.png" /> {% endif %}
-		<p>{{ post["OwnerUserId"]["DisplayName"] }}</p>
-		{% if post["OwnerUserId"]["Path"] %}</a>{% endif %}   
-		<p>Posted <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
-		<p>Reputation: {{ post["OwnerUserId"]["Reputation"] | intspace }}</p>
+                {% if post["OwnerUserId"]["Path"] %}<a class="profile" href="../user/{{ post["OwnerUserId"]["Path"] }}.html"> {% endif %}
+                {% if post["OwnerUserId"]["Id"] %}<img src="../static/identicon/{{ post["OwnerUserId"]["Id"] }}.png" /> {% endif %}
+                <p>{{ post["OwnerUserId"]["DisplayName"] }}</p>
+                {% if post["OwnerUserId"]["Path"] %}</a>{% endif %}   
+                <p>Posted <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
+                <p>Reputation: {{ post["OwnerUserId"]["Reputation"] | intspace }}</p>
           </div>
       </div>
     </div>
