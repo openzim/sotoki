@@ -11,16 +11,21 @@ a[href*="//"]:after {  /* all external links are absolute */
 .h1, .h2, .h3, h1, h2, h3 {
     margin-top: 10px;
 }	
+p.description {
+	  padding: 20px;
+	  border-bottom: 1px solid white;
+}
 
 .sclogo {
 	float:left;
 	margin-top:10px;
 	margin-right:10px;
+	margin-left:10px;
 }
 
 h2.title {
 	border-bottom: 1px solid white;
-    padding: 15px;
+    padding: 30px;
 }
 
 
@@ -31,10 +36,11 @@ h3.title {
 a.button {
 	border:1px solid grey;
 	padding:10px;
-	margin-top:10px;
-	background-color:white;
+	margin-top: 10px;
+	background-color: white;
 	border-radius:15px;
 	font-weight: bold;
+	display: inherit;
 }
 
 #footer {
@@ -57,6 +63,7 @@ a.button {
 	background-color: #e0ebef;
 	padding-left: 30px;
     padding-right: 30px;
+	box-shadow: 2px 2px 9px 0px rgba(50, 50, 50, 0.5);
 }
 
 /* related */

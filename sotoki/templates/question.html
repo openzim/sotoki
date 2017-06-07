@@ -31,9 +31,9 @@
     </div>
     <div class="row col-md-3">
       <div class="metadata">
-        <p>asked: <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
-        <p>viewed: {{ question["ViewCount"] | intspace }} times</p>
-        <p>active: <span class="date" title="{{ question["LastActivityDate"] }}">{{ question["LastActivityDate"] }}</span></p>
+        <p>Asked: <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
+        <p>Viewed: {{ question["ViewCount"] | intspace }} times</p>
+        <p>Active: <span class="date" title="{{ question["LastActivityDate"] }}">{{ question["LastActivityDate"] }}</span></p>
       </div>
       {% if question["duplicate"] %}
         <div id="related" class="metadata">

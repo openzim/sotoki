@@ -292,7 +292,7 @@ def some_questions(templates, output, title, publisher, question, template_name,
 
 class TagsRender(handler.ContentHandler):
 
-    def __init__(self, templates, output, title, publisher, dump, cores, cursor, conn, deflate, tag_depth):
+    def __init__(self, templates, output, title, publisher, dump, cores, cursor, conn, deflate, tag_depth,description):
         # index page
         self.templates=templates
         self.output=output
@@ -303,6 +303,7 @@ class TagsRender(handler.ContentHandler):
         self.cursor=cursor
         self.conn=conn
         self.deflate=deflate
+	self.description=description
         self.tag_depth=tag_depth
         self.tags = []
         sql="CREATE INDEX index_tag ON questiontag (Tag)"
@@ -329,6 +330,7 @@ class TagsRender(handler.ContentHandler):
             tags=sorted(self.tags, key=lambda k: k['nb_post'], reverse=True),
             rooturl=".",
 	    questions=some_questions,
+	    description=self.description,
             title=self.title,
             publisher=self.publisher,
         )
@@ -966,7 +968,7 @@ def run():
     deflate = not arguments['--nozim']
 
     #templates = 'templates'
-    templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates')
+    templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini')
     if arguments["--threads"] is not None :
         cores=int(arguments['--threads'])
     else:
@@ -1018,7 +1020,7 @@ def run():
         templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mathjax')
     else:
         #templates = 'templates'
-        templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates')
+        templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini')
 
     #prepare db
     conn = sqlite3.connect(db) #can be :memory: for small dump  
@@ -1055,7 +1057,7 @@ def run():
 
     #Generate tags !
     parser = make_parser()
-    parser.setContentHandler(TagsRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,tag_depth))
+    parser.setContentHandler(TagsRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,tag_depth,description))
     parser.parse(os.path.join(dump, "Tags.xml"))
     conn.close()
     # copy static

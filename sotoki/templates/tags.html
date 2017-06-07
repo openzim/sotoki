@@ -4,15 +4,13 @@
 
 {% block body %}
   <div class="row">
-  {{ rooturl }}
-  <a href = "{{ rooturl }}/"><img src="{{ rooturl }}/static/img/se-logo.png" class=sclogo></a>
-    <h2 class="title">Welcome to {{ title }} <small>by {{ publisher }}</small></h2>
-    <p>{{ description }}</p>
+  <img src="{{ rooturl }}/static/img/se-logo.png" class=sclogo>
+    <h2 class="title">{{ title }} <small>by {{ publisher }}</small></h2>
+    <p class=description>{{ description }}</p>
    </div>
   <div class="row">
   <div class="col-md-8 tag indexQuestions">
 <h3 class="title">Most popular questions</h3>
-{{ rooturl }}
 {% for question in questions %}
         <p class="question"><span class="score {{ question["Score"] | scale }}">{{ question["Score"] }}</span> <a href="{{ rooturl }}/question/{{ question["filepath"] }}.html">{{ question["Title"] }}</a> <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
 {% endfor %}
@@ -20,7 +18,6 @@
 </div>
   <div class="col-md-4 tags indexTags">
   <h3 class="title">Tags</h3>
-  {{ rooturl }}
     <ul>
       {% set numbertags = 0 %}
       {% set donebreak = "0" %}
