@@ -20,13 +20,8 @@
   <h3 class="title"><i class="glyphicon glyphicon-tags"></i> Tags</h3>
   <div class=tagsblob>
     <ul>
-      {% set numbertags = 0 %}
       {% for tag in tags %}
-         {% set numbertags = numbertags + 1 %}
-         {% if (numbertags >= 100) : %} 
-	  {% else %}
         <li><a href="{{ rooturl }}/tag/{{ tag["TagUrl"] }}/1.html">{{ tag["TagName"] }}</a></li>
-         {% endif %}
       {% endfor %}
     </ul>
      <a href = "{{ rooturl }}/alltags.html" class=button><i class="glyphicon glyphicon-tags"></i> &nbsp; All tags</a>

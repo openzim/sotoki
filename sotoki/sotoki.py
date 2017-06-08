@@ -315,21 +315,26 @@ class TagsRender(handler.ContentHandler):
                 self.tags.append({'TagUrl': urllib.quote(attrs["TagName"]), 'TagName': attrs["TagName"], 'nb_post': int(attrs["Count"])})
 
     def endDocument(self):
-        sql = "SELECT * FROM questiontag GROUP BY Tag ORDER BY Score DESC LIMIT 50"
+        sql = "SELECT * FROM questiontag ORDER BY Score DESC LIMIT 400"
         questions = self.cursor.execute(sql)
-        some_questions=questions.fetchmany(50)
+        some_questions=questions.fetchmany(400)
+        new_questions = []
+        questionsids = []
         for question in some_questions:
                 question["filepath"] = page_url(question["QId"] , question["Title"])
                 question["Title"] = cgi.escape(question["Title"])
+                if question["QId"] not in questionsids:
+                        questionsids.append(question["QId"])
+                        new_questions.append(question)
         jinja(
             os.path.join(self.output, 'index.html'),
             'index.html',
             self.templates,
             False,
             self.deflate,
-            tags=sorted(self.tags, key=lambda k: k['nb_post'], reverse=True),
+            tags=sorted(self.tags[:100], key=lambda k: k['nb_post'], reverse=True),
             rooturl=".",
-            questions=some_questions,
+            questions=new_questions[:50],
             description=self.description,
             title=self.title,
             publisher=self.publisher,
