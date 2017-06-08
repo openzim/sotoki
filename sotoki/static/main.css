@@ -18,6 +18,34 @@ p.description {
 }
 
 
+/* badges  */
+
+.badgesblob {
+	width:60%;
+    background: white;
+	border: 1px solid grey;
+	border-radius: 15px;
+	padding:10px;
+}
+
+.badgesblob .badge {
+	background-color: #656565;
+	font-weight: bold;
+	color: #FFF;
+	margin-bottom: 5px;
+	border: 1px solid #000;
+	border-radius: 10px;
+	padding-left: 10px;
+	padding-right: 10px;
+	margin-right: 20px;
+}
+
+.badgesblob td {
+	color:grey;
+	font-size:small;
+}
+
+
 h2.title {
 	border-bottom: 1px solid white;
     padding: 30px;

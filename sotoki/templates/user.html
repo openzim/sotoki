@@ -27,14 +27,14 @@
     </div>
   </div>
   {% if user["badges"] %}
-  <div class="tags">
+   <div class=badgesblob>
     <h3><i class="glyphicon glyphicon-certificate"></i> Badges </h3>
-    <ul>
+    <table>
     {% for tag in user["badges"] %}
-      <li>{{ tag }} ({{ user["badges"][tag] }} times)</li>
+      <tr><th><div class=badge>{{ tag }}</div></th><td>x {{ user["badges"][tag] }}</td></tr>
     {% endfor %}
-    </ul>
-  </div>
+    </table>
+   </div>
   {% endif %}
   <script src="{{ rooturl }}/static/main.js"></script>  
   <div id="footer"></div>
