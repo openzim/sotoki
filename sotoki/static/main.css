@@ -302,6 +302,7 @@ a.button {
     padding: 15px;
 	background-color:white;
 	border-radius:15px;
+	padding-bottom: 20px;
 }
 
 .tag p.question .score {
