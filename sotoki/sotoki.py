@@ -303,7 +303,7 @@ class TagsRender(handler.ContentHandler):
         self.cursor=cursor
         self.conn=conn
         self.deflate=deflate
-	self.description=description
+        self.description=description
         self.tag_depth=tag_depth
         self.tags = []
         sql="CREATE INDEX index_tag ON questiontag (Tag)"
