@@ -171,6 +171,10 @@ a.button {
 
 .post .tags ul li a {
     color: #333;
+    padding: 10px;
+    border: 1px solid grey;
+    border-radius: 15px;
+}	
 }
 
 /** author **/
