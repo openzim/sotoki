@@ -10,11 +10,16 @@ p.description {
 	  border-bottom: 1px solid white;
 }
 
-.sclogo {
+.selogo {
 	float:left;
-	margin-top:20px;
+	margin-top:30px;
 	margin-right:10px;
 	margin-left:10px;
+}
+
+
+.glbig {
+	font-size: 36px;
 }
 
 h2.title {
@@ -47,7 +52,7 @@ a.button {
 }	
 
 .container {
-	background-color: #e0ebef;
+	background-color: #f0f0f0;;
 	padding-left: 30px;
     padding-right: 30px;
 	box-shadow: 2px 2px 9px 0px rgba(50, 50, 50, 0.5);

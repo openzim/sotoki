@@ -7,7 +7,8 @@
 
 {% block body %}
   <div class="row">
-    <h2 class="title">{{ question["Title"] | safe }}</h2>
+  
+    <h2 class="title"><i class="glyphicon glyphicon-question-sign"></i> {{ question["Title"] | safe }}</h2>
   </div>
   <div class="row">
     <div class="col-md-7">
@@ -16,7 +17,7 @@
         {% include "post.mixin.html" %} 
       </div>
       {% if question["answers"] %}
-        <h2>Answers</h2>
+        <h2><i class="glyphicon glyphicon-chevron-right"></i> Answers</h2>
         <div id="answers">
           {% for post in question["answers"] %}
             <div id="a{{ post["Id"] }}">

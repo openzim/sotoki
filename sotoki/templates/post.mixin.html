@@ -3,24 +3,24 @@
     <div class="reputation">
       {% if post["Score"] >= 0 %}
         <div class="score">
-          <p><span class="glyphicon glyphicon-triangle-top {{ post["Score"] | scale }}"></span></p>
+          <p><i class="glyphicon glyphicon-triangle-top {{ post["Score"] | scale }}"></i></p>
           <p>{{ post["Score"] | intspace }}</p>
         </div>
       {% else %}
         <div class="score">
           <p>{{ post["Score"] | intspace }}</p>
-          <p><span class="glyphicon glyphicon-triangle-bottom {{ post["Score"] | scale }}"></span></p>
+          <p><i class="glyphicon glyphicon-triangle-bottom {{ post["Score"] | scale }}"></i></p>
         </div>
       {% endif %}
       {% if post["FavoriteCount"] %}
         <div>
-          <p class="favorites {{ post["FavoriteCount"] | scale }}"><span class="glyphicon glyphicon-star"></span></p>
+          <p class="favorites {{ post["FavoriteCount"] | scale }}"><i class="glyphicon glyphicon-star"></i></p>
           <p><span>{{ post["FavoriteCount"] | intspace }}</span></p>
         </div>
       {% endif %}
       {% if post["Accepted"] and post["Accepted"] == True %}
         <div class="accepted">
-          <p><span class="glyphicon glyphicon-ok"></span></p>
+          <p><i class="glyphicon glyphicon-ok"></i></p>
         </div>
       {% endif %}
     </div>
