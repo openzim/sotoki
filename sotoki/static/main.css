@@ -24,7 +24,7 @@ p.description {
 	width:60%;
     background: white;
 	border: 1px solid grey;
-	border-radius: 15px;
+	border-radius: 8px;
 	padding:10px;
 }
 
@@ -34,7 +34,7 @@ p.description {
 	color: #FFF;
 	margin-bottom: 5px;
 	border: 1px solid #000;
-	border-radius: 10px;
+	border-radius: 8px;
 	padding-left: 10px;
 	padding-right: 10px;
 	margin-right: 20px;
@@ -62,7 +62,7 @@ a.button {
 	padding:10px;
 	margin-right:20px;
 	background-color: white;
-	border-radius:15px;
+	border-radius:8px;
 	display:inline-block;
 	font-weight: bold;
 }
@@ -102,7 +102,7 @@ a.button {
     padding: 15px;
     margin-bottom: 15px;
 	background-color: white;
-	border-radius: 15px;
+	border-radius: 8px;
 }
 
 #question .post {
@@ -183,7 +183,7 @@ a.button {
 .tagsblob {
     background: white;
 	border: 1px solid grey;
-	border-radius: 15px;
+	border-radius: 8px;
 	padding:10px;
 }
 
@@ -197,7 +197,7 @@ a.button {
     color: #333;
     padding: 10px;
     border: 1px solid grey;
-    border-radius: 15px;
+    border-radius: 8px;
 }	
 
 /** author **/
@@ -252,7 +252,7 @@ a.button {
     padding: 5px;
     margin-bottom: 5px;
 	background-color: #f0f0f0;
-	border-radius: 10px;
+	border-radius: 8px;
 	margin-bottom: 10px;
 }
 
@@ -269,7 +269,7 @@ a.button {
     text-align: center;
 	font-weight: bold;
 	color: white;
-	border-radius: 10px;
+	border-radius: 8px;
 	margin-right:10px;
 	padding-left: 3px;
     padding-right: 3px;
@@ -301,7 +301,7 @@ a.button {
 .tag p.question {
     padding: 15px;
 	background-color:white;
-	border-radius:15px;
+	border-radius:8px;
 	padding-bottom: 20px;
 }
 
@@ -339,7 +339,7 @@ a.button {
 	background-color: white;
     padding-top: 10px;
 	padding-bottom: 10px;
-    border-radius: 15px;
+    border-radius: 8px;
 }
 
 .tags > div.container ul > li {
@@ -362,7 +362,7 @@ a.button {
 
 .metadata {
 	padding: 20px;
-	border-radius: 15px;
+	border-radius: 8px;
 	background-color: white;
 	margin-bottom: 15px;
 }
