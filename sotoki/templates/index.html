@@ -4,32 +4,27 @@
 
 {% block body %}
   <div class="row">
-  <a href="{{ rooturl }}/index.html"><img src="{{ rooturl }}/static/img/se-logo.png" class=sclogo></a>
+  <img src = "{{ rooturl }}/favicon.png" class=selogo />
     <h2 class="title">{{ title }} <small>by {{ publisher }}</small></h2>
     <p class=description>{{ description }}</p>
    </div>
   <div class="row">
   <div class="col-md-8 tag indexQuestions">
-<h3 class="title">Most popular questions</h3>
+<h3 class="title"><i class="glyphicon glyphicon-question-sign"></i> Most popular questions</h3>
 {% for question in questions %}
         <p class="question"><span class="score {{ question["Score"] | scale }}">{{ question["Score"] }}</span> <a href="{{ rooturl }}/question/{{ question["filepath"] }}.html">{{ question["Title"] }}</a> <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
 {% endfor %}
 
 </div>
   <div class="col-md-4 tags indexTags">
-  <h3 class="title">Tags</h3>
+  <h3 class="title"><i class="glyphicon glyphicon-tags"></i> Tags</h3>
   <div class=tagsblob>
     <ul>
-      {% set numbertags = 0 %}
       {% for tag in tags %}
-         {% set numbertags = numbertags + 1 %}
-         {% if (numbertags >= 100) : %} 
-	  {% else %}
         <li><a href="{{ rooturl }}/tag/{{ tag["TagUrl"] }}/1.html">{{ tag["TagName"] }}</a></li>
-         {% endif %}
       {% endfor %}
     </ul>
-     <a href = "{{ rooturl }}/alltags.html" class=button>All tags</a>
+     <a href = "{{ rooturl }}/alltags.html" class=button><i class="glyphicon glyphicon-tags"></i> &nbsp; All tags</a>
      </div>
 </div>
   </div>

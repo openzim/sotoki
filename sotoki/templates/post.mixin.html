@@ -3,24 +3,24 @@
     <div class="reputation">
       {% if post["Score"] >= 0 %}
         <div class="score">
-          <p><span class="glyphicon glyphicon-triangle-top {{ post["Score"] | scale }}"></span></p>
+          <p><i class="glyphicon glyphicon-triangle-top {{ post["Score"] | scale }}"></i></p>
           <p>{{ post["Score"] | intspace }}</p>
         </div>
       {% else %}
         <div class="score">
           <p>{{ post["Score"] | intspace }}</p>
-          <p><span class="glyphicon glyphicon-triangle-bottom {{ post["Score"] | scale }}"></span></p>
+          <p><i class="glyphicon glyphicon-triangle-bottom {{ post["Score"] | scale }}"></i></p>
         </div>
       {% endif %}
       {% if post["FavoriteCount"] %}
         <div>
-          <p class="favorites {{ post["FavoriteCount"] | scale }}"><span class="glyphicon glyphicon-star"></span></p>
+          <p class="favorites {{ post["FavoriteCount"] | scale }}"><i class="glyphicon glyphicon-star"></i></p>
           <p><span>{{ post["FavoriteCount"] | intspace }}</span></p>
         </div>
       {% endif %}
       {% if post["Accepted"] and post["Accepted"] == True %}
         <div class="accepted">
-          <p><span class="glyphicon glyphicon-ok"></span></p>
+          <p><i class="glyphicon glyphicon-ok"></i></p>
         </div>
       {% endif %}
     </div>
@@ -31,7 +31,7 @@
     <div class="tags">
       <ul>
         {% for tag in post["Tags"] %}
-          <li><a href="{{ rooturl }}/tag/{{ tag }}/1.html">{{ tag }}</a></li>
+          <li><a href="{{ rooturl }}/tag/{{ tag }}/1.html"><i class="glyphicon glyphicon-tag"></i> {{ tag }}</a></li>
         {% endfor %}
       </ul>
     </div>
@@ -39,16 +39,14 @@
   {% if post["OwnerUserId"] %}
     <div class="author">
       <div>
-        <p>asked <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
-        {% if post["OwnerUserId"]["Path"] %}<a class="profile" href="../user/{{ post["OwnerUserId"]["Path"] }}.html"> {% endif %}
           <div> 
-{% if post["OwnerUserId"]["Id"] %}<img src="../static/identicon/{{ post["OwnerUserId"]["Id"] }}.png" style="width:32px; height:32px;" /> {% endif %}
-          </div> 
-          <div>
-            <p>{{ post["OwnerUserId"]["DisplayName"] }}</p>
-            <p>{{ post["OwnerUserId"]["Reputation"] | intspace }}</p>
+                {% if post["OwnerUserId"]["Path"] %}<a class="profile" href="../user/{{ post["OwnerUserId"]["Path"] }}.html"> {% endif %}
+                {% if post["OwnerUserId"]["Id"] %}<img src="../static/identicon/{{ post["OwnerUserId"]["Id"] }}.png" /> {% endif %}
+                <p>{{ post["OwnerUserId"]["DisplayName"] }}</p>
+                {% if post["OwnerUserId"]["Path"] %}</a>{% endif %}   
+                <p>Posted <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
+                <p>Reputation: {{ post["OwnerUserId"]["Reputation"] | intspace }}</p>
           </div>
-{% if post["OwnerUserId"]["Path"] %}</a>{% endif %}
       </div>
     </div>
   {% endif %} 

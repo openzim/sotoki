@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block bodyclass %}tags{% endblock %}
+
+{% block body %}
+  <div class="row">
+    <h2 class="title"><i class="glyphicon glyphicon-tags"></i> All tags of {{ title }}</h2>
+  </div>
+  <div class="row">
+    <ul>
+      {% for tag in tags %}
+        <li><a href="{{ rooturl }}/tag/{{ tag["TagUrl"] }}/1.html">{{ tag["TagName"] }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+  <script src="{{ rooturl }}/static/main.js"></script>
+  <div id="footer"></div>
+{% endblock %}
+

@@ -292,7 +292,7 @@ def some_questions(templates, output, title, publisher, question, template_name,
 
 class TagsRender(handler.ContentHandler):
 
-    def __init__(self, templates, output, title, publisher, dump, cores, cursor, conn, deflate, tag_depth):
+    def __init__(self, templates, output, title, publisher, dump, cores, cursor, conn, deflate, tag_depth,description):
         # index page
         self.templates=templates
         self.output=output
@@ -303,6 +303,7 @@ class TagsRender(handler.ContentHandler):
         self.cursor=cursor
         self.conn=conn
         self.deflate=deflate
+        self.description=description
         self.tag_depth=tag_depth
         self.tags = []
         sql="CREATE INDEX index_tag ON questiontag (Tag)"
@@ -314,9 +315,33 @@ class TagsRender(handler.ContentHandler):
                 self.tags.append({'TagUrl': urllib.quote(attrs["TagName"]), 'TagName': attrs["TagName"], 'nb_post': int(attrs["Count"])})
 
     def endDocument(self):
+        sql = "SELECT * FROM questiontag ORDER BY Score DESC LIMIT 400"
+        questions = self.cursor.execute(sql)
+        some_questions=questions.fetchmany(400)
+        new_questions = []
+        questionsids = []
+        for question in some_questions:
+                question["filepath"] = page_url(question["QId"] , question["Title"])
+                question["Title"] = cgi.escape(question["Title"])
+                if question["QId"] not in questionsids:
+                        questionsids.append(question["QId"])
+                        new_questions.append(question)
         jinja(
             os.path.join(self.output, 'index.html'),
-            'tags.html',
+            'index.html',
+            self.templates,
+            False,
+            self.deflate,
+            tags=sorted(self.tags[:200], key=lambda k: k['nb_post'], reverse=True),
+            rooturl=".",
+            questions=new_questions[:50],
+            description=self.description,
+            title=self.title,
+            publisher=self.publisher,
+        )
+        jinja(
+            os.path.join(self.output, 'alltags.html'),
+            'alltags.html',
             self.templates,
             False,
             self.deflate,
@@ -353,6 +378,10 @@ class TagsRender(handler.ContentHandler):
                 for question in some_questions:
                     question["filepath"] = page_url(question["QId"] , question["Title"])
                     question["Title"] = cgi.escape(question["Title"])
+                if (page != 1) :
+                        hasprevious = True
+                else:
+                        hasprevious = False
                 jinja(
                     fullpath,
                     'tag.html',
@@ -365,6 +394,8 @@ class TagsRender(handler.ContentHandler):
                     rooturl="../..",
                     hasnext=bool(offset),
                     next=page + 1,
+                    hasprevious=hasprevious,
+                    previous=page - 1,
                     title=self.title,
                     publisher=self.publisher,
                 )
@@ -876,7 +907,7 @@ def create_zims(title, publisher, description,redirect_file,domain,lang_input, z
 
 
 def create_zim(static_folder, zim_path, title, description, lang_input, publisher, creator,redirect_file, noindex):
-    print "\tWritting ZIM for {}".format(title)
+    print "\tWriting ZIM for {}".format(title)
     context = {
         'languages': lang_input,
         'title': title,
@@ -1037,7 +1068,7 @@ def run():
 
     #Generate tags !
     parser = make_parser()
-    parser.setContentHandler(TagsRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,tag_depth))
+    parser.setContentHandler(TagsRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,tag_depth,description))
     parser.parse(os.path.join(dump, "Tags.xml"))
     conn.close()
     # copy static
