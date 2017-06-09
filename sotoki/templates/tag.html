@@ -12,12 +12,14 @@
         <p class="question"><span class="score {{ question["Score"] | scale }}">{{ question["Score"] }}</span> <a href="{{ rooturl }}/question/{{ question["filepath"] }}.html">{{ question["Title"] }}</a> <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
       {% endfor %}
         <div class="pagination">
+        <p>
       {% if hasprevious %}
-          <p><a href="{{previous}}.html" class=button><i class="glyphicon glyphicon-chevron-left"></i> Previous</a></p>
+          <a href="{{previous}}.html" class=button><i class="glyphicon glyphicon-chevron-left"></i> Previous</a>
       {% endif %}
       {% if hasnext %}
-          <p><a href="{{next}}.html" class=button>Next <i class="glyphicon glyphicon-chevron-right"></i></a></p>
+          <a href="{{next}}.html" class=button>Next <i class="glyphicon glyphicon-chevron-right"></i></a>
       {% endif %}
+       </p>
         </div>
     </div>
     <div class="col-md-4"></div>
