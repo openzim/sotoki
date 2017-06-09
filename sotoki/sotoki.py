@@ -332,7 +332,7 @@ class TagsRender(handler.ContentHandler):
             self.templates,
             False,
             self.deflate,
-            tags=sorted(self.tags[:100], key=lambda k: k['nb_post'], reverse=True),
+            tags=sorted(self.tags[:200], key=lambda k: k['nb_post'], reverse=True),
             rooturl=".",
             questions=new_questions[:50],
             description=self.description,
