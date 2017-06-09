@@ -78,7 +78,7 @@ from itertools import chain
 #########################
 class QuestionRender(handler.ContentHandler):
 
-    def __init__(self, templates, output, title, publisher, dump, cores, cursor,conn, deflate,site_url, redirect_file,domain):
+    def __init__(self, templates, output, title, publisher, dump, cores, cursor,conn, deflate,site_url, redirect_file,domain, mathjax):
         self.templates=templates
         self.output=output
         self.title=title
@@ -100,6 +100,7 @@ class QuestionRender(handler.ContentHandler):
         self.workers = []
         self.cores=cores
         self.conn=conn
+        self.mathjax=mathjax
         for i in range(self.cores): 
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
@@ -226,7 +227,7 @@ class QuestionRender(handler.ContentHandler):
             for ans in self.answers:
                 self.f_redirect.write("A/answer/" + str(ans["Id"]) + ".html\tAnswer " + str(ans["Id"]) + "\tquestion/" + self.post["Id"] + ".html\n")
             self.f_redirect.write("A/question/" + page_url( self.post["Id"], self.post["Title"]) +".html\tQuestion " + str(self.post["Id"]) + "\tquestion/" + self.post["Id"] + ".html\n")
-            data_send = [ some_questions, self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.deflate, self.site_url, self.domain ]
+            data_send = [ some_questions, self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.deflate, self.site_url, self.domain, self.mathjax]
             self.request_queue.put(data_send)
             #some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
             #Reset element
@@ -245,7 +246,7 @@ class QuestionRender(handler.ContentHandler):
             i.join()
         self.f_redirect.close()
 
-def some_questions(templates, output, title, publisher, question, template_name, deflate,site_url,domain):
+def some_questions(templates, output, title, publisher, question, template_name, deflate,site_url,domain, mathjax):
     try:
         question["Score"] = int(question["Score"])
         if question.has_key("answers"):
@@ -277,6 +278,7 @@ def some_questions(templates, output, title, publisher, question, template_name,
                 title=title,
                 publisher=publisher,
                 site_url=site_url,
+                mathjax=mathjax,
                 )
         except Exception, e:
             print ' * failed to generate: %s' % filename
@@ -292,7 +294,7 @@ def some_questions(templates, output, title, publisher, question, template_name,
 
 class TagsRender(handler.ContentHandler):
 
-    def __init__(self, templates, output, title, publisher, dump, cores, cursor, conn, deflate, tag_depth,description):
+    def __init__(self, templates, output, title, publisher, dump, cores, cursor, conn, deflate, tag_depth,description, mathjax):
         # index page
         self.templates=templates
         self.output=output
@@ -305,6 +307,7 @@ class TagsRender(handler.ContentHandler):
         self.deflate=deflate
         self.description=description
         self.tag_depth=tag_depth
+        self.mathjax=mathjax
         self.tags = []
         sql="CREATE INDEX index_tag ON questiontag (Tag)"
         self.cursor.execute(sql)
@@ -338,6 +341,7 @@ class TagsRender(handler.ContentHandler):
             description=self.description,
             title=self.title,
             publisher=self.publisher,
+            mathjax=self.mathjax,
         )
         jinja(
             os.path.join(self.output, 'alltags.html'),
@@ -349,6 +353,7 @@ class TagsRender(handler.ContentHandler):
             rooturl=".",
             title=self.title,
             publisher=self.publisher,
+            mathjax=self.mathjax,
         )
         # tag page
         print "Render tag page"
@@ -398,6 +403,7 @@ class TagsRender(handler.ContentHandler):
                     previous=page - 1,
                     title=self.title,
                     publisher=self.publisher,
+                    mathjax=self.mathjax,
                 )
                 page += 1
 
@@ -407,7 +413,7 @@ class TagsRender(handler.ContentHandler):
 #########################
 class UsersRender(handler.ContentHandler):
 
-    def __init__(self, templates, output, title, publisher, dump, cores, cursor, conn, deflate, site_url,redirect_file):
+    def __init__(self, templates, output, title, publisher, dump, cores, cursor, conn, deflate, site_url,redirect_file, mathjax):
         self.identicon_path = os.path.join(output, 'static', 'identicon')
         self.templates=templates
         self.output=output
@@ -419,6 +425,7 @@ class UsersRender(handler.ContentHandler):
         self.conn=conn
         self.deflate=deflate
         self.site_url=site_url
+        self.mathjax=mathjax
         self.id=0
         if not os.path.exists(self.identicon_path):
             os.makedirs(self.identicon_path)
@@ -473,7 +480,7 @@ class UsersRender(handler.ContentHandler):
             sql = "INSERT INTO users(id, DisplayName, Reputation) VALUES(?, ?, ?)"
             self.cursor.execute(sql, (int(user["Id"]),  user["DisplayName"], user["Reputation"]))
             self.f_redirect.write("A/user/" + page_url(user["Id"], user["DisplayName"]) +".html\tUser " + slugify(user["DisplayName"]) + "\tuser/" + user["Id"] + ".html\n")
-            data_send = [some_user, user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.deflate, self.title]
+            data_send = [some_user, user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.deflate, self.title, self.mathjax]
             self.request_queue.put(data_send)
            
 
@@ -487,7 +494,7 @@ class UsersRender(handler.ContentHandler):
             i.join()
         self.f_redirect.close()
 
-def some_user(user,generator,templates, output, publisher, site_url, deflate, title):
+def some_user(user,generator,templates, output, publisher, site_url, deflate, title, mathjax):
     filename = user["Id"] + ".png"
     fullpath = os.path.join(output, 'static', 'identicon', filename)
     if not os.path.exists(fullpath):
@@ -525,6 +532,7 @@ def some_user(user,generator,templates, output, publisher, site_url, deflate, ti
         rooturl="..",
         publisher=publisher,
         site_url=site_url,
+        mathjax=mathjax,
     )
 
 #########################
@@ -1026,12 +1034,7 @@ def run():
         else:
             download_dump(domain, dump)
 
-
-    if use_mathjax(domain):
-        templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini_mathjax')
-    else:
-        #templates = 'templates'
-        templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini')
+    templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini')
 
     #prepare db
     conn = sqlite3.connect(db) #can be :memory: for small dump  
@@ -1056,26 +1059,25 @@ def run():
 
     #Generate users !
     parser = make_parser()
-    parser.setContentHandler(UsersRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file))
+    parser.setContentHandler(UsersRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file,use_mathjax(domain)))
     parser.parse(os.path.join(dump, "usersbadges.xml"))
     conn.commit()
 
     #Generate question !
     parser = make_parser()
-    parser.setContentHandler(QuestionRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file,domain))
+    parser.setContentHandler(QuestionRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file,domain,use_mathjax(domain)))
     parser.parse(os.path.join(dump, "prepare.xml"))
     conn.commit()
 
     #Generate tags !
     parser = make_parser()
-    parser.setContentHandler(TagsRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,tag_depth,description))
+    parser.setContentHandler(TagsRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,tag_depth,description,use_mathjax(domain)))
     parser.parse(os.path.join(dump, "Tags.xml"))
     conn.close()
     # copy static
     if use_mathjax(domain):
-        copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static'), os.path.join(output, 'static_mathjax'))
-    else:
-        copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static'), os.path.join(output, 'static'))
+        copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static_mathjax'), os.path.join(output, 'static'))
+    copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static'), os.path.join(output, 'static'))
     if not arguments['--nozim']:
         done=create_zims(title, publisher, description, redirect_file, domain, lang_input,arguments["--zimpath"], output, arguments["--nofulltextindex"])
         if done == True:

@@ -14,6 +14,12 @@
     <script src="{{ rooturl }}/static/jquery-2.1.4.min.js"></script>
     {# <script src="{{ rooturl }}/static/bootstrap.min.js"></script> #}
     <script src="{{ rooturl }}/static/moment.js"></script>
+    {% if mathjax %}
+      <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({"HTML-CSS": { preferredFont: "TeX", availableFonts: ["STIX","TeX"], linebreaks: { automatic:true }, EqnChunk: (MathJax.Hub.Browser.isMobile ? 10 : 50) }, tex2jax: { inlineMath: [ ["$", "$"], ["\\\\(","\\\\)"] ], displayMath: [ ["$$","$$"], ["\\[", "\\]"] ], processEscapes: true, ignoreClass: "tex2jax_ignore|dno" }, TeX: { noUndefined: { attributes: { mathcolor: "red", mathbackground: "#FFEEEE", mathsize: "90%" } }, Macros: { href: "{}" } }, messageStyle: "none" });
+      </script>
+      <script src="{{ rooturl }}/static/MathJax.js?config=TeX-AMS_HTML-full"></script>
+    {% endif %}
   </head>
   <body class="{% block bodyclass %}{% endblock %}">
     <div class="container">
