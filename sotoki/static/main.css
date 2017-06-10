@@ -96,6 +96,7 @@ a.button {
     margin: 5px;
     padding: 10px;
     border: 1px solid #B2CCD7;
+    border-radius: 8px;
 }
 
 /* post */
