@@ -918,9 +918,9 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
     print "\tWriting ZIM for {}".format(title)
     context = {
         'languages': lang_input,
-        'title': title,
-        'description': description,
-        'creator': creator,
+        'title': title.encode("utf-8"),
+        'description': description.encode("utf-8"),
+        'creator': creator.encode("utf-8"),
         'publisher': publisher,
         'home': 'index.html',
         'favicon': 'favicon.png',
@@ -930,17 +930,9 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
     }
 
     if noindex:
-        cmd = ('zimwriterfs --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" '
-           '--language="{languages}" --title="{title}" '
-           '--description="{description}" '
-           '--creator="{creator}" --publisher="{publisher}" "{static}" "{zim}"'
-           .format(**context))
+        cmd = ('zimwriterfs --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" --language="{languages}" --title="{title}" --description="{description}" --creator="{creator}" --publisher="{publisher}" "{static}" "{zim}"'.format(**context))
     else:
-        cmd = ('zimwriterfs --withFullTextIndex --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" '
-           '--language="{languages}" --title="{title}" '
-           '--description="{description}" '
-           '--creator="{creator}" --publisher="{publisher}" "{static}" "{zim}"'
-           .format(**context))
+        cmd = ('zimwriterfs --withFullTextIndex --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" --language="{languages}" --title="{title}" --description="{description}" --creator="{creator}" --publisher="{publisher}" "{static}" "{zim}"'.format(**context))
     print cmd
 
     if exec_cmd(cmd) == 0:
@@ -980,6 +972,7 @@ def run():
         dump=os.path.join("work", re.sub("\.", "_", domain))
     else:
         dump= arguments['--directory']
+
     output = os.path.join(dump, 'output')
     db = os.path.join(dump, 'se-dump.db')
     redirect_file = os.path.join(dump, 'redirection.csv')
