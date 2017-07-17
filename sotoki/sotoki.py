@@ -909,7 +909,6 @@ def create_zims(title, publisher, description,redirect_file,domain,lang_input, z
         )
         zim_path = os.path.join("work/", "{title}_{lang}_all_{date}.zim".format(**zim_path))
 
-    title = title.replace("-", " ")
     creator = title
     return create_zim(html_dir, zim_path, title, description, languageToAlpha3(lang_input), publisher, creator,redirect_file, noindex)
 
