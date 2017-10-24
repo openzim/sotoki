@@ -678,10 +678,7 @@ def interne_link(text_post, domain,id):
                 a.attrib['href']="../tag/" + tag + ".html"
             elif link[0:2] == "a/":
                 qans_split = link.split("/")
-                if len(qans_split) == 3:
-                    qans=link.split("/")[2]
-                else:
-                    qans=link.split("/")[1]
+                qans=qans_split[1]
                 a.attrib['href']="../answer/" + qans + ".html#a" + qans
             elif link[0:6] == "users/":
                 userid=link.split("/")[1]
