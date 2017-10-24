@@ -3,7 +3,7 @@ from pip.req import parse_requirements
 
 setup(
     name='sotoki',
-        version='0.8.2',
+        version='0.8.3',
     description="Make zimfile from stackexchange dump",
     long_description=open('README.md').read(),
     author='dattaz',
