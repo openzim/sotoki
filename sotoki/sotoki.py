@@ -315,7 +315,8 @@ class TagsRender(handler.ContentHandler):
     def startElement(self, name, attrs): #For each element
         if name == "row": #If it's a tag (row in tags.xml)
             if attrs["Count"] != "0":
-                self.tags.append({'TagUrl': urllib.quote(attrs["TagName"]), 'TagName': attrs["TagName"], 'nb_post': int(attrs["Count"])})
+                print(attrs["TagName"])
+                self.tags.append({'TagUrl': urllib.quote(attrs["TagName"].encode("utf-8")), 'TagName': attrs["TagName"], 'nb_post': int(attrs["Count"])})
 
     def endDocument(self):
         sql = "SELECT * FROM questiontag ORDER BY Score DESC LIMIT 400"
@@ -368,9 +369,9 @@ class TagsRender(handler.ContentHandler):
             offset = 0
             page = 1
             if self.tag_depth==-1:
-                questions = self.cursor.execute("SELECT * FROM questiontag WHERE Tag = ? ORDER BY Score DESC", (str(tag),))
+                questions = self.cursor.execute("SELECT * FROM questiontag WHERE Tag = ? ORDER BY Score DESC", (unicode(tag),))
             else:
-                questions = self.cursor.execute("SELECT * FROM questiontag WHERE Tag = ? ORDER BY Score DESC LIMIT ?", (str(tag), self.tag_depth,))
+                questions = self.cursor.execute("SELECT * FROM questiontag WHERE Tag = ? ORDER BY Score DESC LIMIT ?", (unicode(tag), self.tag_depth,))
 
             while offset != None:
                 fullpath = os.path.join(tagpath, '%s.html' % page)
