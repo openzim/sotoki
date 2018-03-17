@@ -912,7 +912,7 @@ def create_zims(title, publisher, description,redirect_file,domain,lang_input, z
 
 
 def create_zim(static_folder, zim_path, title, description, lang_input, publisher, creator,redirect_file, noindex):
-    print "\tWriting ZIM for {}".format(title)
+    print "\tWriting ZIM for {}".format(title.encode("utf-8"))
     context = {
         'languages': lang_input,
         'title': title.encode("utf-8"),
