@@ -902,7 +902,7 @@ def create_zims(title, publisher, description,redirect_file,domain,lang_input, z
     if zim_path == None:
         zim_path = dict(
             title=domain.lower(),
-            lang=lang_input,
+            lang=languageToAlpha3(lang_input),
             date=datetime.datetime.now().strftime('%Y-%m')
         )
         zim_path = os.path.join("work/", "{title}_{lang}_all_{date}.zim".format(**zim_path))
