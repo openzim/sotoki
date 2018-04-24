@@ -907,11 +907,12 @@ def create_zims(title, publisher, description,redirect_file,domain,lang_input, z
         )
         zim_path = os.path.join("work/", "{title}_{lang}_all_{date}.zim".format(**zim_path))
 
+    name = "kiwix." + domain.lower()
     creator = title
-    return create_zim(html_dir, zim_path, title, description, languageToAlpha3(lang_input), publisher, creator,redirect_file, noindex)
+    return create_zim(html_dir, zim_path, title, description, languageToAlpha3(lang_input), publisher, creator,redirect_file, noindex, name)
 
 
-def create_zim(static_folder, zim_path, title, description, lang_input, publisher, creator,redirect_file, noindex):
+def create_zim(static_folder, zim_path, title, description, lang_input, publisher, creator,redirect_file, noindex, name):
     print "\tWriting ZIM for {}".format(title.encode("utf-8"))
     context = {
         'languages': lang_input,
@@ -925,7 +926,7 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
         'zim': zim_path,
         'redirect_csv' : redirect_file,
         'tags' : "stackexchange",
-        'name' : "kiwix.+title.encode("utf-8")
+        'name' : name
     }
 
     if noindex:
