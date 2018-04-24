@@ -923,13 +923,15 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
         'favicon': 'favicon.png',
         'static': static_folder,
         'zim': zim_path,
-        'redirect_csv' : redirect_file
+        'redirect_csv' : redirect_file,
+        'tags' : "stackexchange",
+        'name' : "kiwix.+title.encode("utf-8")
     }
 
     if noindex:
-        cmd = ('zimwriterfs --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" --language="{languages}" --title="{title}" --description="{description}" --creator="{creator}" --publisher="{publisher}" "{static}" "{zim}"'.format(**context))
+        cmd = ('zimwriterfs --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" --language="{languages}" --title="{title}" --description="{description}" --creator="{creator}" --publisher="{publisher}" --tags="{tags}" --name="{name}" "{static}" "{zim}"'.format(**context))
     else:
-        cmd = ('zimwriterfs --withFullTextIndex --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" --language="{languages}" --title="{title}" --description="{description}" --creator="{creator}" --publisher="{publisher}" "{static}" "{zim}"'.format(**context))
+        cmd = ('zimwriterfs --withFullTextIndex --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" --language="{languages}" --title="{title}" --description="{description}" --creator="{creator}" --publisher="{publisher}" --tags="{tags}" --name="{name}" "{static}" "{zim}"'.format(**context))
     print cmd
 
     if exec_cmd(cmd) == 0:
