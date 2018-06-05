@@ -41,7 +41,7 @@
       <div>
           <div> 
                 {% if post["OwnerUserId"]["Path"] %}<a class="profile" href="../user/{{ post["OwnerUserId"]["Path"] }}.html"> {% endif %}
-                {% if post["OwnerUserId"]["Id"] %}<img src="../static/identicon/{{ post["OwnerUserId"]["Id"] }}.png" /> {% endif %}
+                {% if post["OwnerUserId"]["Id"] %} {% if not nopic %}<img src="../static/identicon/{{ post["OwnerUserId"]["Id"] }}.png" /> {% else %} <svg class="genprofilepic" width="85" height="85" data-jdenticon-value="{{ post["OwnerUserId"]["Id"] }}"></svg> {% endif %} {% endif %}
                 <p>{{ post["OwnerUserId"]["DisplayName"] }}</p>
                 {% if post["OwnerUserId"]["Path"] %}</a>{% endif %}   
                 <p>Posted <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>

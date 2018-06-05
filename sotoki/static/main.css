@@ -218,7 +218,7 @@ a.button {
 	width: 45%;
 }
 
-.post .author img {
+.post .author img, .post .author .genprofilepic{
     padding: 5px;
 	height:85px;
 	width:85px;

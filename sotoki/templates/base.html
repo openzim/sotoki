@@ -12,6 +12,9 @@
     <link rel="stylesheet" href="{{ rooturl }}/static/bootstrap/css/bootstrap-theme.min.css">
     <link rel="stylesheet" href="{{ rooturl }}/static/main.css"/>
     <script src="{{ rooturl }}/static/jquery-2.1.4.min.js"></script>
+    {% if nopic %}
+      <script src="{{ rooturl }}/static/jdenticon-2.1.0.min.js" async></script>
+    {% endif %}
     {# <script src="{{ rooturl }}/static/bootstrap.min.js"></script> #}
     <script src="{{ rooturl }}/static/moment.js"></script>
     {% if mathjax %}

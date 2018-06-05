@@ -3,7 +3,7 @@
 """sotoki.
 
 Usage:
-  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite]
+  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite] [--nopic]
   sotoki (-h | --help)
   sotoki --version
 
@@ -20,6 +20,7 @@ Options:
   --clean-previous         Delete only data from a previous run with --nozim or which failed 
   --nofulltextindex        Dont index content
   --ignoreoldsite          Ignore close site of stackexchange
+  --nopic                  Dont download picture
 """
 import sys
 import datetime
@@ -78,7 +79,7 @@ from itertools import chain
 #########################
 class QuestionRender(handler.ContentHandler):
 
-    def __init__(self, templates, output, title, publisher, dump, cores, cursor,conn, deflate,site_url, redirect_file,domain, mathjax):
+    def __init__(self, templates, output, title, publisher, dump, cores, cursor,conn, deflate,site_url, redirect_file,domain, mathjax,nopic):
         self.templates=templates
         self.output=output
         self.title=title
@@ -101,6 +102,7 @@ class QuestionRender(handler.ContentHandler):
         self.cores=cores
         self.conn=conn
         self.mathjax=mathjax
+        self.nopic=nopic
         for i in range(self.cores): 
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
@@ -227,7 +229,7 @@ class QuestionRender(handler.ContentHandler):
             for ans in self.answers:
                 self.f_redirect.write("A\tanswer/" + str(ans["Id"]) + ".html\tAnswer " + str(ans["Id"]) + "\tquestion/" + self.post["Id"] + ".html\n")
             self.f_redirect.write("A\tquestion/" + page_url( self.post["Id"], self.post["Title"]) +".html\tQuestion " + str(self.post["Id"]) + "\tquestion/" + self.post["Id"] + ".html\n")
-            data_send = [ some_questions, self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.deflate, self.site_url, self.domain, self.mathjax]
+            data_send = [ some_questions, self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.deflate, self.site_url, self.domain, self.mathjax, self.nopic]
             self.request_queue.put(data_send)
             #some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
             #Reset element
@@ -246,7 +248,7 @@ class QuestionRender(handler.ContentHandler):
             i.join()
         self.f_redirect.close()
 
-def some_questions(templates, output, title, publisher, question, template_name, deflate,site_url,domain, mathjax):
+def some_questions(templates, output, title, publisher, question, template_name, deflate,site_url,domain, mathjax,nopic):
     try:
         question["Score"] = int(question["Score"])
         if question.has_key("answers"):
@@ -254,14 +256,14 @@ def some_questions(templates, output, title, publisher, question, template_name,
             question["answers"] = sorted(question["answers"], key=lambda k: k['Accepted'],reverse=True) #sorted is stable so accepted will be always first, then other question will be sort in ascending order
             for ans in question["answers"]:
                 ans["Body"]=interne_link(ans["Body"], domain, question["Id"])
-                ans["Body"]=image(ans["Body"],output)
+                ans["Body"]=image(ans["Body"],output,nopic)
                 if ans.has_key("comments"):
                     for comment in ans["comments"]:
                         comment["Text"]=interne_link(comment["Text"], domain,question["Id"])
 
         filepath = os.path.join(output, 'question', question["filename"])
         question["Body"] = interne_link(question["Body"], domain, question["Id"])
-        question["Body"] = image(question["Body"],output)
+        question["Body"] = image(question["Body"],output,nopic)
         if question.has_key("comments"):
             for comment in question["comments"]:
                 comment["Text"]=interne_link(comment["Text"], domain,question["Id"])
@@ -279,6 +281,7 @@ def some_questions(templates, output, title, publisher, question, template_name,
                 publisher=publisher,
                 site_url=site_url,
                 mathjax=mathjax,
+                nopic=nopic,
                 )
         except Exception, e:
             print ' * failed to generate: %s' % filename
@@ -414,7 +417,7 @@ class TagsRender(handler.ContentHandler):
 #########################
 class UsersRender(handler.ContentHandler):
 
-    def __init__(self, templates, output, title, publisher, dump, cores, cursor, conn, deflate, site_url,redirect_file, mathjax):
+    def __init__(self, templates, output, title, publisher, dump, cores, cursor, conn, deflate, site_url,redirect_file, mathjax, nopic):
         self.identicon_path = os.path.join(output, 'static', 'identicon')
         self.templates=templates
         self.output=output
@@ -427,6 +430,7 @@ class UsersRender(handler.ContentHandler):
         self.deflate=deflate
         self.site_url=site_url
         self.mathjax=mathjax
+        self.nopic=nopic
         self.id=0
         if not os.path.exists(self.identicon_path):
             os.makedirs(self.identicon_path)
@@ -481,7 +485,7 @@ class UsersRender(handler.ContentHandler):
             sql = "INSERT INTO users(id, DisplayName, Reputation) VALUES(?, ?, ?)"
             self.cursor.execute(sql, (int(user["Id"]),  user["DisplayName"], user["Reputation"]))
             self.f_redirect.write("A\tuser/" + page_url(user["Id"], user["DisplayName"]) +".html\tUser " + slugify(user["DisplayName"]) + "\tuser/" + user["Id"] + ".html\n")
-            data_send = [some_user, user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.deflate, self.title, self.mathjax]
+            data_send = [some_user, user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.deflate, self.title, self.mathjax, self.nopic]
             self.request_queue.put(data_send)
            
 
@@ -495,10 +499,10 @@ class UsersRender(handler.ContentHandler):
             i.join()
         self.f_redirect.close()
 
-def some_user(user,generator,templates, output, publisher, site_url, deflate, title, mathjax):
+def some_user(user,generator,templates, output, publisher, site_url, deflate, title, mathjax, nopic):
     filename = user["Id"] + ".png"
     fullpath = os.path.join(output, 'static', 'identicon', filename)
-    if not os.path.exists(fullpath):
+    if not nopic and not os.path.exists(fullpath):
         try:
             url=user["ProfileImageUrl"]
             ext = os.path.splitext(url.split("?")[0])[1]
@@ -518,7 +522,7 @@ def some_user(user,generator,templates, output, publisher, site_url, deflate, ti
 
     #
     if user.has_key("AboutMe"):
-        user["AboutMe"] = image("<p>" + user["AboutMe"] + "</p>",output)
+        user["AboutMe"] = image("<p>" + user["AboutMe"] + "</p>",output,nopic)
     # generate user profile page
     filename = '%s.html' % user["Id"]
     fullpath = os.path.join(output, 'user', filename)
@@ -534,6 +538,7 @@ def some_user(user,generator,templates, output, publisher, site_url, deflate, ti
         publisher=publisher,
         site_url=site_url,
         mathjax=mathjax,
+        nopic=nopic,
     )
 
 #########################
@@ -688,11 +693,14 @@ def interne_link(text_post, domain,id):
         text_post = html2string(body)
     return text_post
 
-def image(text_post, output):
+def image(text_post, output, nopic):
     images = os.path.join(output, 'static', 'images')
     body = string2html(text_post)
     imgs = body.xpath('//img')
     for img in imgs:
+        if nopic :
+            img.attrib['src']=""
+        else :
             src = img.attrib['src']
             ext = os.path.splitext(src.split("?")[0])[1]
             filename = sha256(src).hexdigest() + ext
@@ -897,7 +905,7 @@ def use_mathjax(domain):
 #     Zim generation    #
 #########################
 
-def create_zims(title, publisher, description,redirect_file,domain,lang_input, zim_path, html_dir, noindex):
+def create_zims(title, publisher, description,redirect_file,domain,lang_input, zim_path, html_dir, noindex,nopic):
     print 'Creating ZIM files'
     if zim_path == None:
         zim_path = dict(
@@ -905,14 +913,20 @@ def create_zims(title, publisher, description,redirect_file,domain,lang_input, z
             lang=languageToAlpha3(lang_input),
             date=datetime.datetime.now().strftime('%Y-%m')
         )
-        zim_path = os.path.join("work/", "{title}_{lang}_all_{date}.zim".format(**zim_path))
+        if nopic:
+            zim_path = os.path.join("work/", "{title}_{lang}_all_{date}_nopic.zim".format(**zim_path))
+        else:
+            zim_path = os.path.join("work/", "{title}_{lang}_all_{date}.zim".format(**zim_path))
 
-    name = "kiwix." + domain.lower()
+    if nopic:
+        name = "kiwix." + domain.lower() + ".nopic"
+    else:
+        name = "kiwix." + domain.lower()
     creator = title
-    return create_zim(html_dir, zim_path, title, description, languageToAlpha3(lang_input), publisher, creator,redirect_file, noindex, name)
+    return create_zim(html_dir, zim_path, title, description, languageToAlpha3(lang_input), publisher, creator,redirect_file, noindex, name,nopic)
 
 
-def create_zim(static_folder, zim_path, title, description, lang_input, publisher, creator,redirect_file, noindex, name):
+def create_zim(static_folder, zim_path, title, description, lang_input, publisher, creator,redirect_file, noindex, name,nopic):
     print "\tWriting ZIM for {}".format(title.encode("utf-8"))
     context = {
         'languages': lang_input,
@@ -928,6 +942,10 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
         'tags' : "stackexchange",
         'name' : name
     }
+    if nopic:
+        tmpfile = tempfile.mkdtemp()
+        os.rename(os.path.join(static_folder,"static","images"),os.path.join(tmpfile,"images"))
+        os.rename(os.path.join(static_folder,"static","identicon"),os.path.join(tmpfile,"identicon"))
 
     if noindex:
         cmd = ('zimwriterfs --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" --language="{languages}" --title="{title}" --description="{description}" --creator="{creator}" --publisher="{publisher}" --tags="{tags}" --name="{name}" "{static}" "{zim}"'.format(**context))
@@ -937,9 +955,17 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
 
     if exec_cmd(cmd) == 0:
         print "Successfuly created ZIM file at {}".format(zim_path)
+        if nopic:
+            os.rename(os.path.join(tmpfile,"images"),os.path.join(static_folder,"static","images"))
+            os.rename(os.path.join(tmpfile,"identicon"),os.path.join(static_folder,"static","identicon"))
+            shutil.rmtree(tmpfile)
         return True
     else:
         print "Unable to create ZIM file :("
+        if nopic:
+            os.rename(os.path.join(tmpfile,"images"),os.path.join(static,"static","images"))
+            os.rename(os.path.join(tmpfile,"identicon"),os.path.join(static,"static","identicon"))
+            shutil.rmtree(tmpfile)
         return False
 
 def run():
@@ -979,8 +1005,6 @@ def run():
 
     deflate = not arguments['--nozim']
 
-    #templates = 'templates'
-    templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini')
     if arguments["--threads"] is not None :
         cores=int(arguments['--threads'])
     else:
@@ -1052,13 +1076,13 @@ def run():
 
     #Generate users !
     parser = make_parser()
-    parser.setContentHandler(UsersRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file,use_mathjax(domain)))
+    parser.setContentHandler(UsersRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file,use_mathjax(domain), arguments["--nopic"]))
     parser.parse(os.path.join(dump, "usersbadges.xml"))
     conn.commit()
 
     #Generate question !
     parser = make_parser()
-    parser.setContentHandler(QuestionRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file,domain,use_mathjax(domain)))
+    parser.setContentHandler(QuestionRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file,domain,use_mathjax(domain), arguments["--nopic"]))
     parser.parse(os.path.join(dump, "prepare.xml"))
     conn.commit()
 
@@ -1072,7 +1096,7 @@ def run():
         copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static_mathjax'), os.path.join(output, 'static'))
     copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static'), os.path.join(output, 'static'))
     if not arguments['--nozim']:
-        done=create_zims(title, publisher, description, redirect_file, domain, lang_input,arguments["--zimpath"], output, arguments["--nofulltextindex"])
+        done=create_zims(title, publisher, description, redirect_file, domain, lang_input,arguments["--zimpath"], output, arguments["--nofulltextindex"], arguments['--nopic'])
         if done == True:
             clean(output,db,redirect_file)
 if __name__ == '__main__':
