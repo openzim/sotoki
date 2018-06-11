@@ -3,7 +3,7 @@
 """sotoki.
 
 Usage:
-  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite] [--nopic]
+  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite] [--nopic] [--no-userprofile]
   sotoki (-h | --help)
   sotoki --version
 
@@ -21,6 +21,7 @@ Options:
   --nofulltextindex        Dont index content
   --ignoreoldsite          Ignore close site of stackexchange
   --nopic                  Dont download picture
+  --no-userprofile         Not include user profile in zim
 """
 import sys
 import datetime
@@ -79,7 +80,7 @@ from itertools import chain
 #########################
 class QuestionRender(handler.ContentHandler):
 
-    def __init__(self, templates, output, title, publisher, dump, cores, cursor,conn, deflate,site_url, redirect_file,domain, mathjax,nopic):
+    def __init__(self, templates, output, title, publisher, dump, cores, cursor,conn, deflate,site_url, redirect_file,domain, mathjax,nopic,nouserprofile):
         self.templates=templates
         self.output=output
         self.title=title
@@ -103,6 +104,7 @@ class QuestionRender(handler.ContentHandler):
         self.conn=conn
         self.mathjax=mathjax
         self.nopic=nopic
+        self.nouserprofile=nouserprofile
         for i in range(self.cores): 
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
@@ -139,7 +141,10 @@ class QuestionRender(handler.ContentHandler):
                 if user != None:
                     tmp["OwnerUserId"] =  dict_to_unicodedict(user)
                     tmp["OwnerUserId"]["Id"] = id
-                    tmp["OwnerUserId"]["Path"] =  page_url(tmp["OwnerUserId"]["Id"], tmp["OwnerUserId"]["DisplayName"])
+                    if self.nouserprofile:
+                        tmp["OwnerUserId"]["Path"] = None
+                    else:
+                        tmp["OwnerUserId"]["Path"] = page_url(tmp["OwnerUserId"]["Id"], tmp["OwnerUserId"]["DisplayName"])
                 else:
                     tmp["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
                     tmp["OwnerUserId"]["Id"] = id
@@ -160,7 +165,10 @@ class QuestionRender(handler.ContentHandler):
                 user=self.cursor.execute("SELECT * FROM users WHERE id = ?", (int(tmp["UserId"]),)).fetchone()
                 if tmp.has_key("UserId") and  user != None :
                     tmp["UserDisplayName"] = dict_to_unicodedict(user)["DisplayName"]
-                    tmp["Path"] =  page_url(tmp["UserId"], tmp["UserDisplayName"])
+                    if self.nouserprofile:
+                        tmp["Path"] = None
+                    else:
+                        tmp["Path"] = page_url(tmp["UserId"], tmp["UserDisplayName"])
                 else:
                     tmp["UserDisplayName"] = u"None"
             else:
@@ -197,7 +205,10 @@ class QuestionRender(handler.ContentHandler):
                 if user != None:
                     self.post["OwnerUserId"] =  dict_to_unicodedict(user)
                     self.post["OwnerUserId"]["Id"] = id
-                    self.post["OwnerUserId"]["Path"] =  page_url(self.post["OwnerUserId"]["Id"], self.post["OwnerUserId"]["DisplayName"])
+                    if self.nouserprofile:
+                        self.post["OwnerUserId"]["Path"] = None
+                    else:
+                        self.post["OwnerUserId"]["Path"] = page_url(self.post["OwnerUserId"]["Id"], self.post["OwnerUserId"]["DisplayName"])
                 else:
                     self.post["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
                     self.post["OwnerUserId"]["Id"] = id
@@ -417,7 +428,7 @@ class TagsRender(handler.ContentHandler):
 #########################
 class UsersRender(handler.ContentHandler):
 
-    def __init__(self, templates, output, title, publisher, dump, cores, cursor, conn, deflate, site_url,redirect_file, mathjax, nopic):
+    def __init__(self, templates, output, title, publisher, dump, cores, cursor, conn, deflate, site_url,redirect_file, mathjax, nopic, nouserprofile):
         self.identicon_path = os.path.join(output, 'static', 'identicon')
         self.templates=templates
         self.output=output
@@ -431,6 +442,7 @@ class UsersRender(handler.ContentHandler):
         self.site_url=site_url
         self.mathjax=mathjax
         self.nopic=nopic
+        self.nouserprofile=nouserprofile
         self.id=0
         if not os.path.exists(self.identicon_path):
             os.makedirs(self.identicon_path)
@@ -484,8 +496,9 @@ class UsersRender(handler.ContentHandler):
             user=self.user
             sql = "INSERT INTO users(id, DisplayName, Reputation) VALUES(?, ?, ?)"
             self.cursor.execute(sql, (int(user["Id"]),  user["DisplayName"], user["Reputation"]))
-            self.f_redirect.write("A\tuser/" + page_url(user["Id"], user["DisplayName"]) +".html\tUser " + slugify(user["DisplayName"]) + "\tuser/" + user["Id"] + ".html\n")
-            data_send = [some_user, user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.deflate, self.title, self.mathjax, self.nopic]
+            if not self.nouserprofile:
+                self.f_redirect.write("A\tuser/" + page_url(user["Id"], user["DisplayName"]) +".html\tUser " + slugify(user["DisplayName"]) + "\tuser/" + user["Id"] + ".html\n")
+            data_send = [some_user, user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.deflate, self.title, self.mathjax, self.nopic, self.nouserprofile]
             self.request_queue.put(data_send)
            
 
@@ -499,7 +512,7 @@ class UsersRender(handler.ContentHandler):
             i.join()
         self.f_redirect.close()
 
-def some_user(user,generator,templates, output, publisher, site_url, deflate, title, mathjax, nopic):
+def some_user(user,generator,templates, output, publisher, site_url, deflate, title, mathjax, nopic, nouserprofile):
     filename = user["Id"] + ".png"
     fullpath = os.path.join(output, 'static', 'identicon', filename)
     if not nopic and not os.path.exists(fullpath):
@@ -521,25 +534,26 @@ def some_user(user,generator,templates, output, publisher, site_url, deflate, ti
                 f.write(identicon)
 
     #
-    if user.has_key("AboutMe"):
-        user["AboutMe"] = image("<p>" + user["AboutMe"] + "</p>",output,nopic)
-    # generate user profile page
-    filename = '%s.html' % user["Id"]
-    fullpath = os.path.join(output, 'user', filename)
-    jinja(
-        fullpath,
-        'user.html',
-        templates,
-        False,
-        deflate,
-        user=user,
-        title=title,
-        rooturl="..",
-        publisher=publisher,
-        site_url=site_url,
-        mathjax=mathjax,
-        nopic=nopic,
-    )
+    if not nouserprofile:
+        if user.has_key("AboutMe"):
+            user["AboutMe"] = image("<p>" + user["AboutMe"] + "</p>",output,nopic)
+        # generate user profile page
+        filename = '%s.html' % user["Id"]
+        fullpath = os.path.join(output, 'user', filename)
+        jinja(
+            fullpath,
+            'user.html',
+            templates,
+            False,
+            deflate,
+            user=user,
+            title=title,
+            rooturl="..",
+            publisher=publisher,
+            site_url=site_url,
+            mathjax=mathjax,
+            nopic=nopic,
+        )
 
 #########################
 #        Tools          #
@@ -1076,13 +1090,13 @@ def run():
 
     #Generate users !
     parser = make_parser()
-    parser.setContentHandler(UsersRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file,use_mathjax(domain), arguments["--nopic"]))
+    parser.setContentHandler(UsersRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file,use_mathjax(domain), arguments["--nopic"],arguments["--no-userprofile"]))
     parser.parse(os.path.join(dump, "usersbadges.xml"))
     conn.commit()
 
     #Generate question !
     parser = make_parser()
-    parser.setContentHandler(QuestionRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file,domain,use_mathjax(domain), arguments["--nopic"]))
+    parser.setContentHandler(QuestionRender(templates, output, title, publisher, dump, cores, cursor, conn, deflate,url,redirect_file,domain,use_mathjax(domain), arguments["--nopic"],arguments["--no-userprofile"]))
     parser.parse(os.path.join(dump, "prepare.xml"))
     conn.commit()
 

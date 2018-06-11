@@ -38,16 +38,14 @@
   {% endif %}
   {% if post["OwnerUserId"] %}
     <div class="author">
-      <div>
           <div> 
                 {% if post["OwnerUserId"]["Path"] %}<a class="profile" href="../user/{{ post["OwnerUserId"]["Path"] }}.html"> {% endif %}
-                {% if post["OwnerUserId"]["Id"] %} {% if not nopic %}<img src="../static/identicon/{{ post["OwnerUserId"]["Id"] }}.png" /> {% else %} <svg class="genprofilepic" width="85" height="85" data-jdenticon-value="{{ post["OwnerUserId"]["Id"] }}"></svg> {% endif %} {% endif %}
+                {% if post["OwnerUserId"]["Id"] %} {% if not nopic %}<img src="../static/identicon/{{ post["OwnerUserId"]["Id"] }}.png" /> {% else %} <div class="genprofilepic"><svg width="65" height="65" data-jdenticon-value="{{ post["OwnerUserId"]["Id"] }}"></svg></div> {% endif %} {% endif %}
                 <p>{{ post["OwnerUserId"]["DisplayName"] }}</p>
                 {% if post["OwnerUserId"]["Path"] %}</a>{% endif %}   
                 <p>Posted <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
                 <p>Reputation: {{ post["OwnerUserId"]["Reputation"] | intspace }}</p>
           </div>
-      </div>
     </div>
   {% endif %} 
   {% if post["ClosedDate"] %}
