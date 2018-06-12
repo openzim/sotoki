@@ -9,12 +9,7 @@ offline (without access to Internet).
 
 ## Getting started
 
-Download the last [stackexchange dump](https://archive.org/details/stackexchange)
-using BitTorrent (only "superuser.com.7z" is necessary) and put it in the Sotoki
-source code root.
 The use of btrfs as a file system is recommended (and required for stackoverflow)
-
-
 
 Install non python dependencies:
 
@@ -44,7 +39,7 @@ pip install sotoki
 
 
 ```
-sotoki [domain of stackechange website] [publisher] [--directory (optional)] [--nozim (optional)]
+sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite] [--nopic] [--no-userprofile]
 
 ```
-
+You can use `sotoki -h` to have more explanation about these options
