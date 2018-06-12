@@ -984,7 +984,7 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
 
 def run():
     try:
-        arguments = docopt(__doc__, version='sotoki 0.8.4')
+        arguments = docopt(__doc__, version='sotoki 0.9')
     except DocoptExit:
             print(__doc__)
             sys.exit()
