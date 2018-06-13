@@ -21,7 +21,7 @@ RUN cd jpegoptim-1.4.4 && ./configure
 RUN cd jpegoptim-1.4.4 && make all install
 
 # Install pngquant
-RUN apt-get install -y libpng16-dev
+RUN apt-get install -y libpng-dev
 RUN wget http://pngquant.org/pngquant-2.9.0-src.tar.gz
 RUN tar xvf pngquant-2.9.0-src.tar.gz
 RUN cd pngquant-2.9.0 && ./configure
