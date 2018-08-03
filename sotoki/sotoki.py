@@ -782,6 +782,7 @@ def resize_image_profile(image_path):
     w, h = image.size
     image = image.resize((48, 48), Image.ANTIALIAS)
     image.save(image_path)
+    image.close()
 
 def exec_cmd(cmd, timeout=None):
     try:
@@ -842,7 +843,8 @@ def resize_one(path,type,nb_pix):
         exec_cmd("mogrify -resize "+nb_pix+"x\> " + path, timeout=10)
 
 def create_temporary_copy(path):
-        temp_path = tempfile.mkstemp()[1]
+        fd, temp_path = tempfile.mkstemp()
+	os.close(fd)
         shutil.copy2(path, temp_path)
         return temp_path
 
