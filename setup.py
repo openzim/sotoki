@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
-from pip.req import parse_requirements
+from pip._internal.req import parse_requirements
 
 setup(
     name='sotoki',
-        version='0.9',
+        version='0.9.1',
     description="Make zimfile from stackexchange dump",
     long_description=open('README.md').read(),
     author='dattaz',
