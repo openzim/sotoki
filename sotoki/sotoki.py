@@ -929,7 +929,7 @@ def create_zims(title, publisher, description,redirect_file,domain,lang_input, z
     if zim_path == None:
         zim_path = dict(
             title=domain.lower(),
-            lang=languageToAlpha3(lang_input),
+            lang=lang_input.lower(),
             date=datetime.datetime.now().strftime('%Y-%m')
         )
         if nopic:
