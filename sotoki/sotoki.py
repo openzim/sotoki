@@ -19,7 +19,7 @@ Options:
   --reset-images           Remove image in cache
   --clean-previous         Delete only data from a previous run with --nozim or which failed 
   --nofulltextindex        Dont index content
-  --ignoreoldsite          Ignore close site of stackexchange
+  --ignoreoldsite          Ignore Stack Exchange closed site
   --nopic                  Dont download picture
   --no-userprofile         Not include user profile in zim
 """
@@ -753,9 +753,9 @@ def grab_title_description_favicon_lang(url, output_dir, do_old):
             if close_site.has_key(url):
                 get_data = urlopen(close_site[url])
             else:
-                sys.exit("This site is a close site and it's not supported by sotoki, please open a issue")
+                sys.exit("This Stack Exchange site has been closed and is not supported by sotoki, please open a issue")
         else:
-            print "This site is a close site and --ignoreoldsite has been pass as argument so we stop"
+            print "This Stack Exchange site has been closed and --ignoreoldsite has been pass as argument so we stop"
             sys.exit(0)
 
     output = get_data.read()
