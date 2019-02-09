@@ -746,7 +746,10 @@ def image(text_post, output, nopic):
     return text_post
 
 def grab_title_description_favicon_lang(url, output_dir, do_old):
-    get_data = urlopen(url)
+    if "moderators.meta.stackexchange.com" in url: #We do this special handling because redirect do not exist; website have change name, but not dump name see issue #80
+        get_data = urlopen("https://communitybuilding.meta.stackexchange.com")
+    else:
+        get_data = urlopen(url)
     if "area51" in get_data.geturl():
         if do_old:
             close_site = { "http://arabic.stackexchange.com" : "https://web.archive.org/web/20150812150251/http://arabic.stackexchange.com/" }
