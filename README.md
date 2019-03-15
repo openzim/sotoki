@@ -43,3 +43,9 @@ sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_dept
 
 ```
 You can use `sotoki -h` to have more explanation about these options
+
+## Example
+
+```
+for S in `./list_all.sh` ; do sotoki $S Kiwix --threads=12 --reset --clean-previous --no-userprofile ; done
+```
