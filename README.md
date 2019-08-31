@@ -7,6 +7,10 @@ The goal of this project is to create a suite of tools to create
 [kiwix](https://kiwix.org/) reader to make available [Stack Overflow](https://stackoverflow.com/)
 offline (without access to Internet).
 
+[![](httsps://img.shields.io/pypi/v/sotoki.svg)](https://pypi.python.org/pypi/sotoki)
+[![CodeFactor](https://www.codefactor.io/repository/github/openzim/sotoki/badge)](https://www.codefactor.io/repository/github/openzim/sotoki)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
 ## Getting started
 
 The use of btrfs as a file system is recommended (and required for stackoverflow)
@@ -42,3 +46,8 @@ You can use `sotoki -h` to have more explanation about these options
 ```bash
 for S in `./list_all.sh` ; do sotoki $S Kiwix --threads=12 --reset --clean-previous --no-userprofile ; done
 ```
+
+## License
+
+[GPLv3](https://www.gnu.org/licenses/gpl-3.0) or later, see
+[LICENSE](LICENSE) for more details.
