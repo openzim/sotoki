@@ -1123,7 +1123,7 @@ def run():
         copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static_mathjax'), os.path.join(output, 'static'))
     copy_tree(os.path.join(os.path.abspath(os.path.dirname(__file__)) ,'static'), os.path.join(output, 'static'))
     if not arguments['--nozim']:
-        done=create_zims(title, publisher, description, redirect_file, domain, lang_input,arguments["--zimpath"], output, arguments["--nofulltextindex"], arguments['--nopic'],scaper_version)
+        done=create_zims(title, publisher, description, redirect_file, domain, lang_input,arguments["--zimpath"], output, arguments["--nofulltextindex"], arguments['--nopic'],scraper_version)
         if done == True:
             clean(output,db,redirect_file)
 if __name__ == '__main__':

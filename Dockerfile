@@ -1,4 +1,4 @@
-FROM openzim/zimwriterfs:1.3.5
+FROM openzim/zimwriterfs:latest
 
 # Install necessary packages
 RUN apt-get update -y && \
@@ -26,7 +26,8 @@ RUN wget https://www.lcdf.org/gifsicle/gifsicle-1.88.tar.gz && \
 
 # Install sotoki
 RUN locale-gen "en_US.UTF-8" && \
-    pip install sotoki
+  pip install git+https://github.com/openzim/sotoki.git
+#pip install sotoki
 
 # Boot commands
 CMD sotoki ; /bin/bash
