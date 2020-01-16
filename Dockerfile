@@ -25,9 +25,12 @@ RUN wget https://www.lcdf.org/gifsicle/gifsicle-1.88.tar.gz && \
     rm -rf gifsicle-1.88*
 
 # Install sotoki
-RUN locale-gen "en_US.UTF-8" && \
-  pip install git+https://github.com/openzim/sotoki.git
-#pip install sotoki
+RUN locale-gen "en_US.UTF-8"
+COPY . /app
+WORKDIR /app
+RUN pip install .
+WORKDIR /
+RUN rm -rf /app
 
 # Boot commands
 CMD sotoki ; /bin/bash
