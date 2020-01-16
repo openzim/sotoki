@@ -329,7 +329,6 @@ class TagsRender(handler.ContentHandler):
     def startElement(self, name, attrs): #For each element
         if name == "row": #If it's a tag (row in tags.xml)
             if attrs["Count"] != "0":
-                # print(attrs["TagName"])
                 self.tags.append({'TagUrl': urllib.quote(attrs["TagName"].encode("utf-8")), 'TagName': attrs["TagName"], 'nb_post': int(attrs["Count"])})
 
     def endDocument(self):
@@ -378,7 +377,6 @@ class TagsRender(handler.ContentHandler):
             dirpath = os.path.join(self.output, 'tag')
             tagpath = os.path.join(dirpath, '%s' % tag)
             os.makedirs(tagpath)
-            # print tagpath
             # build page using pagination
             offset = 0
             page = 1
