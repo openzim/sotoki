@@ -17,7 +17,7 @@ Options:
   --zimpath=<zimpath>      Final path of the zim file
   --reset                  Reset dump
   --reset-images           Remove image in cache
-  --clean-previous         Delete only data from a previous run with --nozim or which failed 
+  --clean-previous         Delete only data from a previous run with --nozim or which failed
   --nofulltextindex        Dont index content
   --ignoreoldsite          Ignore Stack Exchange closed site
   --nopic                  Dont download picture
@@ -105,7 +105,7 @@ class QuestionRender(handler.ContentHandler):
         self.mathjax=mathjax
         self.nopic=nopic
         self.nouserprofile=nouserprofile
-        for i in range(self.cores): 
+        for i in range(self.cores):
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
             i.start()
@@ -228,7 +228,7 @@ class QuestionRender(handler.ContentHandler):
 
         if name == "post":
             #print self.post
-            self.nb+=1 
+            self.nb+=1
             if self.nb % 1000 == 0:
                 print "Already " + str(self.nb) + " questions done!"
                 self.conn.commit()
@@ -236,7 +236,7 @@ class QuestionRender(handler.ContentHandler):
             for t in self.post["Tags"]: #We put tags into db
                 sql = "INSERT INTO QuestionTag(Score, Title, QId, CreationDate, Tag) VALUES(?, ?, ?, ?, ?)"
                 self.cursor.execute(sql, (self.post["Score"], self.post["Title"], self.post["Id"], self.post["CreationDate"], t))
-            #Make redirection 
+            #Make redirection
             for ans in self.answers:
                 self.f_redirect.write("A\tanswer/" + str(ans["Id"]) + ".html\tAnswer " + str(ans["Id"]) + "\tquestion/" + self.post["Id"] + ".html\n")
             self.f_redirect.write("A\tquestion/" + page_url( self.post["Id"], self.post["Title"]) +".html\tQuestion " + str(self.post["Id"]) + "\tquestion/" + self.post["Id"] + ".html\n")
@@ -263,7 +263,7 @@ def some_questions(templates, output, title, publisher, question, template_name,
     try:
         question["Score"] = int(question["Score"])
         if question.has_key("answers"):
-            question["answers"] = sorted(question["answers"], key=lambda k: k['Score'],reverse=True) 
+            question["answers"] = sorted(question["answers"], key=lambda k: k['Score'],reverse=True)
             question["answers"] = sorted(question["answers"], key=lambda k: k['Accepted'],reverse=True) #sorted is stable so accepted will be always first, then other question will be sort in ascending order
             for ans in question["answers"]:
                 ans["Body"]=interne_link(ans["Body"], domain, question["Id"])
@@ -329,7 +329,7 @@ class TagsRender(handler.ContentHandler):
     def startElement(self, name, attrs): #For each element
         if name == "row": #If it's a tag (row in tags.xml)
             if attrs["Count"] != "0":
-                print(attrs["TagName"])
+                # print(attrs["TagName"])
                 self.tags.append({'TagUrl': urllib.quote(attrs["TagName"].encode("utf-8")), 'TagName': attrs["TagName"], 'nb_post': int(attrs["Count"])})
 
     def endDocument(self):
@@ -378,7 +378,7 @@ class TagsRender(handler.ContentHandler):
             dirpath = os.path.join(self.output, 'tag')
             tagpath = os.path.join(dirpath, '%s' % tag)
             os.makedirs(tagpath)
-            print tagpath
+            # print tagpath
             # build page using pagination
             offset = 0
             page = 1
@@ -466,7 +466,7 @@ class UsersRender(handler.ContentHandler):
         self.request_queue = Queue(cores*2)
         self.workers = []
         self.user={}
-        for i in range(self.cores): 
+        for i in range(self.cores):
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
             i.start()
@@ -500,7 +500,7 @@ class UsersRender(handler.ContentHandler):
                 self.f_redirect.write("A\tuser/" + page_url(user["Id"], user["DisplayName"]) +".html\tUser " + slugify(user["DisplayName"]) + "\tuser/" + user["Id"] + ".html\n")
             data_send = [some_user, user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.deflate, self.title, self.mathjax, self.nopic, self.nouserprofile]
             self.request_queue.put(data_send)
-           
+
 
     def endDocument(self):
         print "---END--"
@@ -524,7 +524,7 @@ def some_user(user,generator,templates, output, publisher, site_url, deflate, ti
             if ext != "png" :
                 convert_to_png(fullpath, ext)
             if ext != "gif":
-                resize_one(fullpath,"png","128") 
+                resize_one(fullpath,"png","128")
                 optimize_one(fullpath,"png")
         except Exception,e:
             # Generate big identicon
@@ -723,7 +723,7 @@ def image(text_post, output, nopic):
             filename = sha256(src).hexdigest() + ext
             out = os.path.join(images, filename)
             # download the image only if it's not already downloaded and if it's not a html
-            if not os.path.exists(out) and ext != ".html": 
+            if not os.path.exists(out) and ext != ".html":
                 try:
                     headers=download(src, out, timeout=180)
                     type=get_filetype(headers,out)
@@ -1081,7 +1081,7 @@ def run():
     templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'templates_mini')
 
     #prepare db
-    conn = sqlite3.connect(db) #can be :memory: for small dump  
+    conn = sqlite3.connect(db) #can be :memory: for small dump
     conn.row_factory = dict_factory
     cursor = conn.cursor()
     # create table tags-questions
