@@ -16,7 +16,8 @@ setup(
         'lxml',
         'MarkupSafe',
         'docopt',
-        'slugify',
+#        'slugify', # do not exist for python 3
+        'python-slugify',
         'pydenticon',
         'bs4',
         'envoy',
@@ -34,6 +35,6 @@ setup(
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2.7'
+        'Programming Language :: Python :: 3'
     ],
 )

@@ -42,7 +42,6 @@ from multiprocessing import cpu_count
 from multiprocessing import Queue
 from multiprocessing import Process
 
-import envoy
 import logging
 import sqlite3
 
@@ -73,7 +72,6 @@ from PIL import Image
 import magic
 
 from itertools import chain
-
 
 #########################
 #        Question       #
@@ -597,6 +595,7 @@ def dict_factory(cursor, row):
 def scale(number):
     """Convert number to scale to be used in style to color arrows
     and comment score"""
+    number = int(number)
     if number < 0:
         return 'negative'
     if number == 0:
@@ -617,10 +616,11 @@ def jinja(output, template, templates, raw, deflate, **context):
     page = template.render(**context)
     if raw:
         page = "{% raw %}" + page + "{% endraw %}"
-    with open(output, 'w') as f:
-        if deflate:
+    if deflate:
+        with open(output, 'wb') as f:
             f.write(zlib.compress(page.encode('utf-8')))
-        else:
+    else:
+        with open(output, 'w') as f:
              f.write(page.encode('utf-8'))
 
 def jinja_init(templates):
@@ -645,7 +645,7 @@ def download(url, output, timeout=None):
     ctx.verify_mode = ssl.CERT_NONE
     response = urlopen(url, timeout=timeout, context=ctx)
     output_content = response.read()
-    with open(output, 'w') as f:
+    with open(output, 'wb') as f:
         f.write(output_content)
     return response.headers
 
@@ -718,7 +718,7 @@ def image(text_post, output, nopic):
         else :
             src = img.attrib['src']
             ext = os.path.splitext(src.split("?")[0])[1]
-            filename = sha256(src).hexdigest() + ext
+            filename = sha256(src.encode('utf-8')).hexdigest() + ext
             out = os.path.join(images, filename)
             # download the image only if it's not already downloaded and if it's not a html
             if not os.path.exists(out) and ext != ".html":
@@ -759,7 +759,7 @@ def grab_title_description_favicon_lang(url, output_dir, do_old):
             print("This Stack Exchange site has been closed and --ignoreoldsite has been pass as argument so we stop")
             sys.exit(0)
 
-    output = get_data.read()
+    output = get_data.read().decode('utf-8')
     soup = BeautifulSoup.BeautifulSoup(output, 'html.parser')
     title = soup.find('meta', attrs={"name": "twitter:title"})['content']
     description = soup.find('meta', attrs={"name": "twitter:description"})['content']
@@ -811,14 +811,14 @@ def dict_to_unicodedict(dictionnary):
     if "OwnerDisplayName" in dictionnary:
         dictionnary["OwnerDisplayName"] = ""
     for k, v in list(dictionnary.items()):
-        if isinstance(k, str):
-            unicode_key = k.decode('utf8')
-        else:
-            unicode_key = k
-        if isinstance(v, str) or type(v) == type({}) or type(v) == type(1):
-            unicode_value = v
-        else:
-            unicode_value =  v.decode('utf8')
+#        if isinstance(k, str):
+#            unicode_key = k.decode('utf8')
+#        else:
+        unicode_key = k
+#        if isinstance(v, str) or type(v) == type({}) or type(v) == type(1):
+        unicode_value = v
+#        else:
+#            unicode_value =  v.decode('utf8')
         dict_[unicode_key] = unicode_value
 
     return dict_
@@ -1095,7 +1095,8 @@ def run():
 
     jinja_init(templates)
     global MARKDOWN
-    MARKDOWN = mistune.Markdown()
+    renderer = mistune.HTMLRenderer()
+    MARKDOWN = mistune.Markdown(renderer)
     if not os.path.exists(os.path.join(dump, "prepare.xml")): #If we haven't already prepare
         prepare(dump, os.path.abspath(os.path.dirname(__file__)) + "/")
 
