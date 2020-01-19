@@ -23,4 +23,4 @@ for line in f1:
 			break
 	if comments != "":
 		line_to_print+="<comments>" + comments + "</comments>"
-	print line_to_print + "</row>"
+	print(line_to_print + "</row>")

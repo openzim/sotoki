@@ -49,7 +49,7 @@ import sqlite3
 from xml.sax import make_parser, handler
 
 from hashlib import sha256
-from urllib2 import urlopen
+from urllib.request import urlopen
 import ssl
 
 from jinja2 import Environment
@@ -64,7 +64,7 @@ from lxml import etree
 from docopt import docopt,DocoptExit
 from slugify import slugify
 import mistune #markdown
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import pydenticon
 from string import punctuation
 import zlib
@@ -127,15 +127,15 @@ class QuestionRender(handler.ContentHandler):
             return
         if name== 'row': #Here is a answer
             tmp={}
-            for k in attrs.keys(): #Get all item
+            for k in list(attrs.keys()): #Get all item
                 tmp[k] = attrs[k]
             tmp["Score"] = int(tmp["Score"])
-            if self.post.has_key("AcceptedAnswerId") and self.post["AcceptedAnswerId"] == tmp["Id"]:
+            if "AcceptedAnswerId" in self.post and self.post["AcceptedAnswerId"] == tmp["Id"]:
                 tmp["Accepted"] = True
             else:
                 tmp["Accepted"] = False
 
-            if tmp.has_key("OwnerUserId"): #We put the good name of the user how made the post
+            if "OwnerUserId" in tmp: #We put the good name of the user how made the post
                 user=self.cursor.execute("SELECT * FROM users WHERE id = ?", (int(tmp["OwnerUserId"]),)).fetchone()
                 id=tmp["OwnerUserId"]
                 if user != None:
@@ -146,35 +146,35 @@ class QuestionRender(handler.ContentHandler):
                     else:
                         tmp["OwnerUserId"]["Path"] = page_url(tmp["OwnerUserId"]["Id"], tmp["OwnerUserId"]["DisplayName"])
                 else:
-                    tmp["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
+                    tmp["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : "None" })
                     tmp["OwnerUserId"]["Id"] = id
-            elif tmp.has_key("OwnerDisplayName"):
+            elif "OwnerDisplayName" in tmp:
                 tmp["OwnerUserId"] = dict_to_unicodedict({ "DisplayName" : tmp["OwnerDisplayName"] })
             else:
-                tmp["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
+                tmp["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : "None" })
             #print "        new answers"
             self.answers.append(tmp)
             return
 
         if name == "comment": #Here is a comments
             tmp={}
-            for k in attrs.keys(): #Get all item
+            for k in list(attrs.keys()): #Get all item
                 tmp[k] = attrs[k]
             #print "                 new comments"
-            if tmp.has_key("UserId"): #We put the good name of the user how made the comment
+            if "UserId" in tmp: #We put the good name of the user how made the comment
                 user=self.cursor.execute("SELECT * FROM users WHERE id = ?", (int(tmp["UserId"]),)).fetchone()
-                if tmp.has_key("UserId") and  user != None :
+                if "UserId" in tmp and  user != None :
                     tmp["UserDisplayName"] = dict_to_unicodedict(user)["DisplayName"]
                     if self.nouserprofile:
                         tmp["Path"] = None
                     else:
                         tmp["Path"] = page_url(tmp["UserId"], tmp["UserDisplayName"])
                 else:
-                    tmp["UserDisplayName"] = u"None"
+                    tmp["UserDisplayName"] = "None"
             else:
-                tmp["UserDisplayName"] = u"None"
+                tmp["UserDisplayName"] = "None"
 
-            if tmp.has_key("Score"):
+            if "Score" in tmp:
                 tmp["Score"] = int(tmp["Score"])
             tmp["Text"]=markdown(cgi.escape(tmp["Text"]))
             self.comments.append(tmp)
@@ -188,18 +188,18 @@ class QuestionRender(handler.ContentHandler):
             return
 
         if name != 'post': #We go out if it's not a post, we because we have see all name of posible tag (answers, row,comments,comment and we will see after post) This normally match only this root
-            print "nothing " + name
+            print("nothing " + name)
             return
 
         if name == 'post': #Here is a post
             self.whatwedo = "post"
-            for k in attrs.keys(): #get all item
+            for k in list(attrs.keys()): #get all item
                 self.post[k] = attrs[k]
             self.post["relateds"] = [] #Prepare list for relateds question
             self.post["duplicate"] = [] #Prepare list for duplicate question
             self.post["filename"] = '%s.html' % self.post["Id"]
 
-            if self.post.has_key("OwnerUserId"):#We put the good name of the user how made the post
+            if "OwnerUserId" in self.post:#We put the good name of the user how made the post
                 user=self.cursor.execute("SELECT * FROM users WHERE id = ?", (int(self.post["OwnerUserId"]),)).fetchone()
                 id=self.post["OwnerUserId"]
                 if user != None:
@@ -210,12 +210,12 @@ class QuestionRender(handler.ContentHandler):
                     else:
                         self.post["OwnerUserId"]["Path"] = page_url(self.post["OwnerUserId"]["Id"], self.post["OwnerUserId"]["DisplayName"])
                 else:
-                    self.post["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
+                    self.post["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : "None" })
                     self.post["OwnerUserId"]["Id"] = id
-            elif self.post.has_key("OwnerDisplayName"):
+            elif "OwnerDisplayName" in self.post:
                 self.post["OwnerUserId"] = dict_to_unicodedict({ "DisplayName" : self.post["OwnerDisplayName"] })
             else:
-                self.post["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : u"None" })
+                self.post["OwnerUserId"] =  dict_to_unicodedict({ "DisplayName" : "None" })
 
     def endElement(self, name):
         if self.whatwedo=="post/answers/comments": #If we have a post with answer and comment on this answer, we put comment into the anwer
@@ -230,7 +230,7 @@ class QuestionRender(handler.ContentHandler):
             #print self.post
             self.nb+=1
             if self.nb % 1000 == 0:
-                print "Already " + str(self.nb) + " questions done!"
+                print("Already " + str(self.nb) + " questions done!")
                 self.conn.commit()
             self.post["Tags"] = self.post["Tags"][1:-1].split('><')
             for t in self.post["Tags"]: #We put tags into db
@@ -250,7 +250,7 @@ class QuestionRender(handler.ContentHandler):
 
 
     def endDocument(self):
-        print "---END--"
+        print("---END--")
         self.conn.commit()
         #closing thread
         for i in range(self.cores):
@@ -262,20 +262,20 @@ class QuestionRender(handler.ContentHandler):
 def some_questions(templates, output, title, publisher, question, template_name, deflate,site_url,domain, mathjax,nopic):
     try:
         question["Score"] = int(question["Score"])
-        if question.has_key("answers"):
+        if "answers" in question:
             question["answers"] = sorted(question["answers"], key=lambda k: k['Score'],reverse=True)
             question["answers"] = sorted(question["answers"], key=lambda k: k['Accepted'],reverse=True) #sorted is stable so accepted will be always first, then other question will be sort in ascending order
             for ans in question["answers"]:
                 ans["Body"]=interne_link(ans["Body"], domain, question["Id"])
                 ans["Body"]=image(ans["Body"],output,nopic)
-                if ans.has_key("comments"):
+                if "comments" in ans:
                     for comment in ans["comments"]:
                         comment["Text"]=interne_link(comment["Text"], domain,question["Id"])
 
         filepath = os.path.join(output, 'question', question["filename"])
         question["Body"] = interne_link(question["Body"], domain, question["Id"])
         question["Body"] = image(question["Body"],output,nopic)
-        if question.has_key("comments"):
+        if "comments" in question:
             for comment in question["comments"]:
                 comment["Text"]=interne_link(comment["Text"], domain,question["Id"])
         question["Title"] = cgi.escape(question["Title"])
@@ -294,12 +294,12 @@ def some_questions(templates, output, title, publisher, question, template_name,
                 mathjax=mathjax,
                 nopic=nopic,
                 )
-        except Exception, e:
-            print ' * failed to generate: %s' % filename
-            print "erreur jinja" + str(e)
-            print question
-    except Exception, e:
-        print "Erreur with one post : " + str(e)
+        except Exception as e:
+            print(' * failed to generate: %s' % filename)
+            print("erreur jinja" + str(e))
+            print(question)
+    except Exception as e:
+        print("Erreur with one post : " + str(e))
 
 
 #########################
@@ -329,7 +329,7 @@ class TagsRender(handler.ContentHandler):
     def startElement(self, name, attrs): #For each element
         if name == "row": #If it's a tag (row in tags.xml)
             if attrs["Count"] != "0":
-                self.tags.append({'TagUrl': urllib.quote(attrs["TagName"].encode("utf-8")), 'TagName': attrs["TagName"], 'nb_post': int(attrs["Count"])})
+                self.tags.append({'TagUrl': urllib.parse.quote(attrs["TagName"].encode("utf-8")), 'TagName': attrs["TagName"], 'nb_post': int(attrs["Count"])})
 
     def endDocument(self):
         sql = "SELECT * FROM questiontag ORDER BY Score DESC LIMIT 400"
@@ -370,8 +370,8 @@ class TagsRender(handler.ContentHandler):
             mathjax=self.mathjax,
         )
         # tag page
-        print "Render tag page"
-        list_tag = map(lambda d: d['TagName'], self.tags)
+        print("Render tag page")
+        list_tag = [d['TagName'] for d in self.tags]
         os.makedirs(os.path.join(self.output, 'tag'))
         for tag in list(set(list_tag)):
             dirpath = os.path.join(self.output, 'tag')
@@ -381,9 +381,9 @@ class TagsRender(handler.ContentHandler):
             offset = 0
             page = 1
             if self.tag_depth==-1:
-                questions = self.cursor.execute("SELECT * FROM questiontag WHERE Tag = ? ORDER BY Score DESC", (unicode(tag),))
+                questions = self.cursor.execute("SELECT * FROM questiontag WHERE Tag = ? ORDER BY Score DESC", (str(tag),))
             else:
-                questions = self.cursor.execute("SELECT * FROM questiontag WHERE Tag = ? ORDER BY Score DESC LIMIT ?", (unicode(tag), self.tag_depth,))
+                questions = self.cursor.execute("SELECT * FROM questiontag WHERE Tag = ? ORDER BY Score DESC LIMIT ?", (str(tag), self.tag_depth,))
 
             while offset != None:
                 fullpath = os.path.join(tagpath, '%s.html' % page)
@@ -475,19 +475,19 @@ class UsersRender(handler.ContentHandler):
             self.user["badges"] = {}
         if name == "badge":
             tmp={}
-            for k in attrs.keys():
+            for k in list(attrs.keys()):
                 tmp[k] = attrs[k]
-            if self.user["badges"].has_key(tmp["Name"]):
+            if tmp["Name"] in self.user["badges"]:
                 self.user["badges"][tmp["Name"]] = self.user["badges"][tmp["Name"]]  + 1
             else:
                 self.user["badges"][tmp["Name"]]  = 1
         if name == "row":
             self.id +=1
             if self.id % 1000 == 0:
-                print "Already " + str(self.id) + " Users done !"
+                print("Already " + str(self.id) + " Users done !")
                 self.conn.commit()
             self.user={}
-            for k in attrs.keys(): #get all item
+            for k in list(attrs.keys()): #get all item
                 self.user[k] = attrs[k]
     def endElement(self, name):
         if name == "row":
@@ -501,7 +501,7 @@ class UsersRender(handler.ContentHandler):
 
 
     def endDocument(self):
-        print "---END--"
+        print("---END--")
         self.conn.commit()
         #closing thread
         for i in range(self.cores):
@@ -524,7 +524,7 @@ def some_user(user,generator,templates, output, publisher, site_url, deflate, ti
             if ext != "gif":
                 resize_one(fullpath,"png","128")
                 optimize_one(fullpath,"png")
-        except Exception,e:
+        except Exception as e:
             # Generate big identicon
             padding = (20, 20, 20, 20)
             identicon = generator.generate(slugify(user["DisplayName"]), 128, 128, padding=padding, output_format="png")  # noqa
@@ -533,7 +533,7 @@ def some_user(user,generator,templates, output, publisher, site_url, deflate, ti
 
     #
     if not nouserprofile:
-        if user.has_key("AboutMe"):
+        if "AboutMe" in user:
             user["AboutMe"] = image("<p>" + user["AboutMe"] + "</p>",output,nopic)
         # generate user profile page
         filename = '%s.html' % user["Id"]
@@ -569,8 +569,8 @@ class Worker(Process):
                 data[0](*data[1:])
                 #some_questions(*data)
             except Exception as exc:
-                print 'error while rendering :', data
-                print exc
+                print('error while rendering :', data)
+                print(exc)
 
 def intspace(value):
     orig = str(value)
@@ -631,7 +631,7 @@ def jinja_init(templates):
         markdown=markdown,
         intspace=intspace,
         scale=scale,
-        clean=lambda y: filter(lambda x: x not in punctuation, y),
+        clean=lambda y: [x for x in y if x not in punctuation],
         slugify=slugify,
     )
     ENV.filters.update(filters)
@@ -651,7 +651,7 @@ def download(url, output, timeout=None):
 
 def get_filetype(headers,path):
     type="none"
-    if headers.has_key('content-type'):
+    if 'content-type' in headers:
         if ("png" in headers['content-type']) or ("PNG" in headers['content-type']):
             type="png"
         elif ("jpg" in headers['content-type']) or ("jpeg" in headers['content-type']) or ("JPG" in headers['content-type']) or ("JPEG" in headers['content-type']):
@@ -673,7 +673,7 @@ def interne_link(text_post, domain,id):
     body = string2html(text_post)
     links = body.xpath('//a')
     for a in links:
-        if a.attrib.has_key("href"):
+        if "href" in a.attrib:
             a_href=re.sub("^https?://","",a.attrib['href'])
             if len(a_href) >= 2 and a_href[0] == "/" and a_href[1] != "/":
                 link=a_href
@@ -695,7 +695,7 @@ def interne_link(text_post, domain,id):
                     qid=link.split("/")[1]
                     a.attrib['href']= qid + ".html"
             elif link[0:10] == "questions/" and link[10:17] == "tagged/" :
-                tag=urllib.quote(link.split("/")[-1])
+                tag=urllib.parse.quote(link.split("/")[-1])
                 a.attrib['href']="../tag/" + tag + ".html"
             elif link[0:2] == "a/":
                 qans_split = link.split("/")
@@ -728,9 +728,9 @@ def image(text_post, output, nopic):
                     # update post's html
                     resize_one(out,type,"540")
                     optimize_one(out,type)
-                except Exception,e:
+                except Exception as e:
                     # do nothing
-                    print e
+                    print(e)
                     pass
             src = '../static/images/' + filename
             img.attrib['src'] = src
@@ -751,25 +751,25 @@ def grab_title_description_favicon_lang(url, output_dir, do_old):
     if "area51" in get_data.geturl():
         if do_old:
             close_site = { "http://arabic.stackexchange.com" : "https://web.archive.org/web/20150812150251/http://arabic.stackexchange.com/" }
-            if close_site.has_key(url):
+            if url in close_site:
                 get_data = urlopen(close_site[url])
             else:
                 sys.exit("This Stack Exchange site has been closed and is not supported by sotoki, please open a issue")
         else:
-            print "This Stack Exchange site has been closed and --ignoreoldsite has been pass as argument so we stop"
+            print("This Stack Exchange site has been closed and --ignoreoldsite has been pass as argument so we stop")
             sys.exit(0)
 
     output = get_data.read()
     soup = BeautifulSoup.BeautifulSoup(output, 'html.parser')
-    title = soup.find('meta', attrs={"name": u"twitter:title"})['content']
-    description = soup.find('meta', attrs={"name": u"twitter:description"})['content']
+    title = soup.find('meta', attrs={"name": "twitter:title"})['content']
+    description = soup.find('meta', attrs={"name": "twitter:description"})['content']
     jss = soup.find_all('script')
     lang="en"
     for js in jss:
         search= re.search('StackExchange.init\({"locale":"[^"]*', output)
         if search != None:
             lang=re.sub('StackExchange.init\({"locale":"', "" , search.group(0))
-    favicon = soup.find('link', attrs={"rel": u"icon"})['href']
+    favicon = soup.find('link', attrs={"rel": "icon"})['href']
     if favicon[:2] == "//":
         favicon = "http:" + favicon
     favicon_out = os.path.join(output_dir, 'favicon.png')
@@ -789,8 +789,8 @@ def exec_cmd(cmd, timeout=None):
     try:
         #return check_output(shlex.split(cmd), timeout=timeout)
         return call(shlex.split(cmd), timeout=timeout)
-    except Exception, e:
-        print e
+    except Exception as e:
+        print(e)
         pass
 def bin_is_present(binary):
     try:
@@ -808,14 +808,14 @@ def bin_is_present(binary):
 
 def dict_to_unicodedict(dictionnary):
     dict_ = {}
-    if dictionnary.has_key("OwnerDisplayName"):
-        dictionnary["OwnerDisplayName"] = u""
-    for k, v in dictionnary.items():
+    if "OwnerDisplayName" in dictionnary:
+        dictionnary["OwnerDisplayName"] = ""
+    for k, v in list(dictionnary.items()):
         if isinstance(k, str):
             unicode_key = k.decode('utf8')
         else:
             unicode_key = k
-        if isinstance(v, unicode) or type(v) == type({}) or type(v) == type(1):
+        if isinstance(v, str) or type(v) == type({}) or type(v) == type(1):
             unicode_value = v
         else:
             unicode_value =  v.decode('utf8')
@@ -826,7 +826,7 @@ def dict_to_unicodedict(dictionnary):
 def prepare(dump_path, bin_dir):
     cmd="bash "+ bin_dir + "prepare_xml.sh " + dump_path + " " + bin_dir
     if exec_cmd(cmd) == 0:
-        print "Prepare xml ok"
+        print("Prepare xml ok")
     else:
         sys.exit("Unable to prepare xml :(")
 
@@ -845,7 +845,7 @@ def resize_one(path,type,nb_pix):
 
 def create_temporary_copy(path):
         fd, temp_path = tempfile.mkstemp()
-	os.close(fd)
+        os.close(fd)
         shutil.copy2(path, temp_path)
         return temp_path
 
@@ -864,10 +864,10 @@ def get_hash(site_name):
     tree = etree.fromstring(output)
     for file in tree.xpath("/files/file"):
             if file.get("name") == site_name + ".7z":
-                        print "found"
+                        print("found")
                         hash=file.xpath("sha1")[0].text
     if hash==None:
-        print "File :" + site_name + ".7z no found"
+        print("File :" + site_name + ".7z no found")
         sys.exit(1)
     return hash
 
@@ -879,9 +879,9 @@ def download_dump(domain, dump_path):
     f.close()
     exec_cmd("wget "+url_dump)
     if exec_cmd("sha1sum -c " + domain + ".hash") == 0:
-        print "Ok we have get dump"
+        print("Ok we have get dump")
     else:
-        print "KO, error will downloading the dump"
+        print("KO, error will downloading the dump")
         os.remove(domain + ".hash")
         os.remove(domain + ".7z")
         sys.exit(1)
@@ -897,17 +897,17 @@ def clean(output,db,redirect_file):
     for elem in [ "question",  "tag","user"]:
         elem_path=os.path.join(output,elem)
         if os.path.exists(elem_path):
-            print "remove " + elem_path
+            print("remove " + elem_path)
             shutil.rmtree(elem_path)
     if os.path.exists(os.path.join(output,"favicon.png")):
         os.remove(os.path.join(output,"favicon.png"))
     if os.path.exists(os.path.join(output,"index.html")):
         os.remove(os.path.join(output,"index.html"))
     if os.path.exists(db):
-        print "remove " + db
+        print("remove " + db)
         os.remove(db)
     if os.path.exists(redirect_file):
-        print "remove " + redirect_file
+        print("remove " + redirect_file)
         os.remove(redirect_file)
 def data_from_previous_run(output,db,redirect_file):
     for elem in [ "question",  "tag","user"]:
@@ -926,7 +926,7 @@ def use_mathjax(domain):
 #########################
 
 def create_zims(title, publisher, description,redirect_file,domain,lang_input, zim_path, html_dir, noindex,nopic,scraper_version):
-    print 'Creating ZIM files'
+    print('Creating ZIM files')
     if zim_path == None:
         zim_path = dict(
             title=domain.lower(),
@@ -947,7 +947,7 @@ def create_zims(title, publisher, description,redirect_file,domain,lang_input, z
 
 
 def create_zim(static_folder, zim_path, title, description, lang_input, publisher, creator,redirect_file, noindex, name,nopic, scraper_version,domain):
-    print "\tWriting ZIM for {}".format(title.encode("utf-8"))
+    print("\tWriting ZIM for {}".format(title.encode("utf-8")))
     context = {
         'languages': lang_input,
         'title': title.encode("utf-8"),
@@ -975,17 +975,17 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
     if not noindex:
         cmd = cmd + "--withFullTextIndex "
     cmd = ( cmd + ' --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" --language="{languages}" --title="{title}" --description="{description}" --creator="{creator}" --publisher="{publisher}" --tags="{tags}" --name="{name}" --scraper="{scraper}" --source="{source}" "{static}" "{zim}"'.format(**context))
-    print cmd
+    print(cmd)
 
     if exec_cmd(cmd) == 0:
-        print "Successfuly created ZIM file at {}".format(zim_path)
+        print("Successfuly created ZIM file at {}".format(zim_path))
         if nopic:
             os.rename(os.path.join(tmpfile,"images"),os.path.join(static_folder,"static","images"))
             os.rename(os.path.join(tmpfile,"identicon"),os.path.join(static_folder,"static","identicon"))
             shutil.rmtree(tmpfile)
         return True
     else:
-        print "Unable to create ZIM file :("
+        print("Unable to create ZIM file :(")
         if nopic:
             os.rename(os.path.join(tmpfile,"images"),os.path.join(static,"static","images"))
             os.rename(os.path.join(tmpfile,"identicon"),os.path.join(static,"static","identicon"))

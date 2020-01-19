@@ -1,1 +1,1 @@
-from sotoki import run
+from .sotoki import run
