@@ -23,7 +23,7 @@ setup(
         'envoy',
         'subprocess32',
         'filemagic',
-        'mistune'
+        'mistune>=2.0.0a2'
         ],
     zip_safe=False,
     platforms='Linux',
