@@ -327,7 +327,7 @@ class TagsRender(handler.ContentHandler):
     def startElement(self, name, attrs): #For each element
         if name == "row": #If it's a tag (row in tags.xml)
             if attrs["Count"] != "0":
-                self.tags.append({'TagUrl': urllib.parse.quote(attrs["TagName"].encode("utf-8")), 'TagName': attrs["TagName"], 'nb_post': int(attrs["Count"])})
+                self.tags.append({'TagUrl': urllib.parse.quote(attrs["TagName"]), 'TagName': attrs["TagName"], 'nb_post': int(attrs["Count"])})
 
     def endDocument(self):
         sql = "SELECT * FROM questiontag ORDER BY Score DESC LIMIT 400"
@@ -621,7 +621,7 @@ def jinja(output, template, templates, raw, deflate, **context):
             f.write(zlib.compress(page.encode('utf-8')))
     else:
         with open(output, 'w') as f:
-             f.write(page.encode('utf-8'))
+             f.write(page)
 
 def jinja_init(templates):
     global ENV
@@ -705,7 +705,7 @@ def interne_link(text_post, domain,id):
                 userid=link.split("/")[1]
                 a.attrib['href']="../user/" + userid + ".html"
     if links:
-        text_post = html2string(body)
+        text_post = html2string(body, method='html', encoding='unicode')
     return text_post
 
 def image(text_post, output, nopic):
@@ -740,7 +740,7 @@ def image(text_post, output, nopic):
     # does the post contain images? if so, we surely modified
     # its content so save it.
     if imgs:
-        text_post = html2string(body)
+        text_post = html2string(body, method='html', encoding='unicode')
     return text_post
 
 def grab_title_description_favicon_lang(url, output_dir, do_old):
@@ -947,12 +947,12 @@ def create_zims(title, publisher, description,redirect_file,domain,lang_input, z
 
 
 def create_zim(static_folder, zim_path, title, description, lang_input, publisher, creator,redirect_file, noindex, name,nopic, scraper_version,domain):
-    print("\tWriting ZIM for {}".format(title.encode("utf-8")))
+    print("\tWriting ZIM for {}".format(title))
     context = {
         'languages': lang_input,
-        'title': title.encode("utf-8"),
-        'description': description.encode("utf-8"),
-        'creator': creator.encode("utf-8"),
+        'title': title,
+        'description': description,
+        'creator': creator,
         'publisher': publisher,
         'home': 'index.html',
         'favicon': 'favicon.png',
