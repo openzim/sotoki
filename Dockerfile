@@ -24,11 +24,15 @@ RUN wget https://www.lcdf.org/gifsicle/gifsicle-1.88.tar.gz && \
     cd gifsicle-1.88 && ./configure && make all install && \
     rm -rf gifsicle-1.88*
 
+# install pip for python3
+RUN wget -O get-pip.py https://bootstrap.pypa.io/get-pip.py
+RUN python3 get-pip.py
+
 # Install sotoki
 RUN locale-gen "en_US.UTF-8"
 COPY . /app
 WORKDIR /app
-RUN pip install .
+RUN pip3 install .
 WORKDIR /
 RUN rm -rf /app
 
