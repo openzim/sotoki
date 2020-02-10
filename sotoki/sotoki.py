@@ -962,7 +962,7 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
         'tags' : "_category:stack_exchange;stackexchange",
         'name' : name,
         'scraper' : scraper_version,
-        'source' : domain
+        'source' : "https://{}".format(domain)
     }
     cmd = "zimwriterfs "
     if nopic:
@@ -974,7 +974,7 @@ def create_zim(static_folder, zim_path, title, description, lang_input, publishe
 
     if not noindex:
         cmd = cmd + "--withFullTextIndex "
-    cmd = ( cmd + ' --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" --language="{languages}" --title="{title}" --description="{description}" --creator="{creator}" --publisher="{publisher}" --tags="{tags}" --name="{name}" --scraper="{scraper}" "{static}" "{zim}"'.format(**context))
+    cmd = ( cmd + ' --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" --language="{languages}" --title="{title}" --description="{description}" --creator="{creator}" --publisher="{publisher}" --tags="{tags}" --name="{name}" --scraper="{scraper}" --source="{source}" {static}" "{zim}"'.format(**context))
     print(cmd)
 
     if exec_cmd(cmd) == 0:
