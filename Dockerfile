@@ -1,4 +1,4 @@
-FROM openzim/zimwriterfs:latest
+FROM openzim/zimwriterfs:1.3.7
 
 # Install necessary packages
 RUN apt-get update -y && \
