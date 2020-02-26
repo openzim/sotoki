@@ -1112,6 +1112,7 @@ def download_dump(domain, dump_path):
         os.remove(domain + ".hash")
         os.remove(domain + ".7z")
         sys.exit(1)
+    print("Starting to decompress dump, may take a very long time depending on dump size")
     exec_cmd("7z e " + domain + ".7z -o" + dump_path)
     os.remove(domain + ".hash")
     os.remove(domain + ".7z")
