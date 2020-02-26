@@ -1068,7 +1068,11 @@ def resize_one(path, ftype, nb_pix):
 
 
 def create_temporary_copy(path):
-    fd, temp_path = tempfile.mkstemp()
+    tmpfs_dir = '/dev/shm'
+    if os.path.isdir(tmpfs_dir):
+        fd, temp_path = tempfile.mkstemp(dir=tmpfs_dir)
+    else:
+        fd, temp_path = tempfile.mkstemp()
     os.close(fd)
     shutil.copy2(path, temp_path)
     return temp_path
@@ -1256,7 +1260,12 @@ def create_zim(
 
     cmd = "zimwriterfs "
     if nopic:
-        tmpfile = tempfile.mkdtemp()
+        tmpfs_dir = '/dev/shm'
+        if os.path.isdir(tmpfs_dir):
+            tmpfile = tempfile.mkdtemp(dir=tmpfs_dir)
+        else:
+            tmpfile = tempfile.mkdtemp()
+
         os.rename(
             os.path.join(static_folder, "static", "images"),
             os.path.join(tmpfile, "images"),
