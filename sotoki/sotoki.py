@@ -27,7 +27,7 @@ import re
 import sys
 import os
 import ssl
-import cgi
+import html
 import zlib
 import shlex
 import shutil
@@ -195,7 +195,7 @@ class QuestionRender(handler.ContentHandler):
 
             if "Score" in tmp:
                 tmp["Score"] = int(tmp["Score"])
-            tmp["Text"] = markdown(cgi.escape(tmp["Text"]))
+            tmp["Text"] = markdown(html.escape(tmp["Text"], quote=False))
             self.comments.append(tmp)
             return
 
@@ -204,14 +204,14 @@ class QuestionRender(handler.ContentHandler):
                 self.post["relateds"].append(
                     {
                         "PostId": page_url(attrs["PostId"], attrs["PostName"]),
-                        "PostName": cgi.escape(attrs["PostName"]),
+                        "PostName": html.escape(attrs["PostName"], quote=False),
                     }
                 )
             elif attrs["LinkTypeId"] == "3":
                 self.post["duplicate"].append(
                     {
                         "PostId": page_url(attrs["PostId"], attrs["PostName"]),
-                        "PostName": cgi.escape(attrs["PostName"]),
+                        "PostName": html.escape(attrs["PostName"], quote=False),
                     }
                 )
             return
@@ -382,7 +382,7 @@ def some_questions(
         if "comments" in question:
             for comment in question["comments"]:
                 comment["Text"] = interne_link(comment["Text"], domain, question["Id"])
-        question["Title"] = cgi.escape(question["Title"])
+        question["Title"] = html.escape(question["Title"], quote=False)
         try:
             jinja(
                 filepath,
@@ -463,7 +463,7 @@ class TagsRender(handler.ContentHandler):
         questionsids = []
         for question in some_questions:
             question["filepath"] = page_url(question["QId"], question["Title"])
-            question["Title"] = cgi.escape(question["Title"])
+            question["Title"] = html.escape(question["Title"], quote=False)
             if question["QId"] not in questionsids:
                 questionsids.append(question["QId"])
                 new_questions.append(question)
@@ -525,7 +525,7 @@ class TagsRender(handler.ContentHandler):
                 some_questions = some_questions[:99]
                 for question in some_questions:
                     question["filepath"] = page_url(question["QId"], question["Title"])
-                    question["Title"] = cgi.escape(question["Title"])
+                    question["Title"] = html.escape(question["Title"], quote=False)
                 hasprevious = page != 1
                 jinja(
                     fullpath,
@@ -1282,6 +1282,7 @@ def create_zim(
         "scraper": scraper_version,
         "source": "https://{}".format(domain),
     }
+
     cmd = "zimwriterfs "
     if nopic:
         tmpfile = tempfile.mkdtemp()
@@ -1300,7 +1301,7 @@ def create_zim(
         cmd = cmd + "--withFullTextIndex "
     cmd = (
         cmd
-        + ' --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" --language="{languages}" --title="{title}" --description="{description}" --creator="{creator}" --publisher="{publisher}" --tags="{tags}" --name="{name}" --scraper="{scraper}" --source="{source}" {static}" "{zim}"'.format(
+        + ' --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" --language="{languages}" --title="{title}" --description="{description}" --creator="{creator}" --publisher="{publisher}" --tags="{tags}" --name="{name}" --scraper="{scraper}" --source="{source}" "{static}" "{zim}"'.format(
             **context
         )
     )
