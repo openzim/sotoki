@@ -1,39 +1,35 @@
+import pathlib
+
 from setuptools import setup, find_packages
 
+root_dir = pathlib.Path(__file__).parent
+with open(root_dir.joinpath("requirements.txt"), "r") as fh:
+    requirements = fh.read()
+
 setup(
-    name='sotoki',
-    version='1.1',
+    name="sotoki",
+    version="1.2",
     description="Make zimfile from stackexchange dump",
-    long_description=open('README.md').read(),
-    author='dattaz',
-    author_email='taz@dattaz.fr',
-    url='http://github.com/kiwix/sotoki',
+    long_description=open("README.md").read(),
+    author="dattaz",
+    author_email="taz@dattaz.fr",
+    url="http://github.com/kiwix/sotoki",
     keywords="kiwix zim stackexchange offline",
     license="GPL",
-    packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
+    packages=find_packages(exclude=["contrib", "docs", "tests*"]),
     install_requires=[
-        'Jinja2==2.8',
-        'lxml==3.4.4',
-        'MarkupSafe==0.23',
-        'docopt==0.6.2',
-        'slugify==0.0.1',
-        'pydenticon==0.2',
-        'bs4',
-        'envoy',
-        'subprocess32',
-        'filemagic',
-        'mistune'
-        ],
+        line.strip()
+        for line in requirements.splitlines()
+        if not line.strip().startswith("#")
+    ],
     zip_safe=False,
-    platforms='Linux',
+    platforms="Linux",
     include_package_data=True,
-    entry_points={
-            'console_scripts': ['sotoki=sotoki.sotoki:run'],
-    },
+    entry_points={"console_scripts": ["sotoki=sotoki.sotoki:run"]},
     classifiers=[
-        'Development Status :: 4 - Beta',
-        'Intended Audience :: Developers',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 2.7'
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Developers",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
     ],
 )
