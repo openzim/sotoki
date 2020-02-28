@@ -1191,6 +1191,7 @@ def use_mathjax(domain):
         "meta.datascience.stackexchange.com",
         "meta.dsp.stackexchange.com",
         "meta.earthscience.stackexchange.com",
+        "physics.stackexchange.com",
     ]
 
 
