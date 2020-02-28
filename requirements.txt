@@ -1,0 +1,11 @@
+Jinja2==2.11.1
+lxml==4.5.0
+MarkupSafe==1.1.1
+docopt==0.6.2
+python-slugify==4.0.0
+pydenticon==0.3.1
+beautifulsoup4==4.8.2
+subprocess32==3.5.4
+filemagic==1.6
+mistune>=2.0.0a2
+Pillow==7.0.0

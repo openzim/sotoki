@@ -1,8 +1,14 @@
+import pathlib
+
 from setuptools import setup, find_packages
+
+root_dir = pathlib.Path(__file__).parent
+with open(root_dir.joinpath("requirements.txt"), "r") as fh:
+    requirements = fh.read()
 
 setup(
     name="sotoki",
-    version="1.1",
+    version="1.2",
     description="Make zimfile from stackexchange dump",
     long_description=open("README.md").read(),
     author="dattaz",
@@ -12,23 +18,14 @@ setup(
     license="GPL",
     packages=find_packages(exclude=["contrib", "docs", "tests*"]),
     install_requires=[
-        "Jinja2",
-        "lxml",
-        "MarkupSafe",
-        "docopt",
-        #        'slugify', # do not exist for python 3
-        "python-slugify",
-        "pydenticon",
-        "bs4",
-        "envoy",
-        "subprocess32",
-        "filemagic",
-        "mistune>=2.0.0a2",
+        line.strip()
+        for line in requirements.splitlines()
+        if not line.strip().startswith("#")
     ],
     zip_safe=False,
     platforms="Linux",
     include_package_data=True,
-    entry_points={"console_scripts": ["sotoki=sotoki.sotoki:run"],},
+    entry_points={"console_scripts": ["sotoki=sotoki.sotoki:run"]},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
