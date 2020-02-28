@@ -23,55 +23,45 @@ Options:
   --nopic                  Dont download picture
   --no-userprofile         Not include user profile in zim
 """
-import sys
-import datetime
-import subprocess
-import time
-import shutil
-import os
 import re
+import sys
+import os
+import ssl
+import cgi
+import zlib
+import shlex
+import shutil
+import sqlite3
 import os.path
 import tempfile
-from distutils.dir_util import copy_tree
-
-from subprocess32 import call
-import shlex
-
-from multiprocessing import Pool
-from multiprocessing import cpu_count
-from multiprocessing import Queue
-from multiprocessing import Process
-
-import logging
-import sqlite3
-
-from xml.sax import make_parser, handler
-
+import datetime
+import subprocess
 from hashlib import sha256
+from string import punctuation
+from docopt import docopt, DocoptExit
+from distutils.dir_util import copy_tree
+from multiprocessing import cpu_count, Queue, Process
+from xml.sax import make_parser, handler
+import urllib.request
+import urllib.parse
+import urllib.error
 from urllib.request import urlopen
-import ssl
 
+import magic
+import mistune  # markdown
+import pydenticon
+from PIL import Image
+from slugify import slugify
+import bs4 as BeautifulSoup
+from subprocess32 import call
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
-import bs4 as BeautifulSoup
-
-from lxml.etree import parse as string2xml
+from lxml import etree
 from lxml.html import fromstring as string2html
 from lxml.html import tostring as html2string
-import cgi
-from lxml import etree
-from docopt import docopt, DocoptExit
-from slugify import slugify
-import mistune  # markdown
-import urllib.request, urllib.parse, urllib.error
-import pydenticon
-from string import punctuation
-import zlib
 
-from PIL import Image
-import magic
+MARKDOWN = None
 
-from itertools import chain
 
 #########################
 #        Question       #
@@ -160,10 +150,10 @@ class QuestionRender(handler.ContentHandler):
                 user = self.cursor.execute(
                     "SELECT * FROM users WHERE id = ?", (int(tmp["OwnerUserId"]),)
                 ).fetchone()
-                id = tmp["OwnerUserId"]
-                if user != None:
+                oid = tmp["OwnerUserId"]
+                if user is not None:
                     tmp["OwnerUserId"] = dict_to_unicodedict(user)
-                    tmp["OwnerUserId"]["Id"] = id
+                    tmp["OwnerUserId"]["Id"] = oid
                     if self.nouserprofile:
                         tmp["OwnerUserId"]["Path"] = None
                     else:
@@ -172,7 +162,7 @@ class QuestionRender(handler.ContentHandler):
                         )
                 else:
                     tmp["OwnerUserId"] = dict_to_unicodedict({"DisplayName": "None"})
-                    tmp["OwnerUserId"]["Id"] = id
+                    tmp["OwnerUserId"]["Id"] = oid
             elif "OwnerDisplayName" in tmp:
                 tmp["OwnerUserId"] = dict_to_unicodedict(
                     {"DisplayName": tmp["OwnerDisplayName"]}
@@ -192,7 +182,7 @@ class QuestionRender(handler.ContentHandler):
                 user = self.cursor.execute(
                     "SELECT * FROM users WHERE id = ?", (int(tmp["UserId"]),)
                 ).fetchone()
-                if "UserId" in tmp and user != None:
+                if "UserId" in tmp and user is not None:
                     tmp["UserDisplayName"] = dict_to_unicodedict(user)["DisplayName"]
                     if self.nouserprofile:
                         tmp["Path"] = None
@@ -246,10 +236,10 @@ class QuestionRender(handler.ContentHandler):
                 user = self.cursor.execute(
                     "SELECT * FROM users WHERE id = ?", (int(self.post["OwnerUserId"]),)
                 ).fetchone()
-                id = self.post["OwnerUserId"]
-                if user != None:
+                oid = self.post["OwnerUserId"]
+                if user is not None:
                     self.post["OwnerUserId"] = dict_to_unicodedict(user)
-                    self.post["OwnerUserId"]["Id"] = id
+                    self.post["OwnerUserId"]["Id"] = oid
                     if self.nouserprofile:
                         self.post["OwnerUserId"]["Path"] = None
                     else:
@@ -261,7 +251,7 @@ class QuestionRender(handler.ContentHandler):
                     self.post["OwnerUserId"] = dict_to_unicodedict(
                         {"DisplayName": "None"}
                     )
-                    self.post["OwnerUserId"]["Id"] = id
+                    self.post["OwnerUserId"]["Id"] = oid
             elif "OwnerDisplayName" in self.post:
                 self.post["OwnerUserId"] = dict_to_unicodedict(
                     {"DisplayName": self.post["OwnerDisplayName"]}
@@ -409,7 +399,7 @@ def some_questions(
                 nopic=nopic,
             )
         except Exception as e:
-            print(" * failed to generate: %s" % filename)
+            print(" * failed to generate: %s" % filepath)
             print("erreur jinja" + str(e))
             print(question)
     except Exception as e:
@@ -525,7 +515,7 @@ class TagsRender(handler.ContentHandler):
                     (str(tag), self.tag_depth,),
                 )
 
-            while offset != None:
+            while offset is not None:
                 fullpath = os.path.join(tagpath, "%s.html" % page)
                 some_questions = questions.fetchmany(100)
                 if len(some_questions) != 100:
@@ -536,10 +526,7 @@ class TagsRender(handler.ContentHandler):
                 for question in some_questions:
                     question["filepath"] = page_url(question["QId"], question["Title"])
                     question["Title"] = cgi.escape(question["Title"])
-                if page != 1:
-                    hasprevious = True
-                else:
-                    hasprevious = False
+                hasprevious = page != 1
                 jinja(
                     fullpath,
                     "tag.html",
@@ -717,7 +704,7 @@ def some_user(
             if ext != "gif":
                 resize_one(fullpath, "png", "128")
                 optimize_one(fullpath, "png")
-        except Exception as e:
+        except Exception:
             # Generate big identicon
             padding = (20, 20, 20, 20)
             identicon = generator.generate(
@@ -775,11 +762,10 @@ class Worker(Process):
 
 def intspace(value):
     orig = str(value)
-    new = re.sub("^(-?\d+)(\d{3})", "\g<1> \g<2>", orig)
+    new = re.sub(r"^(-?\d+)(\d{3})", r"\g<1> \g<2>", orig)
     if orig == new:
         return new
-    else:
-        return intspace(new)
+    return intspace(new)
 
 
 def markdown(text):
@@ -811,8 +797,8 @@ def scale(number):
     return "verygood"
 
 
-def page_url(id, name):
-    return str(id) + "/" + slugify(name)
+def page_url(ident, name):
+    return str(ident) + "/" + slugify(name)
 
 
 ENV = None  # Jinja environment singleton
@@ -859,32 +845,32 @@ def download(url, output, timeout=None):
 
 
 def get_filetype(headers, path):
-    type = "none"
+    ftype = "none"
     if "content-type" in headers:
         if ("png" in headers["content-type"]) or ("PNG" in headers["content-type"]):
-            type = "png"
+            ftype = "png"
         elif (
             ("jpg" in headers["content-type"])
             or ("jpeg" in headers["content-type"])
             or ("JPG" in headers["content-type"])
             or ("JPEG" in headers["content-type"])
         ):
-            type = "jpeg"
+            ftype = "jpeg"
         elif ("gif" in headers["content-type"]) or ("GIF" in headers["content-type"]):
-            type = "gif"
+            ftype = "gif"
     else:
         with magic.Magic() as m:
             mine = m.id_filename(path)
             if "PNG" in mine:
-                type = "png"
+                ftype = "png"
             elif "JPEG" in mine:
-                type = "jpeg"
+                ftype = "jpeg"
             elif "GIF" in mine:
-                type = "gif"
-    return type
+                ftype = "gif"
+    return ftype
 
 
-def interne_link(text_post, domain, id):
+def interne_link(text_post, domain, question_id):
     body = string2html(text_post)
     links = body.xpath("//a")
     for a in links:
@@ -945,14 +931,13 @@ def image(text_post, output, nopic):
             if not os.path.exists(out) and ext != ".html":
                 try:
                     headers = download(src, out, timeout=180)
-                    type = get_filetype(headers, out)
+                    ftype = get_filetype(headers, out)
                     # update post's html
-                    resize_one(out, type, "540")
-                    optimize_one(out, type)
+                    resize_one(out, ftype, "540")
+                    optimize_one(out, ftype)
                 except Exception as e:
                     # do nothing
                     print(e)
-                    pass
             src = "../static/images/" + filename
             img.attrib["src"] = src
             img.attrib["style"] = "max-width:100%"
@@ -996,9 +981,9 @@ def grab_title_description_favicon_lang(url, output_dir, do_old):
     jss = soup.find_all("script")
     lang = "en"
     for js in jss:
-        search = re.search('StackExchange.init\({"locale":"[^"]*', output)
-        if search != None:
-            lang = re.sub('StackExchange.init\({"locale":"', "", search.group(0))
+        search = re.search(r'StackExchange.init\({"locale":"[^"]*', output)
+        if search is not None:
+            lang = re.sub(r'StackExchange.init\({"locale":"', "", search.group(0))
     favicon = soup.find("link", attrs={"rel": "icon"})["href"]
     if favicon[:2] == "//":
         favicon = "http:" + favicon
@@ -1022,7 +1007,6 @@ def exec_cmd(cmd, timeout=None):
         return call(shlex.split(cmd), timeout=timeout)
     except Exception as e:
         print(e)
-        pass
 
 
 def bin_is_present(binary):
@@ -1068,19 +1052,19 @@ def prepare(dump_path, bin_dir):
         sys.exit("Unable to prepare xml :(")
 
 
-def optimize_one(path, type):
-    if type == "jpeg":
+def optimize_one(path, ftype):
+    if ftype == "jpeg":
         exec_cmd("jpegoptim --strip-all -m50 " + path, timeout=10)
-    elif type == "png":
+    elif ftype == "png":
         exec_cmd("pngquant --verbose --nofs --force --ext=.png " + path, timeout=10)
         exec_cmd("advdef -q -z -4 -i 5  " + path, timeout=10)
-    elif type == "gif":
+    elif ftype == "gif":
         exec_cmd("gifsicle --batch -O3 -i " + path, timeout=10)
 
 
-def resize_one(path, type, nb_pix):
-    if type in ["gif", "png", "jpeg"]:
-        exec_cmd("mogrify -resize " + nb_pix + "x\> " + path, timeout=10)
+def resize_one(path, ftype, nb_pix):
+    if ftype in ["gif", "png", "jpeg"]:
+        exec_cmd("mogrify -resize " + nb_pix + r"x\> " + path, timeout=10)
 
 
 def create_temporary_copy(path):
@@ -1100,25 +1084,25 @@ def convert_to_png(path, ext):
 
 
 def get_hash(site_name):
-    hash = None
+    digest = None
     sha1hash_url = "https://archive.org/download/stackexchange/stackexchange_files.xml"
     output = urlopen(sha1hash_url).read()
     tree = etree.fromstring(output)
     for file in tree.xpath("/files/file"):
         if file.get("name") == site_name + ".7z":
             print("found")
-            hash = file.xpath("sha1")[0].text
-    if hash == None:
+            digest = file.xpath("sha1")[0].text
+    if digest is None:
         print("File :" + site_name + ".7z no found")
         sys.exit(1)
-    return hash
+    return digest
 
 
 def download_dump(domain, dump_path):
     url_dump = "https://archive.org/download/stackexchange/" + domain + ".7z"
-    hash = get_hash(domain)
+    digest = get_hash(domain)
     f = open(domain + ".hash", "w")
-    f.write(hash + " " + domain + ".7z")
+    f.write(digest + " " + domain + ".7z")
     f.close()
     exec_cmd("wget " + url_dump)
     if exec_cmd("sha1sum -c " + domain + ".hash") == 0:
@@ -1229,7 +1213,7 @@ def create_zims(
     scraper_version,
 ):
     print("Creating ZIM files")
-    if zim_path == None:
+    if zim_path is None:
         zim_path = dict(
             title=domain.lower(),
             lang=lang_input.lower(),
@@ -1335,19 +1319,18 @@ def create_zim(
             )
             shutil.rmtree(tmpfile)
         return True
-    else:
-        print("Unable to create ZIM file :(")
-        if nopic:
-            os.rename(
-                os.path.join(tmpfile, "images"),
-                os.path.join(static, "static", "images"),
-            )
-            os.rename(
-                os.path.join(tmpfile, "identicon"),
-                os.path.join(static, "static", "identicon"),
-            )
-            shutil.rmtree(tmpfile)
-        return False
+    print("Unable to create ZIM file :(")
+    if nopic:
+        os.rename(
+            os.path.join(tmpfile, "images"),
+            os.path.join(static_folder, "static", "images"),
+        )
+        os.rename(
+            os.path.join(tmpfile, "identicon"),
+            os.path.join(static_folder, "static", "identicon"),
+        )
+        shutil.rmtree(tmpfile)
+    return False
 
 
 def run():
@@ -1360,7 +1343,7 @@ def run():
     if not arguments["--nozim"] and not bin_is_present("zimwriterfs"):
         sys.exit("zimwriterfs is not available, please install it.")
     # Check binary
-    for bin in [
+    for binary in [
         "bash",
         "jpegoptim",
         "pngquant",
@@ -1376,8 +1359,8 @@ def run():
         "rm",
         "grep",
     ]:
-        if not bin_is_present(bin):
-            sys.exit(bin + " is not available, please install it.")
+        if not bin_is_present(binary):
+            sys.exit(binary + " is not available, please install it.")
     tag_depth = int(arguments["--tag-depth"])
     if tag_depth != -1 and tag_depth <= 0:
         sys.exit("--tag-depth should be a positive integer")
@@ -1393,7 +1376,7 @@ def run():
         os.makedirs("work")
 
     if arguments["--directory"] == "download":
-        dump = os.path.join("work", re.sub("\.", "_", domain))
+        dump = os.path.join("work", re.sub(r"\.", "_", domain))
     else:
         dump = arguments["--directory"]
 
@@ -1408,7 +1391,7 @@ def run():
     else:
         cores = cpu_count() / 2 or 1
 
-    if arguments["--reset"] == True:
+    if arguments["--reset"]:
         if os.path.exists(dump):
             for elem in [
                 "Badges.xml",
@@ -1427,11 +1410,11 @@ def run():
                     os.remove(elem_path)
         arguments["--directory"] = "download"
 
-    if arguments["--reset-images"] == True:
+    if arguments["--reset-images"]:
         if os.path.exists(os.path.join(dump, "output")):
             shutil.rmtree(os.path.join(dump, "output"))
 
-    if arguments["--clean-previous"] == True:
+    if arguments["--clean-previous"]:
         clean(output, db, redirect_file)
 
     if data_from_previous_run(output, db, redirect_file):
@@ -1462,7 +1445,7 @@ def run():
                 "stackoverflow.com-Tags",
                 "stackoverflow.com-Users",
             ]:
-                dump_tmp = os.path.join("work", re.sub("\.", "_", part))
+                dump_tmp = os.path.join("work", re.sub(r"\.", "_", part))
                 os.makedirs(dump_tmp)
                 download_dump(part, dump_tmp)
             for path in [
@@ -1598,7 +1581,7 @@ def run():
             arguments["--nopic"],
             scraper_version,
         )
-        if done == True:
+        if done:
             clean(output, db, redirect_file)
 
 

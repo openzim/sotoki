@@ -1,12 +1,10 @@
-import os
-import sys
 import re
+import sys
+import csv
 
 
 f1 = open(sys.argv[1], "r")
 f2 = open(sys.argv[2], "r")
-
-import csv
 
 csvreader = csv.reader(f2, delimiter=",", quotechar='"')
 
@@ -17,7 +15,7 @@ for line in f1:
     while line_2_id < line_id:
         try:
             line_2 = next(csvreader)
-        except:
+        except Exception:
             break
         if line_2:
             line_2_id = int(line_2[0])

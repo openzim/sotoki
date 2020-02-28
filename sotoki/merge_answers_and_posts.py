@@ -1,6 +1,6 @@
-import os
-import sys
 import re
+import sys
+
 
 sep = '"'
 
@@ -17,7 +17,7 @@ print('<?xml version="1.0" encoding="utf-8"?>')
 print("<root>")
 for line in f1:
     line_id = line.split(sep)[int(sys.argv[1]) - 1]
-    line_to_print = re.sub("<\/row>\n$", "", re.sub("^  <row", "<post", line))
+    line_to_print = re.sub(r"<\/row>\n$", "", re.sub("^  <row", "<post", line))
     answers = ""
     while line_id == line_2_id:  # get all answers
         answers += re.sub("\n$", "", line_2)
