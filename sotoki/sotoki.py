@@ -1156,43 +1156,12 @@ def data_from_previous_run(output, db, redirect_file):
 
 
 def use_mathjax(domain):
-    return domain in [
-        "astronomy.stackexchange.com",
-        "aviation.stackexchange.com",
-        "biology.stackexchange.com",
-        "chemistry.stackexchange.com",
-        "codereview.stackexchange.com",
-        "cogsci.stackexchange.com",
-        "computergraphics.stackexchange.com",
-        "crypto.stackexchange.com",
-        "cs.stackexchange.com",
-        "cstheory.stackexchange.com",
-        "datascience.stackexchange.com",
-        "dsp.stackexchange.com",
-        "earthscience.stackexchange.com",
-        "economics.stackexchange.com",
-        "electronics.stackexchange.com",
-        "engineering.stackexchange.com",
-        "ham.stackexchange.com",
-        "hsm.stackexchange.com",
-        "math.stackexchange.com",
-        "matheducators.stackexchange.com",
-        "mathematica.stackexchange.com",
-        "mathoverflow.net",
-        "meta.astronomy.stackexchange.com",
-        "meta.aviation.stackexchange.com",
-        "meta.biology.stackexchange.com",
-        "meta.blender.stackexchange.com",
-        "meta.chemistry.stackexchange.com",
-        "meta.codereview.stackexchange.com",
-        "meta.computergraphics.stackexchange.com",
-        "meta.crypto.stackexchange.com",
-        "meta.cstheory.stackexchange.com",
-        "meta.datascience.stackexchange.com",
-        "meta.dsp.stackexchange.com",
-        "meta.earthscience.stackexchange.com",
-        "physics.stackexchange.com",
-    ]
+    """ const True
+
+        used to be a static list of domains for which mathjax should be enabled.
+        this list was updated with help from find_mathml_site.sh script (looks for
+        mathjax string in homepage of the domain) """
+    return True
 
 
 #########################
