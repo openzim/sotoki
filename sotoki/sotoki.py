@@ -1008,6 +1008,7 @@ def exec_cmd(cmd, timeout=None):
     except Exception as e:
         print(e)
 
+
 def bin_is_present(binary):
     try:
         subprocess.Popen(
@@ -1053,17 +1054,17 @@ def prepare(dump_path, bin_dir):
 
 def optimize_one(path, ftype):
     if ftype == "jpeg":
-        exec_cmd("jpegoptim --strip-all -m50 " + path, timeout=10)
+        exec_cmd("jpegoptim --strip-all -m50 " + path, timeout=20)
     elif ftype == "png":
-        exec_cmd("pngquant --verbose --nofs --force --ext=.png " + path, timeout=10)
-        exec_cmd("advdef -q -z -4 -i 5  " + path, timeout=10)
+        exec_cmd("pngquant --verbose --nofs --force --ext=.png " + path, timeout=20)
+        exec_cmd("advdef -q -z -4 -i 5  " + path, timeout=20)
     elif ftype == "gif":
-        exec_cmd("gifsicle --batch -O3 -i " + path, timeout=10)
+        exec_cmd("gifsicle --batch -O3 -i " + path, timeout=20)
 
 
 def resize_one(path, ftype, nb_pix):
     if ftype in ["gif", "png", "jpeg"]:
-        exec_cmd("mogrify -resize " + nb_pix + r"x\> " + path, timeout=10)
+        exec_cmd("mogrify -resize " + nb_pix + r"x\> " + path, timeout=20)
 
 
 def create_temporary_copy(path):
@@ -1111,7 +1112,9 @@ def download_dump(domain, dump_path):
         os.remove(domain + ".hash")
         os.remove(domain + ".7z")
         sys.exit(1)
-    print("Starting to decompress dump, may take a very long time depending on dump size")
+    print(
+        "Starting to decompress dump, may take a very long time depending on dump size"
+    )
     exec_cmd("7z e " + domain + ".7z -o" + dump_path)
     os.remove(domain + ".hash")
     os.remove(domain + ".7z")
