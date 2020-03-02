@@ -53,7 +53,6 @@ import pydenticon
 from PIL import Image
 from slugify import slugify
 import bs4 as BeautifulSoup
-from subprocess32 import call
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
 from lxml import etree
@@ -1003,8 +1002,9 @@ def resize_image_profile(image_path):
 
 def exec_cmd(cmd, timeout=None):
     try:
-        # return check_output(shlex.split(cmd), timeout=timeout)
-        return call(shlex.split(cmd), timeout=timeout)
+        return subprocess.call(shlex.split(cmd), timeout=timeout)
+    except subprocess.TimeoutExpired:
+        print("Timeout ({}s) expired while running: {}".format(timeout, cmd))
     except Exception as e:
         print(e)
 
@@ -1054,17 +1054,17 @@ def prepare(dump_path, bin_dir):
 
 def optimize_one(path, ftype):
     if ftype == "jpeg":
-        exec_cmd("jpegoptim --strip-all -m50 " + path, timeout=10)
+        exec_cmd("jpegoptim --strip-all -m50 " + path, timeout=20)
     elif ftype == "png":
-        exec_cmd("pngquant --verbose --nofs --force --ext=.png " + path, timeout=10)
-        exec_cmd("advdef -q -z -4 -i 5  " + path, timeout=10)
+        exec_cmd("pngquant --verbose --nofs --force --ext=.png " + path, timeout=20)
+        exec_cmd("advdef -q -z -4 -i 5  " + path, timeout=20)
     elif ftype == "gif":
-        exec_cmd("gifsicle --batch -O3 -i " + path, timeout=10)
+        exec_cmd("gifsicle --batch -O3 -i " + path, timeout=20)
 
 
 def resize_one(path, ftype, nb_pix):
     if ftype in ["gif", "png", "jpeg"]:
-        exec_cmd("mogrify -resize " + nb_pix + r"x\> " + path, timeout=10)
+        exec_cmd("mogrify -resize " + nb_pix + r"x\> " + path, timeout=20)
 
 
 def create_temporary_copy(path):
@@ -1112,7 +1112,9 @@ def download_dump(domain, dump_path):
         os.remove(domain + ".hash")
         os.remove(domain + ".7z")
         sys.exit(1)
-    print("Starting to decompress dump, may take a very long time depending on dump size")
+    print(
+        "Starting to decompress dump, may take a very long time depending on dump size"
+    )
     exec_cmd("7z e " + domain + ".7z -o" + dump_path)
     os.remove(domain + ".hash")
     os.remove(domain + ".7z")
@@ -1356,6 +1358,13 @@ def run():
     db = os.path.join(dump, "se-dump.db")
     redirect_file = os.path.join(dump, "redirection.csv")
 
+    # set ImageMagick's temp folder via env
+    magick_tmp = os.path.join(dump, "magick")
+    if os.path.exists(magick_tmp):
+        shutil.rmtree(magick_tmp)
+    os.makedirs(magick_tmp)
+    os.environ.update({"MAGICK_TEMPORARY_PATH": magick_tmp})
+
     deflate = not arguments["--nozim"]
 
     if arguments["--threads"] is not None:
@@ -1529,6 +1538,10 @@ def run():
     )
     parser.parse(os.path.join(dump, "Tags.xml"))
     conn.close()
+
+    # remove magick tmp folder (not reusable)
+    shutil.rmtree(magick_tmp, ignore_errors=True)
+
     # copy static
     if use_mathjax(domain):
         copy_tree(
