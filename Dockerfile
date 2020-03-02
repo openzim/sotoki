@@ -33,6 +33,8 @@ RUN wget https://www.lcdf.org/gifsicle/gifsicle-1.88.tar.gz && \
 
 # Install sotoki
 RUN locale-gen "en_US.UTF-8"
+COPY requirements.txt /tmp/requirements.txt
+RUN pip3 install -r /tmp/requirements.txt
 COPY . /app
 WORKDIR /app
 RUN pip3 install .
