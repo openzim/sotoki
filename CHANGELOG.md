@@ -5,6 +5,8 @@
 * Enabled Mathjax everywhere (#98)
 * Fixed redirects by fixing redirects TSV format (#95)
 * Introduced changelog (#88)
+* Fixed /tmp being filled with files (#88)
+* Changed image optimization timeout (20s vs 10s before)
 
 ## 1.1.2
 
