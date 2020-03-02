@@ -300,7 +300,7 @@ class QuestionRender(handler.ContentHandler):
                     + str(ans["Id"])
                     + ".html\tAnswer "
                     + str(ans["Id"])
-                    + "\tquestion/"
+                    + "\tA/question/"
                     + self.post["Id"]
                     + ".html\n"
                 )
@@ -309,7 +309,7 @@ class QuestionRender(handler.ContentHandler):
                 + page_url(self.post["Id"], self.post["Title"])
                 + ".html\tQuestion "
                 + str(self.post["Id"])
-                + "\tquestion/"
+                + "\tA/question/"
                 + self.post["Id"]
                 + ".html\n"
             )
@@ -647,7 +647,7 @@ class UsersRender(handler.ContentHandler):
                     + page_url(user["Id"], user["DisplayName"])
                     + ".html\tUser "
                     + slugify(user["DisplayName"])
-                    + "\tuser/"
+                    + "\tA/user/"
                     + user["Id"]
                     + ".html\n"
                 )
