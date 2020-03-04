@@ -60,6 +60,7 @@ from lxml.html import fromstring as string2html
 from lxml.html import tostring as html2string
 
 MARKDOWN = None
+TMPFS_DIR = "/dev/shm" if os.path.isdir("/dev/shm") else None
 
 
 #########################
@@ -694,15 +695,9 @@ def some_user(
     fullpath = os.path.join(output, "static", "identicon", filename)
     if not nopic and not os.path.exists(fullpath):
         try:
-            url = user["ProfileImageUrl"]
-            ext = os.path.splitext(url.split("?")[0])[1]
-            headers = download(url, fullpath, timeout=60)
-            ext = get_filetype(headers, fullpath)
-            if ext != "png":
-                convert_to_png(fullpath, ext)
-            if ext != "gif":
-                resize_one(fullpath, "png", "128")
-                optimize_one(fullpath, "png")
+            download_image(
+                user["ProfileImageUrl"], fullpath, convert_to_png=True, resize=128
+            )
         except Exception:
             # Generate big identicon
             padding = (20, 20, 20, 20)
@@ -869,6 +864,20 @@ def get_filetype(headers, path):
     return ftype
 
 
+def download_image(url, fullpath, convert_to_png=False, resize=False):
+    tmp_img = tempfile.NamedTemporaryFile(
+        suffix=os.path.basename(fullpath), dir=TMPFS_DIR, delete=False
+    ).name
+    headers = download(url, tmp_img, timeout=60)
+    ext = get_filetype(headers, tmp_img)
+    if convert_to_png and ext != "png":
+        convert_to_png(tmp_img, ext)
+    if resize and ext != "gif":
+        resize_one(tmp_img, ext, str(resize))
+        optimize_one(tmp_img, ext)
+    shutil.move(tmp_img, fullpath)
+
+
 def interne_link(text_post, domain, question_id):
     body = string2html(text_post)
     links = body.xpath("//a")
@@ -929,11 +938,7 @@ def image(text_post, output, nopic):
             # download the image only if it's not already downloaded and if it's not a html
             if not os.path.exists(out) and ext != ".html":
                 try:
-                    headers = download(src, out, timeout=180)
-                    ftype = get_filetype(headers, out)
-                    # update post's html
-                    resize_one(out, ftype, "540")
-                    optimize_one(out, ftype)
+                    download_image(src, out, resize=540)
                 except Exception as e:
                     # do nothing
                     print(e)
@@ -1068,7 +1073,7 @@ def resize_one(path, ftype, nb_pix):
 
 
 def create_temporary_copy(path):
-    fd, temp_path = tempfile.mkstemp()
+    fd, temp_path = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(path)))
     os.close(fd)
     shutil.copy2(path, temp_path)
     return temp_path

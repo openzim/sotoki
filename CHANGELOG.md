@@ -7,6 +7,7 @@
 * Introduced changelog (#88)
 * Fixed /tmp being filled with files (#88)
 * Changed image optimization timeout (20s vs 10s before)
+* Image optim and resize in memory (/dev/shm) if possible (#84)
 
 ## 1.1.2
 
