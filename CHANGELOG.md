@@ -1,4 +1,4 @@
-## 1.1.3
+## 1.2
 
 * Switched to python3, abandonning python2 support (#92)
 * Added warning before long extract operation (#91)
