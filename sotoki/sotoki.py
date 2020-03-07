@@ -8,20 +8,20 @@ Usage:
   sotoki --version
 
 Options:
-  -h --help                Show this screen.
-  --version                Show version.
-  --directory=<dir>        Specify a directory for xml files [default: download]
-  --nozim                  doesn't make zim file, output will be in work/output/ in normal html (otherwise work/ouput/ will be in deflate form and will produice a zim file)
-  --tag-depth=<tag_depth>  Specify number of question, order by Score, to show in tags pages (should be a multiple of 100, default all question are in tags pages) [default: -1]
+  -h --help                Display this help
+  --version                Display the version of Sotoki
+  --directory=<dir>        Configure directory in which XML files will be stored [default: 'download']
+  --nozim                  Doesn't build a ZIM file, output will be in 'work/output/' in flat HTML files (otherwise 'work/ouput/' will be in deflated form and will produce a ZIM file)
+  --tag-depth=<tag_depth>  Configure the number of questions, ordered by Score, to display in tags pages (should be a multiple of 100, default all question are in tags pages) [default: -1]
   --threads=<threads>      Number of threads to use, default is number_of_cores/2
   --zimpath=<zimpath>      Final path of the zim file
   --reset                  Reset dump
-  --reset-images           Remove image in cache
-  --clean-previous         Delete only data from a previous run with --nozim or which failed
-  --nofulltextindex        Dont index content
-  --ignoreoldsite          Ignore Stack Exchange closed site
-  --nopic                  Dont download picture
-  --no-userprofile         Not include user profile in zim
+  --reset-images           Remove images in cache
+  --clean-previous         Delete only data from a previous run with '--nozim' or which failed
+  --nofulltextindex        Doesn't index content
+  --ignoreoldsite          Ignore Stack Exchange closed sites
+  --nopic                  Doesn't download images
+  --no-userprofile         Doesn't include user profiles
 """
 import re
 import sys
