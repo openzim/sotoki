@@ -870,12 +870,16 @@ def download_image(url, fullpath, convert_png=False, resize=False):
     ).name
     headers = download(url, tmp_img, timeout=60)
     ext = get_filetype(headers, tmp_img)
-    if convert_png and ext != "png":
-        convert_to_png(tmp_img, ext)
-    if resize and ext != "gif":
-        resize_one(tmp_img, ext, str(resize))
-        optimize_one(tmp_img, ext)
-    shutil.move(tmp_img, fullpath)
+    try:
+        if convert_png and ext != "png":
+            convert_to_png(tmp_img, ext)
+        if resize and ext != "gif":
+            resize_one(tmp_img, ext, str(resize))
+            optimize_one(tmp_img, ext)
+    except Exception as exc:
+        print(f"Failed to optimize image: {exc}")
+    finally:
+        shutil.move(tmp_img, fullpath)
 
 
 def interne_link(text_post, domain, question_id):
