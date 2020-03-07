@@ -696,7 +696,7 @@ def some_user(
     if not nopic and not os.path.exists(fullpath):
         try:
             download_image(
-                user["ProfileImageUrl"], fullpath, convert_to_png=True, resize=128
+                user["ProfileImageUrl"], fullpath, convert_png=True, resize=128
             )
         except Exception:
             # Generate big identicon
@@ -864,13 +864,13 @@ def get_filetype(headers, path):
     return ftype
 
 
-def download_image(url, fullpath, convert_to_png=False, resize=False):
+def download_image(url, fullpath, convert_png=False, resize=False):
     tmp_img = tempfile.NamedTemporaryFile(
         suffix=os.path.basename(fullpath), dir=TMPFS_DIR, delete=False
     ).name
     headers = download(url, tmp_img, timeout=60)
     ext = get_filetype(headers, tmp_img)
-    if convert_to_png and ext != "png":
+    if convert_png and ext != "png":
         convert_to_png(tmp_img, ext)
     if resize and ext != "gif":
         resize_one(tmp_img, ext, str(resize))
