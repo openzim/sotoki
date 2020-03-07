@@ -873,7 +873,7 @@ def download_image(url, fullpath, convert_png=False, resize=False):
     try:
         if convert_png and ext != "png":
             convert_to_png(tmp_img, ext)
-            ext="png"
+            ext = "png"
         if resize and ext != "gif":
             resize_one(tmp_img, ext, str(resize))
             optimize_one(tmp_img, ext)
@@ -1318,7 +1318,7 @@ def create_zim(
 
 
 def run():
-    scraper_version = "sotoki 1.0"
+    scraper_version = "sotoki 1.2.1"
     try:
         arguments = docopt(__doc__, version=scraper_version)
     except DocoptExit:

@@ -1,3 +1,11 @@
+## 1.2.1
+
+* image optimization now performed in memory (/dev/shm) if possible (#84)
+* improved Usage wording
+* fixed regression from 1.2 on image conversion to PNG
+* bumped external image optimizers versions
+* fixed failed-to-optimize image being left on disk (#111)
+
 ## 1.2
 
 * Switched to python3, abandonning python2 support (#92)
