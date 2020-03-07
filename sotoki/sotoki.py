@@ -10,7 +10,7 @@ Usage:
 Options:
   -h --help                Display this help
   --version                Display the version of Sotoki
-  --directory=<dir>        Configure directory in which XML files will be stored [default: 'download']
+  --directory=<dir>        Configure directory in which XML files will be stored [default: download]
   --nozim                  Doesn't build a ZIM file, output will be in 'work/output/' in flat HTML files (otherwise 'work/ouput/' will be in deflated form and will produce a ZIM file)
   --tag-depth=<tag_depth>  Configure the number of questions, ordered by Score, to display in tags pages (should be a multiple of 100, default all question are in tags pages) [default: -1]
   --threads=<threads>      Number of threads to use, default is number_of_cores/2
