@@ -1323,6 +1323,9 @@ def run():
     except DocoptExit:
         print(__doc__)
         sys.exit()
+    print(
+        "starting sotoki scraper...{}".format(f"using {TMPFS_DIR}" if TMPFS_DIR else "")
+    )
     if not arguments["--nozim"] and not bin_is_present("zimwriterfs"):
         sys.exit("zimwriterfs is not available, please install it.")
     # Check binary
