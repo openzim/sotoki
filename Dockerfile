@@ -14,22 +14,22 @@ RUN apt-get update -y && \
     rm -rf /var/lib/apt/lists/*
 
 # Install jpegoptim
-RUN wget http://www.kokkonen.net/tjko/src/jpegoptim-1.4.4.tar.gz && \
-    tar xvf jpegoptim-1.4.4.tar.gz && \
-    cd jpegoptim-1.4.4 && ./configure && make all install && \
-    rm -rf jpegoptim-1.4.4*
+RUN wget http://www.kokkonen.net/tjko/src/jpegoptim-1.4.6.tar.gz && \
+    tar xvf jpegoptim-1.4.6.tar.gz && \
+    cd jpegoptim-1.4.6 && ./configure && make all install && \
+    rm -rf jpegoptim-1.4.6*
 
 # Install pngquant
-RUN wget http://pngquant.org/pngquant-2.9.0-src.tar.gz && \
-    tar xvf pngquant-2.9.0-src.tar.gz && \
-    cd pngquant-2.9.0 && ./configure && make all install && \
-    rm -rf pngquant-2.9.0*
+RUN wget http://pngquant.org/pngquant-2.12.5-src.tar.gz && \
+    tar xvf pngquant-2.12.5-src.tar.gz && \
+    cd pngquant-2.12.5 && ./configure && make all install && \
+    rm -rf pngquant-2.12.5*
 
 # Install gifsicle
-RUN wget https://www.lcdf.org/gifsicle/gifsicle-1.88.tar.gz && \
-    tar xvf gifsicle-1.88.tar.gz && \
-    cd gifsicle-1.88 && ./configure && make all install && \
-    rm -rf gifsicle-1.88*
+RUN wget https://www.lcdf.org/gifsicle/gifsicle-1.92.tar.gz && \
+    tar xvf gifsicle-1.92.tar.gz && \
+    cd gifsicle-1.92 && ./configure && make all install && \
+    rm -rf gifsicle-1.92*
 
 # Install sotoki
 RUN locale-gen "en_US.UTF-8"

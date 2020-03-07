@@ -10,7 +10,7 @@ Usage:
 Options:
   -h --help                Display this help
   --version                Display the version of Sotoki
-  --directory=<dir>        Configure directory in which XML files will be stored [default: 'download']
+  --directory=<dir>        Configure directory in which XML files will be stored [default: download]
   --nozim                  Doesn't build a ZIM file, output will be in 'work/output/' in flat HTML files (otherwise 'work/ouput/' will be in deflated form and will produce a ZIM file)
   --tag-depth=<tag_depth>  Configure the number of questions, ordered by Score, to display in tags pages (should be a multiple of 100, default all question are in tags pages) [default: -1]
   --threads=<threads>      Number of threads to use, default is number_of_cores/2
@@ -696,7 +696,7 @@ def some_user(
     if not nopic and not os.path.exists(fullpath):
         try:
             download_image(
-                user["ProfileImageUrl"], fullpath, convert_to_png=True, resize=128
+                user["ProfileImageUrl"], fullpath, convert_png=True, resize=128
             )
         except Exception:
             # Generate big identicon
@@ -864,14 +864,14 @@ def get_filetype(headers, path):
     return ftype
 
 
-def download_image(url, fullpath, convert_to_png=False, resize=False):
+def download_image(url, fullpath, convert_png=False, resize=False):
     tmp_img = tempfile.NamedTemporaryFile(
         suffix=os.path.basename(fullpath), dir=TMPFS_DIR, delete=False
     ).name
     headers = download(url, tmp_img, timeout=60)
     ext = get_filetype(headers, tmp_img)
     try:
-        if convert_to_png and ext != "png":
+        if convert_png and ext != "png":
             convert_to_png(tmp_img, ext)
         if resize and ext != "gif":
             resize_one(tmp_img, ext, str(resize))
