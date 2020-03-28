@@ -856,7 +856,7 @@ def get_filetype(headers, path):
         elif ("gif" in headers["content-type"]) or ("GIF" in headers["content-type"]):
             ftype = "gif"
             known_type_found = 1
-    elif (known_type_found == 0):
+    if (known_type_found == 0):
         mime = magic.from_file(path)
         if "PDF" in mime:
             ftype = "png"
