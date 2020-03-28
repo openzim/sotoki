@@ -8,7 +8,7 @@ The goal of this project is to create a suite of tools to create
 offline (without access to Internet).
 
 [![PyPI](https://img.shields.io/pypi/v/sotoki.svg)](https://pypi.python.org/pypi/sotoki)
-[![Docker Build Status](https://img.shields.io/docker/build/openzim/sotoki)](https://hub.docker.com/r/openzim/sotoko)
+[![Docker Build Status](https://img.shields.io/docker/build/openzim/sotoki)](https://hub.docker.com/r/openzim/sotoki)
 [![CodeFactor](https://www.codefactor.io/repository/github/openzim/sotoki/badge)](https://www.codefactor.io/repository/github/openzim/sotoki)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
