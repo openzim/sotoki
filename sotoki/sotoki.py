@@ -840,25 +840,19 @@ def download(url, output, timeout=None):
 
 def get_filetype(headers, path):
     ftype = "none"
-    known_type_found = 0
     if "content-type" in headers:
-        if ("png" in headers["content-type"]) or ("PNG" in headers["content-type"]):
+        if ("png" in headers["content-type"].lower()):
             ftype = "png"
-            known_type_found = 1
         elif (
-            ("jpg" in headers["content-type"])
-            or ("jpeg" in headers["content-type"])
-            or ("JPG" in headers["content-type"])
-            or ("JPEG" in headers["content-type"])
+            ("jpg" in headers["content-type"].lower())
+            or ("jpeg" in headers["content-type"].lower())
         ):
             ftype = "jpeg"
-            known_type_found = 1
-        elif ("gif" in headers["content-type"]) or ("GIF" in headers["content-type"]):
+        elif ("gif" in headers["content-type"].lower()):
             ftype = "gif"
-            known_type_found = 1
-    if (known_type_found == 0):
+    if (ftype == "none"):
         mime = magic.from_file(path)
-        if "PDF" in mime:
+        if "PNG" in mime:
             ftype = "png"
         elif "JPEG" in mime:
             ftype = "jpeg"
