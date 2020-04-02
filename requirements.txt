@@ -5,6 +5,6 @@ docopt==0.6.2
 python-slugify==4.0.0
 pydenticon==0.3.1
 beautifulsoup4==4.8.2
-filemagic==1.6
+python-magic==0.4.15
 mistune>=2.0.0a2
 Pillow==7.0.0
