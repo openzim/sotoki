@@ -994,17 +994,8 @@ def grab_title_description_favicon_lang(url, output_dir, do_old):
     if favicon[:2] == "//":
         favicon = "http:" + favicon
     favicon_out = os.path.join(output_dir, "favicon.png")
-    download(favicon, favicon_out)
-    resize_image_profile(favicon_out)
+    download_image(favicon, favicon_out, convert_png=True, resize=48)
     return [title, description, lang]
-
-
-def resize_image_profile(image_path):
-    image = Image.open(image_path)
-    w, h = image.size
-    image = image.resize((48, 48), Image.ANTIALIAS)
-    image.save(image_path)
-    image.close()
 
 
 def exec_cmd(cmd, timeout=None):
