@@ -998,15 +998,14 @@ def grab_title_description_favicon_lang(url, output_dir, do_old):
 
 
 def exec_cmd(cmd, timeout=None, workdir=None):
-    ret = None
     try:
+        ret = None
         ret = subprocess.run(shlex.split(cmd), timeout=timeout, cwd=workdir).returncode
+        return ret
     except subprocess.TimeoutExpired:
         print("Timeout ({}s) expired while running: {}".format(timeout, cmd))
     except Exception as e:
         print(e)
-    finally:
-        return ret
 
 
 def bin_is_present(binary):
