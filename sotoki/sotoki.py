@@ -841,16 +841,15 @@ def download(url, output, timeout=None):
 def get_filetype(headers, path):
     ftype = "none"
     if "content-type" in headers:
-        if ("png" in headers["content-type"].lower()):
+        if "png" in headers["content-type"].lower():
             ftype = "png"
-        elif (
-            ("jpg" in headers["content-type"].lower())
-            or ("jpeg" in headers["content-type"].lower())
+        elif ("jpg" in headers["content-type"].lower()) or (
+            "jpeg" in headers["content-type"].lower()
         ):
             ftype = "jpeg"
-        elif ("gif" in headers["content-type"].lower()):
+        elif "gif" in headers["content-type"].lower():
             ftype = "gif"
-    if (ftype == "none"):
+    if ftype == "none":
         mime = magic.from_file(path)
         if "PNG" in mime:
             ftype = "png"
@@ -873,9 +872,9 @@ def download_image(url, fullpath, convert_png=False, resize=False):
             ext = "png"
         if resize and ext != "gif":
             resize_one(tmp_img, ext, str(resize))
-            optimize_one(tmp_img, ext)
+        optimize_one(tmp_img, ext)
     except Exception as exc:
-        print(f"Failed to optimize image: {exc}")
+        print(f"Failed: {exc}")
     finally:
         shutil.move(tmp_img, fullpath)
 
@@ -998,9 +997,11 @@ def grab_title_description_favicon_lang(url, output_dir, do_old):
     return [title, description, lang]
 
 
-def exec_cmd(cmd, timeout=None):
+def exec_cmd(cmd, timeout=None, workdir=None):
     try:
-        return subprocess.call(shlex.split(cmd), timeout=timeout)
+        ret = None
+        ret = subprocess.run(shlex.split(cmd), timeout=timeout, cwd=workdir).returncode
+        return ret
     except subprocess.TimeoutExpired:
         print("Timeout ({}s) expired while running: {}".format(timeout, cmd))
     except Exception as e:
@@ -1052,17 +1053,29 @@ def prepare(dump_path, bin_dir):
 
 def optimize_one(path, ftype):
     if ftype == "jpeg":
-        exec_cmd("jpegoptim --strip-all -m50 " + path, timeout=20)
+        ret = exec_cmd("jpegoptim --strip-all -m50 " + path, timeout=20)
+        if ret != 0:
+            raise Exception("jpegoptim failed for " + str(path))
     elif ftype == "png":
-        exec_cmd("pngquant --verbose --nofs --force --ext=.png " + path, timeout=20)
-        exec_cmd("advdef -q -z -4 -i 5  " + path, timeout=20)
+        ret = exec_cmd(
+            "pngquant --verbose --nofs --force --ext=.png " + path, timeout=20
+        )
+        if ret != 0:
+            raise Exception("pngquant failed for " + str(path))
+        ret = exec_cmd("advdef -q -z -4 -i 5  " + path, timeout=20)
+        if ret != 0:
+            raise Exception("advdef failed for " + str(path))
     elif ftype == "gif":
-        exec_cmd("gifsicle --batch -O3 -i " + path, timeout=20)
+        ret = exec_cmd("gifsicle --batch -O3 -i " + path, timeout=20)
+        if ret != 0:
+            raise Exception("gifscale failed for " + str(path))
 
 
 def resize_one(path, ftype, nb_pix):
     if ftype in ["gif", "png", "jpeg"]:
-        exec_cmd("mogrify -resize " + nb_pix + r"x\> " + path, timeout=20)
+        ret = exec_cmd("mogrify -resize " + nb_pix + r"x\> " + path, timeout=20)
+    if ret != 0:
+        raise Exception("mogrify -resize failed for " + str(path))
 
 
 def create_temporary_copy(path):
@@ -1075,10 +1088,17 @@ def create_temporary_copy(path):
 def convert_to_png(path, ext):
     if ext == "gif":
         path_tmp = create_temporary_copy(path)
-        exec_cmd("gif2apng " + path_tmp + " " + path)
+        ret = exec_cmd(
+            "gif2apng " + os.path.basename(path_tmp) + " " + os.path.basename(path),
+            workdir=os.path.dirname(os.path.abspath(path)),
+        )
         os.remove(path_tmp)
+        if ret != 0:
+            raise Exception("gif2apng failed for " + str(path))
     else:
-        exec_cmd("mogrify -format png " + path)
+        ret = exec_cmd("mogrify -format png " + path)
+        if ret != 0:
+            raise Exception("mogrify -format failed for " + str(path))
 
 
 def get_hash(site_name):
