@@ -8,3 +8,4 @@ beautifulsoup4==4.8.2
 python-magic==0.4.15
 mistune>=2.0.0a2
 Pillow==7.0.0
+importlib-metadata ~= 1.0 ; python_version < "3.8"

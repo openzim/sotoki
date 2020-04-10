@@ -59,6 +59,12 @@ from lxml import etree
 from lxml.html import fromstring as string2html
 from lxml.html import tostring as html2string
 
+try:
+    from importlib import metadata
+except ImportError:
+    # Running on pre-3.8 Python; use importlib-metadata package
+    import importlib_metadata as metadata
+
 MARKDOWN = None
 TMPFS_DIR = "/dev/shm" if os.path.isdir("/dev/shm") else None
 
@@ -196,6 +202,7 @@ class QuestionRender(handler.ContentHandler):
             if "Score" in tmp:
                 tmp["Score"] = int(tmp["Score"])
             tmp["Text"] = markdown(html.escape(tmp["Text"], quote=False))
+
             self.comments.append(tmp)
             return
 
@@ -399,11 +406,10 @@ def some_questions(
                 nopic=nopic,
             )
         except Exception as e:
-            print(" * failed to generate: %s" % filepath)
-            print("erreur jinja" + str(e))
-            print(question)
+            print("Failed to generate: %s" % filepath)
+            print("Error with jinja: " + str(e))
     except Exception as e:
-        print("Erreur with one post : " + str(e))
+        print("Error creating a post: " + str(e))
 
 
 #########################
@@ -762,11 +768,19 @@ def intspace(value):
     return intspace(new)
 
 
+def strip_trailing(text):
+    corrected_lines = []
+    for line in text.splitlines():
+        tmp = line.rstrip()
+        corrected_lines.append(tmp)
+    return "\n".join(corrected_lines)
+
+
 def markdown(text):
-    text_html = MARKDOWN(text)[3:-5]
+    text_html = MARKDOWN(strip_trailing(text))[3:-5]
     if len(text_html) == 0:
         return text
-    return MARKDOWN(text)[3:-5]
+    return text_html
 
 
 def dict_factory(cursor, row):
@@ -1326,7 +1340,8 @@ def create_zim(
 
 
 def run():
-    scraper_version = "sotoki 1.2.1"
+    scraper_version = "sotoki " + metadata.version("sotoki")
+    print(scraper_version)
     try:
         arguments = docopt(__doc__, version=scraper_version)
     except DocoptExit:
