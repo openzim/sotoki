@@ -6,6 +6,12 @@ root_dir = pathlib.Path(__file__).parent
 with open(root_dir.joinpath("requirements.txt"), "r") as fh:
     requirements = fh.read()
 
+
+def read(*names, **kwargs):
+    with open(root_dir.joinpath(*names), "r") as fh:
+        return fh.read()
+
+
 setup(
     name="sotoki",
     version=read("sotoki", "VERSION").strip(),
