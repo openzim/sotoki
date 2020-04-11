@@ -868,8 +868,9 @@ def download_image(url, fullpath, convert_png=False, resize=False):
     tmp_img = None
     try:
         headers, tmp_img = download_temp(url, os.path.basename(fullpath), timeout=60)
-    except:
+    except urllib.error.URLError as e:
         print("Cannot download " + fullpath)
+        print(e)
     else:
         ext = get_filetype(headers, tmp_img)
         try:
