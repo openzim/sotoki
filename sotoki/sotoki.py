@@ -825,17 +825,20 @@ def jinja_init(templates):
     ENV.filters.update(filters)
 
 
-def download(url, output, timeout=None):
+def download_temp(url, tmp_suffix, timeout=None):
     if url[0:2] == "//":
         url = "http:" + url
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
     response = urlopen(url, timeout=timeout, context=ctx)
+    tmp_img = tempfile.NamedTemporaryFile(
+        suffix=tmp_suffix, dir=TMPFS_DIR, delete=False
+    ).name
     output_content = response.read()
-    with open(output, "wb") as f:
+    with open(tmp_img, "wb") as f:
         f.write(output_content)
-    return response.headers
+    return response.headers, tmp_img
 
 
 def get_filetype(headers, path):
@@ -861,22 +864,25 @@ def get_filetype(headers, path):
 
 
 def download_image(url, fullpath, convert_png=False, resize=False):
-    tmp_img = tempfile.NamedTemporaryFile(
-        suffix=os.path.basename(fullpath), dir=TMPFS_DIR, delete=False
-    ).name
-    headers = download(url, tmp_img, timeout=60)
-    ext = get_filetype(headers, tmp_img)
+    headers = None
+    tmp_img = None
     try:
-        if convert_png and ext != "png":
-            convert_to_png(tmp_img, ext)
-            ext = "png"
-        if resize and ext != "gif":
-            resize_one(tmp_img, ext, str(resize))
-        optimize_one(tmp_img, ext)
-    except Exception as exc:
-        print(f"Failed: {exc}")
-    finally:
-        shutil.move(tmp_img, fullpath)
+        headers, tmp_img = download_temp(url, os.path.basename(fullpath), timeout=60)
+    except:
+        print("Cannot download " + fullpath)
+    else:
+        ext = get_filetype(headers, tmp_img)
+        try:
+            if convert_png and ext != "png":
+                convert_to_png(tmp_img, ext)
+                ext = "png"
+            if resize and ext != "gif":
+                resize_one(tmp_img, ext, str(resize))
+            optimize_one(tmp_img, ext)
+        except Exception as exc:
+            print(f"Failed: {exc}")
+        finally:
+            shutil.move(tmp_img, fullpath)
 
 
 def interne_link(text_post, domain, question_id):
