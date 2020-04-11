@@ -4,8 +4,8 @@ MarkupSafe==1.1.1
 docopt==0.6.2
 python-slugify==4.0.0
 pydenticon==0.3.1
-beautifulsoup4==4.8.2
+beautifulsoup4==4.9.0
 python-magic==0.4.15
-mistune>=2.0.0a2
-Pillow==7.0.0
-importlib-metadata ~= 1.0 ; python_version < "3.8"
+mistune>=2.0.0a3
+Pillow==7.1.1
+importlib-metadata ~= 1.6.0 ; python_version < "3.8"
