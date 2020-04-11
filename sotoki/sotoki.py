@@ -768,16 +768,8 @@ def intspace(value):
     return intspace(new)
 
 
-def strip_trailing(text):
-    corrected_lines = []
-    for line in text.splitlines():
-        tmp = line.rstrip()
-        corrected_lines.append(tmp)
-    return "\n".join(corrected_lines)
-
-
 def markdown(text):
-    text_html = MARKDOWN(strip_trailing(text))[3:-5]
+    text_html = MARKDOWN(text)[3:-5]
     if len(text_html) == 0:
         return text
     return text_html
