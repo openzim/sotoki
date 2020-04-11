@@ -58,6 +58,7 @@ from jinja2 import FileSystemLoader
 from lxml import etree
 from lxml.html import fromstring as string2html
 from lxml.html import tostring as html2string
+from .constants import SCRAPER
 
 MARKDOWN = None
 TMPFS_DIR = "/dev/shm" if os.path.isdir("/dev/shm") else None
@@ -1326,7 +1327,7 @@ def create_zim(
 
 
 def run():
-    scraper_version = "sotoki 1.2.1"
+    scraper_version = SCRAPER
     try:
         arguments = docopt(__doc__, version=scraper_version)
     except DocoptExit:
