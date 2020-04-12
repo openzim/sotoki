@@ -375,6 +375,7 @@ def some_questions(
                         comment["Text"] = interne_link(
                             comment["Text"], domain, question["Id"]
                         )
+                        comment["Text"] = image(comment["Text"], output, nopic)
 
         filepath = os.path.join(output, "question", question["filename"])
         question["Body"] = interne_link(question["Body"], domain, question["Id"])
@@ -382,6 +383,7 @@ def some_questions(
         if "comments" in question:
             for comment in question["comments"]:
                 comment["Text"] = interne_link(comment["Text"], domain, question["Id"])
+                comment["Text"] = image(comment["Text"], output, nopic)
         question["Title"] = html.escape(question["Title"], quote=False)
         try:
             jinja(
