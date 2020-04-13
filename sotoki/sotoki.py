@@ -399,11 +399,11 @@ def some_questions(
                 nopic=nopic,
             )
         except Exception as e:
-            print(" * failed to generate: %s" % filepath)
-            print("erreur jinja" + str(e))
+            print("Failed to generate %s" % filepath)
+            print("Error with jinja" + str(e))
             print(question)
     except Exception as e:
-        print("Erreur with one post : " + str(e))
+        print("Error with a post : " + str(e))
 
 
 #########################
