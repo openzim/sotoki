@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# -*-coding:utf8 -*
+# -*- coding: utf-8 -*-
+# vim: ai ts=4 sts=4 et sw=4 nu
+
 """sotoki.
 
 Usage:
@@ -33,6 +35,7 @@ import shlex
 import shutil
 import sqlite3
 import os.path
+import pathlib
 import tempfile
 import datetime
 import subprocess
@@ -58,7 +61,14 @@ from jinja2 import FileSystemLoader
 from lxml import etree
 from lxml.html import fromstring as string2html
 from lxml.html import tostring as html2string
-from .constants import SCRAPER
+
+ROOT_DIR = pathlib.Path(__file__).parent
+NAME = ROOT_DIR.name
+
+with open(ROOT_DIR.joinpath("VERSION"), "r") as fh:
+    VERSION = fh.read().strip()
+
+SCRAPER = f"{NAME} {VERSION}"
 
 MARKDOWN = None
 TMPFS_DIR = "/dev/shm" if os.path.isdir("/dev/shm") else None
