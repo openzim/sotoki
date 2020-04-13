@@ -825,20 +825,21 @@ def jinja_init(templates):
     ENV.filters.update(filters)
 
 
-def download_temp(url, tmp_suffix, timeout=None):
+def get_tempfile(suffix):
+    return tempfile.NamedTemporaryFile(suffix=suffix, dir=TMPFS_DIR, delete=False).name
+
+
+def download(url, output, timeout=None):
     if url[0:2] == "//":
         url = "http:" + url
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
     response = urlopen(url, timeout=timeout, context=ctx)
-    tmp_img = tempfile.NamedTemporaryFile(
-        suffix=tmp_suffix, dir=TMPFS_DIR, delete=False
-    ).name
     output_content = response.read()
-    with open(tmp_img, "wb") as f:
+    with open(output, "wb") as f:
         f.write(output_content)
-    return response.headers, tmp_img
+    return response.headers
 
 
 def get_filetype(headers, path):
@@ -867,8 +868,10 @@ def download_image(url, fullpath, convert_png=False, resize=False):
     headers = None
     tmp_img = None
     try:
-        headers, tmp_img = download_temp(url, os.path.basename(fullpath), timeout=60)
+        tmp_img = get_tempfile(os.path.basename(fullpath))
+        headers = download(url, tmp_img, timeout=60)
     except urllib.error.URLError as e:
+        os.unlink(tmp_img)
         print("Cannot download " + fullpath)
         print(e)
     else:
