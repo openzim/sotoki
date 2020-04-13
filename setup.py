@@ -6,9 +6,15 @@ root_dir = pathlib.Path(__file__).parent
 with open(root_dir.joinpath("requirements.txt"), "r") as fh:
     requirements = fh.read()
 
+
+def read(*names, **kwargs):
+    with open(root_dir.joinpath(*names), "r") as fh:
+        return fh.read()
+
+
 setup(
     name="sotoki",
-    version="1.2.1",
+    version=read("sotoki", "VERSION").strip(),
     description="Make zimfile from stackexchange dump",
     long_description=open("README.md").read(),
     author="dattaz",
