@@ -837,6 +837,10 @@ def jinja_init(templates):
     ENV.filters.update(filters)
 
 
+def get_tempfile(suffix):
+    return tempfile.NamedTemporaryFile(suffix=suffix, dir=TMPFS_DIR, delete=False).name
+
+
 def download(url, output, timeout=None):
     if url[0:2] == "//":
         url = "http:" + url
@@ -873,22 +877,28 @@ def get_filetype(headers, path):
 
 
 def download_image(url, fullpath, convert_png=False, resize=False):
-    tmp_img = tempfile.NamedTemporaryFile(
-        suffix=os.path.basename(fullpath), dir=TMPFS_DIR, delete=False
-    ).name
-    headers = download(url, tmp_img, timeout=60)
-    ext = get_filetype(headers, tmp_img)
+    headers = None
+    tmp_img = None
     try:
-        if convert_png and ext != "png":
-            convert_to_png(tmp_img, ext)
-            ext = "png"
-        if resize and ext != "gif":
-            resize_one(tmp_img, ext, str(resize))
-        optimize_one(tmp_img, ext)
-    except Exception as exc:
-        print(f"Failed: {exc}")
-    finally:
-        shutil.move(tmp_img, fullpath)
+        tmp_img = get_tempfile(os.path.basename(fullpath))
+        headers = download(url, tmp_img, timeout=60)
+    except urllib.error.URLError as e:
+        os.unlink(tmp_img)
+        print("Cannot download " + fullpath)
+        print(e)
+    else:
+        ext = get_filetype(headers, tmp_img)
+        try:
+            if convert_png and ext != "png":
+                convert_to_png(tmp_img, ext)
+                ext = "png"
+            if resize and ext != "gif":
+                resize_one(tmp_img, ext, str(resize))
+            optimize_one(tmp_img, ext)
+        except Exception as exc:
+            print(f"Failed: {exc}")
+        finally:
+            shutil.move(tmp_img, fullpath)
 
 
 def interne_link(text_post, domain, question_id):
