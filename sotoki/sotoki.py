@@ -53,7 +53,6 @@ from urllib.request import urlopen
 import magic
 import mistune  # markdown
 import pydenticon
-from PIL import Image
 from slugify import slugify
 import bs4 as BeautifulSoup
 from jinja2 import Environment
