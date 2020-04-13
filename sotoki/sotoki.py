@@ -1288,8 +1288,8 @@ def create_zim(
         cmd = cmd + '--flavour="nopic" '
         context["tags"] += ";nopic"
 
-    if not noindex:
-        cmd = cmd + "--withFullTextIndex "
+    if noindex:
+        cmd = cmd + "--withoutFTIndex "
     cmd = (
         cmd
         + ' --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" --language="{languages}" --title="{title}" --description="{description}" --creator="{creator}" --publisher="{publisher}" --tags="{tags}" --name="{name}" --scraper="{scraper}" --source="{source}" "{static}" "{zim}"'.format(
