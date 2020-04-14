@@ -49,7 +49,7 @@ import urllib.request
 import urllib.parse
 import urllib.error
 from urllib.request import urlopen
-
+from PIL import Image
 import magic
 import mistune  # markdown
 import pydenticon
@@ -865,6 +865,8 @@ def get_filetype(headers, path):
             ftype = "jpeg"
         elif "gif" in headers["content-type"].lower():
             ftype = "gif"
+        elif "icon" in headers["content-type"].lower():
+            ftype = "ico"
     if ftype == "none":
         mime = magic.from_file(path)
         if "PNG" in mime:
@@ -873,6 +875,8 @@ def get_filetype(headers, path):
             ftype = "jpeg"
         elif "GIF" in mime:
             ftype = "gif"
+        elif "Windows icon" in mime:
+            ftype = "ico"
     return ftype
 
 
@@ -1117,6 +1121,12 @@ def convert_to_png(path, ext):
         os.remove(path_tmp)
         if ret != 0:
             raise Exception("gif2apng failed for " + str(path))
+    elif ext == "ico":
+        try:
+            im = Image.open(path)
+            im.save(path, "PNG")
+        except (KeyError, IOError) as e:
+            raise Exception("Pillow failed to convert from ICO to PNG\n" + e)
     else:
         ret = exec_cmd("mogrify -format png " + path)
         if ret != 0:
