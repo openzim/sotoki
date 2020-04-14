@@ -49,7 +49,7 @@ import urllib.request
 import urllib.parse
 import urllib.error
 from urllib.request import urlopen
-
+from PIL import Image
 import magic
 import mistune  # markdown
 import pydenticon
@@ -1023,12 +1023,10 @@ def grab_title_description_favicon_lang(url, output_dir, do_old):
     return [title, description, lang]
 
 
-def exec_cmd(cmd, timeout=None, workdir=None, shell=False):
+def exec_cmd(cmd, timeout=None, workdir=None):
     try:
         ret = None
-        if not shell:
-            cmd = shlex.split(cmd)
-        ret = subprocess.run(cmd, timeout=timeout, cwd=workdir, shell=shell).returncode
+        ret = subprocess.run(shlex.split(cmd), timeout=timeout, cwd=workdir).returncode
         return ret
     except subprocess.TimeoutExpired:
         print("Timeout ({}s) expired while running: {}".format(timeout, cmd))
@@ -1124,25 +1122,11 @@ def convert_to_png(path, ext):
         if ret != 0:
             raise Exception("gif2apng failed for " + str(path))
     elif ext == "ico":
-        iconname = os.path.splitext(path)[0] + ".ico"
-        os.rename(path, iconname)
-        # Get the largest layer in the icon
-        largestlayer = "$(identify -format \"%[fx:w*h] %s\\n\" '{iconfile}' | sort -rn | awk 'NR==1{{print $2}}')".format(
-            iconfile=iconname
-        )
-        # Convert that layer to PNG
-        command = (
-            'mogrify -format png -alpha on -background none -flatten -thumbnail 100% "{iconfile}['.format(
-                iconfile=iconname
-            )
-            + largestlayer
-            + ']"'
-        )
-        ret = exec_cmd(command, shell=True)
-        if ret != 0:
-            os.rename(iconname, path)
-            raise Exception("mogrify -format png failed for icon file " + str(path))
-        os.unlink(iconname)
+        try:
+            im = Image.open(path)
+            im.save(path, "PNG")
+        except (KeyError, IOError) as e:
+            raise Exception("Pillow failed to convert from ICO to PNG\n" + e)
     else:
         ret = exec_cmd("mogrify -format png " + path)
         if ret != 0:
