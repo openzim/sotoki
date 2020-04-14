@@ -865,6 +865,8 @@ def get_filetype(headers, path):
             ftype = "jpeg"
         elif "gif" in headers["content-type"].lower():
             ftype = "gif"
+        elif "icon" in headers["content-type"].lower():
+            ftype = "ico"
     if ftype == "none":
         mime = magic.from_file(path)
         if "PNG" in mime:
@@ -873,6 +875,8 @@ def get_filetype(headers, path):
             ftype = "jpeg"
         elif "GIF" in mime:
             ftype = "gif"
+        elif "Windows icon" in mime:
+            ftype = "ico"
     return ftype
 
 
@@ -1019,10 +1023,12 @@ def grab_title_description_favicon_lang(url, output_dir, do_old):
     return [title, description, lang]
 
 
-def exec_cmd(cmd, timeout=None, workdir=None):
+def exec_cmd(cmd, timeout=None, workdir=None, shell=False):
     try:
         ret = None
-        ret = subprocess.run(shlex.split(cmd), timeout=timeout, cwd=workdir).returncode
+        if not shell:
+            cmd = shlex.split(cmd)
+        ret = subprocess.run(cmd, timeout=timeout, cwd=workdir, shell=shell).returncode
         return ret
     except subprocess.TimeoutExpired:
         print("Timeout ({}s) expired while running: {}".format(timeout, cmd))
@@ -1117,6 +1123,26 @@ def convert_to_png(path, ext):
         os.remove(path_tmp)
         if ret != 0:
             raise Exception("gif2apng failed for " + str(path))
+    elif ext == "ico":
+        iconname = os.path.splitext(path)[0] + ".ico"
+        os.rename(path, iconname)
+        # Get the largest layer in the icon
+        largestlayer = "$(identify -format \"%[fx:w*h] %s\\n\" '{iconfile}' | sort -rn | awk 'NR==1{{print $2}}')".format(
+            iconfile=iconname
+        )
+        # Convert that layer to PNG
+        command = (
+            'mogrify -format png -alpha on -background none -flatten -thumbnail 100% "{iconfile}['.format(
+                iconfile=iconname
+            )
+            + largestlayer
+            + ']"'
+        )
+        ret = exec_cmd(command, shell=True)
+        if ret != 0:
+            os.rename(iconname, path)
+            raise Exception("mogrify -format png failed for icon file " + str(path))
+        os.unlink(iconname)
     else:
         ret = exec_cmd("mogrify -format png " + path)
         if ret != 0:
