@@ -213,14 +213,14 @@ class QuestionRender(handler.ContentHandler):
             if attrs["LinkTypeId"] == "1":
                 self.post["relateds"].append(
                     {
-                        "PostId": page_url(attrs["PostId"], attrs["PostName"]),
+                        "PostId": str(attrs["PostId"]),
                         "PostName": html.escape(attrs["PostName"], quote=False),
                     }
                 )
             elif attrs["LinkTypeId"] == "3":
                 self.post["duplicate"].append(
                     {
-                        "PostId": page_url(attrs["PostId"], attrs["PostName"]),
+                        "PostId": str(attrs["PostId"]),
                         "PostName": html.escape(attrs["PostName"], quote=False),
                     }
                 )
@@ -306,7 +306,7 @@ class QuestionRender(handler.ContentHandler):
             # Make redirection
             for ans in self.answers:
                 self.f_redirect.write(
-                    "A\tanswer/"
+                    "A\telement/"
                     + str(ans["Id"])
                     + ".html\tAnswer "
                     + str(ans["Id"])
@@ -314,15 +314,25 @@ class QuestionRender(handler.ContentHandler):
                     + self.post["Id"]
                     + ".html\n"
                 )
+            # self.f_redirect.write(
+            #     "A\tquestion/"
+            #     + page_url(self.post["Id"], self.post["Title"])
+            #     + ".html\tQuestion "
+            #     + str(self.post["Id"])
+            #     + "\tA/question/"
+            #     + self.post["Id"]
+            #     + ".html\n"
+            # )
             self.f_redirect.write(
-                "A\tquestion/"
-                + page_url(self.post["Id"], self.post["Title"])
+                "A\telement/"
+                + str(self.post["Id"])
                 + ".html\tQuestion "
                 + str(self.post["Id"])
                 + "\tA/question/"
                 + self.post["Id"]
                 + ".html\n"
             )
+
             data_send = [
                 some_questions,
                 self.templates,
@@ -474,7 +484,7 @@ class TagsRender(handler.ContentHandler):
         new_questions = []
         questionsids = []
         for question in some_questions:
-            question["filepath"] = page_url(question["QId"], question["Title"])
+            question["filepath"] = str(question["QId"])
             question["Title"] = html.escape(question["Title"], quote=False)
             if question["QId"] not in questionsids:
                 questionsids.append(question["QId"])
@@ -536,7 +546,7 @@ class TagsRender(handler.ContentHandler):
                     offset += len(some_questions)
                 some_questions = some_questions[:99]
                 for question in some_questions:
-                    question["filepath"] = page_url(question["QId"], question["Title"])
+                    question["filepath"] = str(question["QId"])
                     question["Title"] = html.escape(question["Title"], quote=False)
                 hasprevious = page != 1
                 jinja(
@@ -778,7 +788,7 @@ def markdown(text):
     text_html = MARKDOWN(text)[3:-5]
     if len(text_html) == 0:
         return text
-    return MARKDOWN(text)[3:-5]
+    return text_html
 
 
 def dict_factory(cursor, row):
@@ -930,18 +940,18 @@ def interne_link(text_post, domain, question_id):
                 if len(is_a) == 2 and is_a[0] == is_a[1]:
                     # it a answers
                     qans = is_a[0]
-                    a.attrib["href"] = "../answer/" + qans + ".html#a" + qans
+                    a.attrib["href"] = "../element/" + qans + ".html#a" + qans
                 else:
                     # question
                     qid = link.split("/")[1]
-                    a.attrib["href"] = qid + ".html"
+                    a.attrib["href"] = "../element/" + qid + ".html"
             elif link[0:10] == "questions/" and link[10:17] == "tagged/":
                 tag = urllib.parse.quote(link.split("/")[-1])
                 a.attrib["href"] = "../tag/" + tag + ".html"
             elif link[0:2] == "a/":
                 qans_split = link.split("/")
                 qans = qans_split[1]
-                a.attrib["href"] = "../answer/" + qans + ".html#a" + qans
+                a.attrib["href"] = "../element/" + qans + ".html#a" + qans
             elif link[0:6] == "users/":
                 userid = link.split("/")[1]
                 a.attrib["href"] = "../user/" + userid + ".html"
