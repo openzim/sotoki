@@ -314,15 +314,6 @@ class QuestionRender(handler.ContentHandler):
                     + self.post["Id"]
                     + ".html\n"
                 )
-            # self.f_redirect.write(
-            #     "A\tquestion/"
-            #     + page_url(self.post["Id"], self.post["Title"])
-            #     + ".html\tQuestion "
-            #     + str(self.post["Id"])
-            #     + "\tA/question/"
-            #     + self.post["Id"]
-            #     + ".html\n"
-            # )
             self.f_redirect.write(
                 "A\telement/"
                 + str(self.post["Id"])
