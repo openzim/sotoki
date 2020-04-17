@@ -51,7 +51,8 @@ import urllib.error
 from urllib.request import urlopen
 from PIL import Image
 import magic
-import mistune  # markdown
+import mistune
+from mistune.plugins import plugin_url
 import pydenticon
 from slugify import slugify
 import bs4 as BeautifulSoup
@@ -205,7 +206,7 @@ class QuestionRender(handler.ContentHandler):
 
             if "Score" in tmp:
                 tmp["Score"] = int(tmp["Score"])
-            tmp["Text"] = markdown(html.escape(tmp["Text"], quote=False))
+            tmp["Text"] = markdown(tmp["Text"])
             self.comments.append(tmp)
             return
 
@@ -1519,7 +1520,7 @@ def run():
     jinja_init(templates)
     global MARKDOWN
     renderer = mistune.HTMLRenderer()
-    MARKDOWN = mistune.Markdown(renderer)
+    MARKDOWN = mistune.Markdown(renderer, plugins=[plugin_url])
     if not os.path.exists(
         os.path.join(dump, "prepare.xml")
     ):  # If we haven't already prepare
