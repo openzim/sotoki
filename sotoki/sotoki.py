@@ -777,7 +777,7 @@ def intspace(value):
 def markdown(text):
     text_html = MARKDOWN(text)[3:-5]
     if len(text_html) == 0:
-        return "No text found here. Probably this consisted of only emojis."
+        return "-"
     return MARKDOWN(text)[3:-5]
 
 
