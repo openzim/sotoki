@@ -5,25 +5,26 @@
 """sotoki.
 
 Usage:
-  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite] [--nopic] [--no-userprofile]
+  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--optimization-cache=<optimization-cache>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite] [--nopic] [--no-userprofile]
   sotoki (-h | --help)
   sotoki --version
 
 Options:
-  -h --help                Display this help
-  --version                Display the version of Sotoki
-  --directory=<dir>        Configure directory in which XML files will be stored [default: download]
-  --nozim                  Doesn't build a ZIM file, output will be in 'work/output/' in flat HTML files (otherwise 'work/ouput/' will be in deflated form and will produce a ZIM file)
-  --tag-depth=<tag_depth>  Configure the number of questions, ordered by Score, to display in tags pages (should be a multiple of 100, default all question are in tags pages) [default: -1]
-  --threads=<threads>      Number of threads to use, default is number_of_cores/2
-  --zimpath=<zimpath>      Final path of the zim file
-  --reset                  Reset dump
-  --reset-images           Remove images in cache
-  --clean-previous         Delete only data from a previous run with '--nozim' or which failed
-  --nofulltextindex        Doesn't index content
-  --ignoreoldsite          Ignore Stack Exchange closed sites
-  --nopic                  Doesn't download images
-  --no-userprofile         Doesn't include user profiles
+  -h --help                                     Display this help
+  --version                                     Display the version of Sotoki
+  --directory=<dir>                             Configure directory in which XML files will be stored [default: download]
+  --nozim                                       Doesn't build a ZIM file, output will be in 'work/output/' in flat HTML files (otherwise 'work/ouput/' will be in deflated form and will produce a ZIM file)
+  --tag-depth=<tag_depth>                       Configure the number of questions, ordered by Score, to display in tags pages (should be a multiple of 100, default all question are in tags pages) [default: -1]
+  --threads=<threads>                           Number of threads to use, default is number_of_cores/2
+  --zimpath=<zimpath>                           Final path of the zim file
+  --reset                                       Reset dump
+  --reset-images                                Remove images in cache
+  --clean-previous                              Delete only data from a previous run with '--nozim' or which failed
+  --nofulltextindex                             Doesn't index content
+  --ignoreoldsite                               Ignore Stack Exchange closed sites
+  --nopic                                       Doesn't download images
+  --no-userprofile                              Doesn't include user profiles
+  --optimization-cache=<optimization-cache>     Use optimization cache with given credentials
 """
 import re
 import sys
@@ -893,11 +894,12 @@ def download_from_cache(key, output, size, cache_storage):
     if cache_storage.has_object_matching_meta(key, "size", str(size)):
         try:
             cache_storage.download_file(key, output, progress=True)
-            cache_storage.set_object_autodelete_on(key, datetime.datetime.now() + datetime.timedelta(days=30))
             print("Successfully downloaded already optimized version from cache.")
+            #cache_storage.set_object_autodelete_on(key, datetime.datetime.now() + datetime.timedelta(days=30))
+            #Currently gives 403 forbidden
             ret = True
         except Exception as e:
-            print("Failed to download from cache\n" + e)
+            print("Failed to download from cache\n" + str(e))
             ret = False
     else:
         print("Optimized file not found in cache")
@@ -907,7 +909,8 @@ def download_from_cache(key, output, size, cache_storage):
 def upload_to_cache(fpath, key, size, cache_storage):
     try:
         cache_storage.upload_file(fpath, key, meta={"size" : str(size)})
-        cache_storage.set_object_autodelete_on(key, datetime.datetime.now() + datetime.timedelta(days=30))
+        #cache_storage.set_object_autodelete_on(key, datetime.datetime.now() + datetime.timedelta(days=30))
+        #Currently gives 403 forbidden
     except Exception as e:
         raise Exception("Failed to upload to cache\n" + str(e))
     
@@ -1411,7 +1414,7 @@ def run():
     )
     if arguments["--optimization-cache"] is not None:
         s3 = KiwixStorage(arguments["--optimization-cache"])
-        if not s3.check_credentials(list_buckets=True, failsafe=True):
+        if not s3.check_credentials(list_buckets=True, failsafe=False, write=True, read=True):
             raise AuthenticationError("Bad authentication credentials supplied for optimization cache. Please check and try again.")
         else:
             print("Credentials checked. Using optimization cache")
