@@ -8,3 +8,5 @@ db.backup/
 _work
 work
 venv/
+sotoki.egg-info/
+dist/
