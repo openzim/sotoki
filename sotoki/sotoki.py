@@ -1416,8 +1416,7 @@ def run():
         s3 = KiwixStorage(arguments["--optimization-cache"])
         if not s3.check_credentials(list_buckets=True, failsafe=False, write=True, read=True):
             raise AuthenticationError("Bad authentication credentials supplied for optimization cache. Please check and try again.")
-        else:
-            print("Credentials checked. Using optimization cache")
+        print("Credentials checked. Using optimization cache")
     else:
         print("No cache credentials provided. Continuing without optimization cache")
     if not arguments["--nozim"] and not bin_is_present("zimwriterfs"):
