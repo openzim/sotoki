@@ -778,10 +778,10 @@ def intspace(value):
 def markdown(text):
     text_html = MARKDOWN(text)[3:-5]
     if len(text_html) == 0:
-        return text
+        return "-"
     return text_html
 
-
+  
 def dict_factory(cursor, row):
     d = {}
     for idx, col in enumerate(cursor.description):
