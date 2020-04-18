@@ -24,7 +24,7 @@ Options:
   --ignoreoldsite                               Ignore Stack Exchange closed sites
   --nopic                                       Doesn't download images
   --no-userprofile                              Doesn't include user profiles
-  --optimization-cache=<optimization-cache>     Use optimization cache with given credentials
+  --optimization-cache=<optimization-cache>     Use optimization cache with given URL and credentials. The argument needs to be of the form <endpoint-url>?keyId=<key-id>&secretAccessKey=<secret-access-key>&bucketName=<bucket-name>
 """
 import re
 import sys
@@ -34,6 +34,7 @@ import html
 import zlib
 import shlex
 import shutil
+import requests
 import sqlite3
 import os.path
 import pathlib
@@ -343,20 +344,20 @@ class QuestionRender(handler.ContentHandler):
                 self.cache_storage
             ]
             self.request_queue.put(data_send)
-            # some_questions(templates, output, title, publisher, self.post, "question.html", self.cursor)
+            #some_questions(self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.deflate, self.site_url, self.domain, self.mathjax, self.nopic, self.cache_storage)
             # Reset element
             self.post = {}
             self.comments = []
             self.answers = []
 
     def endDocument(self):
-        print("---END--")
         self.conn.commit()
-        # closing thread
+        #closing thread
         for i in range(self.cores):
             self.request_queue.put(None)
         for i in self.workers:
             i.join()
+        print("---END--")
         self.f_redirect.close()
 
 
@@ -687,15 +688,16 @@ class UsersRender(handler.ContentHandler):
                 self.cache_storage
             ]
             self.request_queue.put(data_send)
+            #some_user(user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.deflate, self.title, self.mathjax, self.nopic, self.nouserprofile, self.cache_storage)
 
     def endDocument(self):
-        print("---END--")
         self.conn.commit()
-        # closing thread
+        #closing thread
         for i in range(self.cores):
             self.request_queue.put(None)
         for i in self.workers:
             i.join()
+        print("---END--")
         self.f_redirect.close()
 
 
@@ -889,39 +891,46 @@ def get_filetype(headers, path):
             ftype = "ico"
     return ftype
 
-def download_from_cache(key, output, size, cache_storage):
-    ret = False
-    if cache_storage.has_object_matching_meta(key, "size", str(size)):
+def download_from_cache(key, output, meta_tag, meta_val, cache_storage_url):
+    cache_storage = KiwixStorage(cache_storage_url)
+    if cache_storage.has_object_matching_meta(key, meta_tag, meta_val):
         try:
             cache_storage.download_file(key, output, progress=True)
-            print("Successfully downloaded already optimized version from cache.")
-            #cache_storage.set_object_autodelete_on(key, datetime.datetime.now() + datetime.timedelta(days=30))
-            #Currently gives 403 forbidden
-            ret = True
+            return True
         except Exception as e:
             print("Failed to download from cache\n" + str(e))
-            ret = False
-    else:
-        print("Optimized file not found in cache")
-        ret = False
-    return ret
+            return False
+    return False
 
-def upload_to_cache(fpath, key, size, cache_storage):
+def upload_to_cache(fpath, key, meta_tag, meta_val, cache_storage_url):
+    cache_storage = KiwixStorage(cache_storage_url)
     try:
-        cache_storage.upload_file(fpath, key, meta={"size" : str(size)})
-        #cache_storage.set_object_autodelete_on(key, datetime.datetime.now() + datetime.timedelta(days=30))
-        #Currently gives 403 forbidden
+        cache_storage.upload_file(fpath, key, meta={meta_tag : meta_val})
     except Exception as e:
         raise Exception("Failed to upload to cache\n" + str(e))
     
 
+def get_meta_from_url(url):
+    response_headers = requests.head(url=url).headers
+    if response_headers.get("etag") is not None:
+        return "etag", response_headers["etag"]
+    if response_headers.get("last-modified") is not None:
+        return "last-modified", response_headers["last-modified"]
+    if response_headers.get("content-length") is not None:
+        return "content-length", response_headers["content-length"]
+
+
 def download_image(url, fullpath, convert_png=False, resize=False, cache_storage=None):
     downloaded = False
     key = None
+    meta_tag = None
+    meta_val = None
     if cache_storage is not None:
-        plain_url = re.sub("^https?://", "", url)
-        key = urllib.parse.quote(plain_url)
-        downloaded = download_from_cache(key, fullpath, resize, cache_storage)
+        meta_tag, meta_val = get_meta_from_url(url)
+        src_url = urllib.parse.urlparse(url)
+        prefix = f"{src_url.scheme}://{src_url.netloc}/"
+        key = f"{src_url.netloc}/{urllib.parse.quote_plus(src_url.geturl()[len(prefix):])}"
+        downloaded = download_from_cache(key, fullpath, meta_tag, meta_val, cache_storage)
     if(not downloaded):
         headers = None
         tmp_img = None
@@ -942,7 +951,7 @@ def download_image(url, fullpath, convert_png=False, resize=False, cache_storage
                     resize_one(tmp_img, ext, str(resize))
                 optimize_one(tmp_img, ext)
                 if cache_storage is not None:
-                    upload_to_cache(tmp_img, key, resize, cache_storage)
+                    upload_to_cache(tmp_img, key, meta_tag, meta_val, cache_storage)
             except Exception as exc:
                 print(f"Failed: {exc}")
             finally:
@@ -1403,7 +1412,7 @@ def create_zim(
 
 def run():
     scraper_version = SCRAPER
-    s3 = None
+    cache_storage = None
     try:
         arguments = docopt(__doc__, version=scraper_version)
     except DocoptExit:
@@ -1414,9 +1423,10 @@ def run():
     )
     if arguments["--optimization-cache"] is not None:
         s3 = KiwixStorage(arguments["--optimization-cache"])
-        if not s3.check_credentials(list_buckets=True, failsafe=False, write=True, read=True):
+        if not s3.check_credentials(list_buckets=True, failsafe=True, write=True, read=True):
             raise AuthenticationError("Bad authentication credentials supplied for optimization cache. Please check and try again.")
         print("Credentials checked. Using optimization cache")
+        cache_storage = arguments["--optimization-cache"]
     else:
         print("No cache credentials provided. Continuing without optimization cache")
     if not arguments["--nozim"] and not bin_is_present("zimwriterfs"):
@@ -1516,7 +1526,7 @@ def run():
         os.makedirs(os.path.join(output, "static", "images"))
 
     title, description, lang_input = grab_title_description_favicon_lang(
-        url, output, not arguments["--ignoreoldsite"], s3
+        url, output, not arguments["--ignoreoldsite"], cache_storage
     )
 
     if not os.path.exists(
@@ -1594,7 +1604,7 @@ def run():
             use_mathjax(domain),
             arguments["--nopic"],
             arguments["--no-userprofile"],
-            s3
+            cache_storage
         )
     )
     parser.parse(os.path.join(dump, "usersbadges.xml"))
@@ -1619,7 +1629,7 @@ def run():
             use_mathjax(domain),
             arguments["--nopic"],
             arguments["--no-userprofile"],
-            s3
+            cache_storage
         )
     )
     parser.parse(os.path.join(dump, "prepare.xml"))
