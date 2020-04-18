@@ -97,7 +97,7 @@ class QuestionRender(handler.ContentHandler):
         mathjax,
         nopic,
         nouserprofile,
-        cache_storage
+        cache_storage,
     ):
         self.templates = templates
         self.output = output
@@ -341,10 +341,10 @@ class QuestionRender(handler.ContentHandler):
                 self.domain,
                 self.mathjax,
                 self.nopic,
-                self.cache_storage
+                self.cache_storage,
             ]
             self.request_queue.put(data_send)
-            #some_questions(self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.deflate, self.site_url, self.domain, self.mathjax, self.nopic, self.cache_storage)
+            # some_questions(self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.deflate, self.site_url, self.domain, self.mathjax, self.nopic, self.cache_storage)
             # Reset element
             self.post = {}
             self.comments = []
@@ -352,7 +352,7 @@ class QuestionRender(handler.ContentHandler):
 
     def endDocument(self):
         self.conn.commit()
-        #closing thread
+        # closing thread
         for i in range(self.cores):
             self.request_queue.put(None)
         for i in self.workers:
@@ -392,7 +392,9 @@ def some_questions(
                         comment["Text"] = interne_link(
                             comment["Text"], domain, question["Id"]
                         )
-                        comment["Text"] = image(comment["Text"], output, nopic, cache_storage)
+                        comment["Text"] = image(
+                            comment["Text"], output, nopic, cache_storage
+                        )
 
         filepath = os.path.join(output, "question", question["filename"])
         question["Body"] = interne_link(question["Body"], domain, question["Id"])
@@ -587,7 +589,7 @@ class UsersRender(handler.ContentHandler):
         mathjax,
         nopic,
         nouserprofile,
-        cache_storage
+        cache_storage,
     ):
         self.identicon_path = os.path.join(output, "static", "identicon")
         self.templates = templates
@@ -685,14 +687,14 @@ class UsersRender(handler.ContentHandler):
                 self.mathjax,
                 self.nopic,
                 self.nouserprofile,
-                self.cache_storage
+                self.cache_storage,
             ]
             self.request_queue.put(data_send)
-            #some_user(user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.deflate, self.title, self.mathjax, self.nopic, self.nouserprofile, self.cache_storage)
+            # some_user(user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.deflate, self.title, self.mathjax, self.nopic, self.nouserprofile, self.cache_storage)
 
     def endDocument(self):
         self.conn.commit()
-        #closing thread
+        # closing thread
         for i in range(self.cores):
             self.request_queue.put(None)
         for i in self.workers:
@@ -720,7 +722,11 @@ def some_user(
     if not nopic and not os.path.exists(fullpath):
         try:
             download_image(
-                user["ProfileImageUrl"], fullpath, convert_png=True, resize=128, cache_storage = cache_storage
+                user["ProfileImageUrl"],
+                fullpath,
+                convert_png=True,
+                resize=128,
+                cache_storage=cache_storage,
             )
         except Exception:
             # Generate big identicon
@@ -738,7 +744,9 @@ def some_user(
     #
     if not nouserprofile:
         if "AboutMe" in user:
-            user["AboutMe"] = image("<p>" + user["AboutMe"] + "</p>", output, nopic, cache_storage)
+            user["AboutMe"] = image(
+                "<p>" + user["AboutMe"] + "</p>", output, nopic, cache_storage
+            )
         # generate user profile page
         filename = "%s.html" % user["Id"]
         fullpath = os.path.join(output, "user", filename)
@@ -891,6 +899,7 @@ def get_filetype(headers, path):
             ftype = "ico"
     return ftype
 
+
 def download_from_cache(key, output, meta_tag, meta_val, cache_storage_url):
     cache_storage = KiwixStorage(cache_storage_url)
     if cache_storage.has_object_matching_meta(key, meta_tag, meta_val):
@@ -902,13 +911,14 @@ def download_from_cache(key, output, meta_tag, meta_val, cache_storage_url):
             return False
     return False
 
+
 def upload_to_cache(fpath, key, meta_tag, meta_val, cache_storage_url):
     cache_storage = KiwixStorage(cache_storage_url)
     try:
-        cache_storage.upload_file(fpath, key, meta={meta_tag : meta_val})
+        cache_storage.upload_file(fpath, key, meta={meta_tag: meta_val})
     except Exception as e:
         raise Exception("Failed to upload to cache\n" + str(e))
-    
+
 
 def get_meta_from_url(url):
     response_headers = requests.head(url=url).headers
@@ -930,8 +940,10 @@ def download_image(url, fullpath, convert_png=False, resize=False, cache_storage
         src_url = urllib.parse.urlparse(url)
         prefix = f"{src_url.scheme}://{src_url.netloc}/"
         key = f"{src_url.netloc}/{urllib.parse.quote_plus(src_url.geturl()[len(prefix):])}"
-        downloaded = download_from_cache(key, fullpath, meta_tag, meta_val, cache_storage)
-    if(not downloaded):
+        downloaded = download_from_cache(
+            key, fullpath, meta_tag, meta_val, cache_storage
+        )
+    if not downloaded:
         headers = None
         tmp_img = None
         try:
@@ -1018,7 +1030,7 @@ def image(text_post, output, nopic, cache_storage):
             # download the image only if it's not already downloaded and if it's not a html
             if not os.path.exists(out) and ext != ".html":
                 try:
-                    download_image(src, out, resize=540, cache_storage = cache_storage)
+                    download_image(src, out, resize=540, cache_storage=cache_storage)
                 except Exception as e:
                     # do nothing
                     print(e)
@@ -1072,7 +1084,9 @@ def grab_title_description_favicon_lang(url, output_dir, do_old, cache_storage):
     if favicon[:2] == "//":
         favicon = "http:" + favicon
     favicon_out = os.path.join(output_dir, "favicon.png")
-    download_image(favicon, favicon_out, convert_png=True, resize=48, cache_storage = cache_storage)
+    download_image(
+        favicon, favicon_out, convert_png=True, resize=48, cache_storage=cache_storage
+    )
     return [title, description, lang]
 
 
@@ -1423,8 +1437,12 @@ def run():
     )
     if arguments["--optimization-cache"] is not None:
         s3 = KiwixStorage(arguments["--optimization-cache"])
-        if not s3.check_credentials(list_buckets=True, failsafe=True, write=True, read=True):
-            raise AuthenticationError("Bad authentication credentials supplied for optimization cache. Please check and try again.")
+        if not s3.check_credentials(
+            list_buckets=True, failsafe=True, write=True, read=True
+        ):
+            raise AuthenticationError(
+                "Bad authentication credentials supplied for optimization cache. Please check and try again."
+            )
         print("Credentials checked. Using optimization cache")
         cache_storage = arguments["--optimization-cache"]
     else:
@@ -1604,7 +1622,7 @@ def run():
             use_mathjax(domain),
             arguments["--nopic"],
             arguments["--no-userprofile"],
-            cache_storage
+            cache_storage,
         )
     )
     parser.parse(os.path.join(dump, "usersbadges.xml"))
@@ -1629,7 +1647,7 @@ def run():
             use_mathjax(domain),
             arguments["--nopic"],
             arguments["--no-userprofile"],
-            cache_storage
+            cache_storage,
         )
     )
     parser.parse(os.path.join(dump, "prepare.xml"))
