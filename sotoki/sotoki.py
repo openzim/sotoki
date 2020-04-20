@@ -62,7 +62,8 @@ from jinja2 import FileSystemLoader
 from lxml import etree
 from lxml.html import fromstring as string2html
 from lxml.html import tostring as html2string
-from kiwixstorage import KiwixStorage, AuthenticationError
+from kiwixstorage import KiwixStorage
+from pif import get_public_ip
 
 ROOT_DIR = pathlib.Path(__file__).parent
 NAME = ROOT_DIR.name
@@ -97,7 +98,7 @@ class QuestionRender(handler.ContentHandler):
         mathjax,
         nopic,
         nouserprofile,
-        cache_storage,
+        cache_storage_url,
     ):
         self.templates = templates
         self.output = output
@@ -123,7 +124,7 @@ class QuestionRender(handler.ContentHandler):
         self.mathjax = mathjax
         self.nopic = nopic
         self.nouserprofile = nouserprofile
-        self.cache_storage = cache_storage
+        self.cache_storage_url = cache_storage_url
         for i in range(self.cores):
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
@@ -341,10 +342,10 @@ class QuestionRender(handler.ContentHandler):
                 self.domain,
                 self.mathjax,
                 self.nopic,
-                self.cache_storage,
+                self.cache_storage_url,
             ]
             self.request_queue.put(data_send)
-            # some_questions(self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.deflate, self.site_url, self.domain, self.mathjax, self.nopic, self.cache_storage)
+            # some_questions(self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.deflate, self.site_url, self.domain, self.mathjax, self.nopic, self.cache_storage_url)
             # Reset element
             self.post = {}
             self.comments = []
@@ -373,7 +374,7 @@ def some_questions(
     domain,
     mathjax,
     nopic,
-    cache_storage,
+    cache_storage_url,
 ):
     try:
         question["Score"] = int(question["Score"])
@@ -386,23 +387,23 @@ def some_questions(
             )  # sorted is stable so accepted will be always first, then other question will be sort in ascending order
             for ans in question["answers"]:
                 ans["Body"] = interne_link(ans["Body"], domain, question["Id"])
-                ans["Body"] = image(ans["Body"], output, nopic, cache_storage)
+                ans["Body"] = image(ans["Body"], output, nopic, cache_storage_url)
                 if "comments" in ans:
                     for comment in ans["comments"]:
                         comment["Text"] = interne_link(
                             comment["Text"], domain, question["Id"]
                         )
                         comment["Text"] = image(
-                            comment["Text"], output, nopic, cache_storage
+                            comment["Text"], output, nopic, cache_storage_url
                         )
 
         filepath = os.path.join(output, "question", question["filename"])
         question["Body"] = interne_link(question["Body"], domain, question["Id"])
-        question["Body"] = image(question["Body"], output, nopic, cache_storage)
+        question["Body"] = image(question["Body"], output, nopic, cache_storage_url)
         if "comments" in question:
             for comment in question["comments"]:
                 comment["Text"] = interne_link(comment["Text"], domain, question["Id"])
-                comment["Text"] = image(comment["Text"], output, nopic, cache_storage)
+                comment["Text"] = image(comment["Text"], output, nopic, cache_storage_url)
         question["Title"] = html.escape(question["Title"], quote=False)
         try:
             jinja(
@@ -589,7 +590,7 @@ class UsersRender(handler.ContentHandler):
         mathjax,
         nopic,
         nouserprofile,
-        cache_storage,
+        cache_storage_url,
     ):
         self.identicon_path = os.path.join(output, "static", "identicon")
         self.templates = templates
@@ -606,7 +607,7 @@ class UsersRender(handler.ContentHandler):
         self.nopic = nopic
         self.nouserprofile = nouserprofile
         self.id = 0
-        self.cache_storage = cache_storage
+        self.cache_storage_url = cache_storage_url
         if not os.path.exists(self.identicon_path):
             os.makedirs(self.identicon_path)
         os.makedirs(os.path.join(output, "user"))
@@ -687,10 +688,10 @@ class UsersRender(handler.ContentHandler):
                 self.mathjax,
                 self.nopic,
                 self.nouserprofile,
-                self.cache_storage,
+                self.cache_storage_url,
             ]
             self.request_queue.put(data_send)
-            # some_user(user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.deflate, self.title, self.mathjax, self.nopic, self.nouserprofile, self.cache_storage)
+            # some_user(user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.deflate, self.title, self.mathjax, self.nopic, self.nouserprofile, self.cache_storage_url)
 
     def endDocument(self):
         self.conn.commit()
@@ -715,7 +716,7 @@ def some_user(
     mathjax,
     nopic,
     nouserprofile,
-    cache_storage,
+    cache_storage_url,
 ):
     filename = user["Id"] + ".png"
     fullpath = os.path.join(output, "static", "identicon", filename)
@@ -726,7 +727,7 @@ def some_user(
                 fullpath,
                 convert_png=True,
                 resize=128,
-                cache_storage=cache_storage,
+                cache_storage_url=cache_storage_url,
             )
         except Exception:
             # Generate big identicon
@@ -745,7 +746,7 @@ def some_user(
     if not nouserprofile:
         if "AboutMe" in user:
             user["AboutMe"] = image(
-                "<p>" + user["AboutMe"] + "</p>", output, nopic, cache_storage
+                "<p>" + user["AboutMe"] + "</p>", output, nopic, cache_storage_url
             )
         # generate user profile page
         filename = "%s.html" % user["Id"]
@@ -904,11 +905,13 @@ def download_from_cache(key, output, meta_tag, meta_val, cache_storage_url):
     cache_storage = KiwixStorage(cache_storage_url)
     if cache_storage.has_object_matching_meta(key, meta_tag, meta_val):
         try:
-            cache_storage.download_file(key, output, progress=True)
+            print(os.path.basename(output) + " > Downloading from cache")
+            cache_storage.download_file(key, output, progress=False)
             return True
         except Exception as e:
-            print("Failed to download from cache\n" + str(e))
+            print(os.path.basename(output) + " > Failed to download from cache\n" + str(e))
             return False
+    print(os.path.basename(output) + " > Not found in cache")
     return False
 
 
@@ -917,42 +920,48 @@ def upload_to_cache(fpath, key, meta_tag, meta_val, cache_storage_url):
     try:
         cache_storage.upload_file(fpath, key, meta={meta_tag: meta_val})
     except Exception as e:
-        raise Exception("Failed to upload to cache\n" + str(e))
+        raise Exception(os.path.basename(fpath) + " > Failed to upload to cache\n" + str(e))
 
 
 def get_meta_from_url(url):
-    response_headers = requests.head(url=url).headers
-    if response_headers.get("etag") is not None:
-        return "etag", response_headers["etag"]
-    if response_headers.get("last-modified") is not None:
-        return "last-modified", response_headers["last-modified"]
-    if response_headers.get("content-length") is not None:
-        return "content-length", response_headers["content-length"]
+    try:
+        response_headers = requests.head(url=url).headers
+    except Exception as e:
+        print(url + " > Problem while head request\n" + str(e))
+    else:
+        if response_headers.get("etag") is not None:
+            return "etag", response_headers["etag"]
+        if response_headers.get("last-modified") is not None:
+            return "last-modified", response_headers["last-modified"]
+        if response_headers.get("content-length") is not None:
+            return "content-length", response_headers["content-length"]
 
 
-def download_image(url, fullpath, convert_png=False, resize=False, cache_storage=None):
+def download_image(url, fullpath, convert_png=False, resize=False, cache_storage_url=None):
     downloaded = False
     key = None
     meta_tag = None
     meta_val = None
-    if cache_storage is not None:
+    print(url + " > To be saved as " + os.path.basename(fullpath))
+    if cache_storage_url:
         meta_tag, meta_val = get_meta_from_url(url)
         src_url = urllib.parse.urlparse(url)
         prefix = f"{src_url.scheme}://{src_url.netloc}/"
         key = f"{src_url.netloc}/{urllib.parse.quote_plus(src_url.geturl()[len(prefix):])}"
+        #Key looks similar to ww2.someplace.state.gov/data%2F%C3%A9t%C3%A9%2Fsome+chars%2Fimage.jpeg%3Fv%3D122%26from%3Dxxx%23yes
         downloaded = download_from_cache(
-            key, fullpath, meta_tag, meta_val, cache_storage
+            key, fullpath, meta_tag, meta_val, cache_storage_url
         )
     if not downloaded:
         headers = None
         tmp_img = None
+        print(os.path.basename(fullpath) + " > Downloading from URL")
         try:
             tmp_img = get_tempfile(os.path.basename(fullpath))
             headers = download(url, tmp_img, timeout=60)
         except urllib.error.URLError as e:
             os.unlink(tmp_img)
-            print("Cannot download " + fullpath)
-            print(e)
+            print(os.path.basename(fullpath) + " > Error while downloading from original URL\n" + str(e))
         else:
             ext = get_filetype(headers, tmp_img)
             try:
@@ -962,10 +971,11 @@ def download_image(url, fullpath, convert_png=False, resize=False, cache_storage
                 if resize and ext != "gif":
                     resize_one(tmp_img, ext, str(resize))
                 optimize_one(tmp_img, ext)
-                if cache_storage is not None:
-                    upload_to_cache(tmp_img, key, meta_tag, meta_val, cache_storage)
+                if cache_storage_url:
+                    print(os.path.basename(fullpath) + " > Uploading to cache")
+                    upload_to_cache(tmp_img, key, meta_tag, meta_val, cache_storage_url)
             except Exception as exc:
-                print(f"Failed: {exc}")
+                print(f"{os.path.basename(fullpath)} {exc}")
             finally:
                 shutil.move(tmp_img, fullpath)
 
@@ -1015,7 +1025,7 @@ def interne_link(text_post, domain, question_id):
     return text_post
 
 
-def image(text_post, output, nopic, cache_storage):
+def image(text_post, output, nopic, cache_storage_url):
     images = os.path.join(output, "static", "images")
     body = string2html(text_post)
     imgs = body.xpath("//img")
@@ -1030,7 +1040,7 @@ def image(text_post, output, nopic, cache_storage):
             # download the image only if it's not already downloaded and if it's not a html
             if not os.path.exists(out) and ext != ".html":
                 try:
-                    download_image(src, out, resize=540, cache_storage=cache_storage)
+                    download_image(src, out, resize=540, cache_storage_url=cache_storage_url)
                 except Exception as e:
                     # do nothing
                     print(e)
@@ -1046,7 +1056,7 @@ def image(text_post, output, nopic, cache_storage):
     return text_post
 
 
-def grab_title_description_favicon_lang(url, output_dir, do_old, cache_storage):
+def grab_title_description_favicon_lang(url, output_dir, do_old, cache_storage_url):
     if (
         "moderators.meta.stackexchange.com" in url
     ):  # We do this special handling because redirect do not exist; website have change name, but not dump name see issue #80
@@ -1085,7 +1095,7 @@ def grab_title_description_favicon_lang(url, output_dir, do_old, cache_storage):
         favicon = "http:" + favicon
     favicon_out = os.path.join(output_dir, "favicon.png")
     download_image(
-        favicon, favicon_out, convert_png=True, resize=48, cache_storage=cache_storage
+        favicon, favicon_out, convert_png=True, resize=48, cache_storage_url=cache_storage_url
     )
     return [title, description, lang]
 
@@ -1148,27 +1158,27 @@ def optimize_one(path, ftype):
     if ftype == "jpeg":
         ret = exec_cmd("jpegoptim --strip-all -m50 " + path, timeout=20)
         if ret != 0:
-            raise Exception("jpegoptim failed for " + str(path))
+            raise Exception("> jpegoptim failed for " + str(path))
     elif ftype == "png":
         ret = exec_cmd(
             "pngquant --verbose --nofs --force --ext=.png " + path, timeout=20
         )
         if ret != 0:
-            raise Exception("pngquant failed for " + str(path))
+            raise Exception("> pngquant failed for " + str(path))
         ret = exec_cmd("advdef -q -z -4 -i 5  " + path, timeout=20)
         if ret != 0:
-            raise Exception("advdef failed for " + str(path))
+            raise Exception("> advdef failed for " + str(path))
     elif ftype == "gif":
         ret = exec_cmd("gifsicle --batch -O3 -i " + path, timeout=20)
         if ret != 0:
-            raise Exception("gifscale failed for " + str(path))
+            raise Exception("> gifscale failed for " + str(path))
 
 
 def resize_one(path, ftype, nb_pix):
     if ftype in ["gif", "png", "jpeg"]:
         ret = exec_cmd("mogrify -resize " + nb_pix + r"x\> " + path, timeout=20)
     if ret != 0:
-        raise Exception("mogrify -resize failed for " + str(path))
+        raise Exception("> mogrify -resize failed for " + str(path))
 
 
 def create_temporary_copy(path):
@@ -1187,17 +1197,17 @@ def convert_to_png(path, ext):
         )
         os.remove(path_tmp)
         if ret != 0:
-            raise Exception("gif2apng failed for " + str(path))
+            raise Exception("> gif2apng failed for " + str(path))
     elif ext == "ico":
         try:
             im = Image.open(path)
             im.save(path, "PNG")
         except (KeyError, IOError) as e:
-            raise Exception("Pillow failed to convert from ICO to PNG\n" + e)
+            raise Exception("> Pillow failed to convert from ICO to PNG\n" + e)
     else:
         ret = exec_cmd("mogrify -format png " + path)
         if ret != 0:
-            raise Exception("mogrify -format failed for " + str(path))
+            raise Exception("> mogrify -format failed for " + str(path))
 
 
 def get_hash(site_name):
@@ -1281,6 +1291,19 @@ def use_mathjax(domain):
         used to be a static list of domains for which mathjax should be enabled.
         this list was updated with help from find_mathml_site.sh script (looks for
         mathjax string in homepage of the domain) """
+    return True
+
+
+def cache_credentials_ok(cache_storage_url):
+    cache_storage = KiwixStorage(cache_storage_url)
+    if not cache_storage.check_credentials(list_buckets=True, bucket=True, write=True, read=True, failsafe=True):
+        print("S3 cache connection error testing permissions.")
+        print(f"  Server: {cache_storage.url.netloc}")
+        print(f"  Bucket: {cache_storage.bucket_name}")
+        print(f"  Key ID: {cache_storage.params.get('keyid')}")
+        print(f"  Public IP: {get_public_ip()}")
+        return False
+    print("Using optimization cache: " + cache_storage.url.netloc + " with bucket: " + cache_storage.bucket_name)
     return True
 
 
@@ -1426,7 +1449,7 @@ def create_zim(
 
 def run():
     scraper_version = SCRAPER
-    cache_storage = None
+    cache_storage_url = None
     try:
         arguments = docopt(__doc__, version=scraper_version)
     except DocoptExit:
@@ -1436,15 +1459,11 @@ def run():
         "starting sotoki scraper...{}".format(f"using {TMPFS_DIR}" if TMPFS_DIR else "")
     )
     if arguments["--optimization-cache"] is not None:
-        s3 = KiwixStorage(arguments["--optimization-cache"])
-        if not s3.check_credentials(
-            list_buckets=True, failsafe=True, write=True, read=True
-        ):
-            raise AuthenticationError(
-                "Bad authentication credentials supplied for optimization cache. Please check and try again."
+        if not cache_credentials_ok(arguments["--optimization-cache"]):
+            raise ValueError(
+                "Bad authentication credentials supplied for optimization cache. Please try again." 
             )
-        print("Credentials checked. Using optimization cache")
-        cache_storage = arguments["--optimization-cache"]
+        cache_storage_url = arguments["--optimization-cache"]
     else:
         print("No cache credentials provided. Continuing without optimization cache")
     if not arguments["--nozim"] and not bin_is_present("zimwriterfs"):
@@ -1544,7 +1563,7 @@ def run():
         os.makedirs(os.path.join(output, "static", "images"))
 
     title, description, lang_input = grab_title_description_favicon_lang(
-        url, output, not arguments["--ignoreoldsite"], cache_storage
+        url, output, not arguments["--ignoreoldsite"], cache_storage_url
     )
 
     if not os.path.exists(
@@ -1622,7 +1641,7 @@ def run():
             use_mathjax(domain),
             arguments["--nopic"],
             arguments["--no-userprofile"],
-            cache_storage,
+            cache_storage_url,
         )
     )
     parser.parse(os.path.join(dump, "usersbadges.xml"))
@@ -1647,7 +1666,7 @@ def run():
             use_mathjax(domain),
             arguments["--nopic"],
             arguments["--no-userprofile"],
-            cache_storage,
+            cache_storage_url,
         )
     )
     parser.parse(os.path.join(dump, "prepare.xml"))
