@@ -37,7 +37,7 @@ COPY requirements.txt /tmp/requirements.txt
 RUN pip3 install -r /tmp/requirements.txt
 COPY . /app
 WORKDIR /app
-RUN pip3 install .
+RUN python3 setup.py install
 WORKDIR /
 RUN rm -rf /app
 
