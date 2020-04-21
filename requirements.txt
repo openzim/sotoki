@@ -8,6 +8,6 @@ beautifulsoup4==4.9.0
 python-magic==0.4.15
 mistune>=2.0.0a3
 Pillow==7.1.1
-kiwixstorage @ git+git://github.com/kiwix/python_storagelib.git#egg=kiwixstorage
+kiwixstorage>=0.2,<1.0
 pif==0.8.2
 
