@@ -917,9 +917,10 @@ def upload_to_cache(fpath, key, meta_tag, meta_val):
 
 def get_meta_from_url(url):
     try:
-        response_headers = requests.head(url=url).headers
+        response_headers = requests.head(url=url, allow_redirects=True).headers
     except Exception as e:
         print(url + " > Problem while head request\n" + str(e) + "\n")
+        return None, None
     else:
         if response_headers.get("etag") is not None:
             return "etag", response_headers["etag"]
@@ -927,6 +928,7 @@ def get_meta_from_url(url):
             return "last-modified", response_headers["last-modified"]
         if response_headers.get("content-length") is not None:
             return "content-length", response_headers["content-length"]
+    return "default", "default"
 
 
 def download_image(url, fullpath, convert_png=False, resize=False):
@@ -937,11 +939,12 @@ def download_image(url, fullpath, convert_png=False, resize=False):
     print(url + " > To be saved as " + os.path.basename(fullpath))
     if CACHE_STORAGE_URL:
         meta_tag, meta_val = get_meta_from_url(url)
-        src_url = urllib.parse.urlparse(url)
-        prefix = f"{src_url.scheme}://{src_url.netloc}/"
-        key = f"{src_url.netloc}/{urllib.parse.quote_plus(src_url.geturl()[len(prefix):])}"
-        # Key looks similar to ww2.someplace.state.gov/data%2F%C3%A9t%C3%A9%2Fsome+chars%2Fimage.jpeg%3Fv%3D122%26from%3Dxxx%23yes
-        downloaded = download_from_cache(key, fullpath, meta_tag, meta_val)
+        if meta_tag and meta_val:
+            src_url = urllib.parse.urlparse(url)
+            prefix = f"{src_url.scheme}://{src_url.netloc}/"
+            key = f"{src_url.netloc}/{urllib.parse.quote_plus(src_url.geturl()[len(prefix):])}"
+            # Key looks similar to ww2.someplace.state.gov/data%2F%C3%A9t%C3%A9%2Fsome+chars%2Fimage.jpeg%3Fv%3D122%26from%3Dxxx%23yes
+            downloaded = download_from_cache(key, fullpath, meta_tag, meta_val)
     if not downloaded:
         headers = None
         tmp_img = None
@@ -966,7 +969,7 @@ def download_image(url, fullpath, convert_png=False, resize=False):
                 if resize and ext != "gif":
                     resize_one(tmp_img, ext, str(resize))
                 optimize_one(tmp_img, ext)
-                if CACHE_STORAGE_URL:
+                if CACHE_STORAGE_URL and meta_tag and meta_val:
                     print(os.path.basename(fullpath) + " > Uploading to cache")
                     upload_to_cache(tmp_img, key, meta_tag, meta_val)
             except Exception as exc:
