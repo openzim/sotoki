@@ -1,3 +1,7 @@
+### 1.3.1
+
+* fixed identicons for missing source image (#142)
+
 ### 1.3
 
 * better logging
