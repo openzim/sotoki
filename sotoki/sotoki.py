@@ -66,6 +66,9 @@ from lxml.html import tostring as html2string
 from kiwixstorage import KiwixStorage
 from pif import get_public_ip
 
+from libzim import ZimCreator
+from .article import SotokiArticle
+
 ROOT_DIR = pathlib.Path(__file__).parent
 NAME = ROOT_DIR.name
 
@@ -828,7 +831,13 @@ def jinja(output, template, templates, raw, deflate, **context):
             f.write(zlib.compress(page.encode("utf-8")))
     else:
         with open(output, "w") as f:
-            f.write(page)
+            #f.write(page)
+            # Use uncompressed
+            # TODO get correct url, title
+            article = SotokiArticle(url="hola"  ,
+                                     title="Monadical", 
+                                     content=page.encode('utf-8'))
+            ZIMCREATOR.add_article(article)
 
 
 def jinja_init(templates):
@@ -843,6 +852,10 @@ def jinja_init(templates):
         slugify=slugify,
     )
     ENV.filters.update(filters)
+
+def libzim_init(zim_path, main_page = "index", index_language = "eng", min_chunk_size = 2048):
+    global ZIMCREATOR
+    ZIMCREATOR = ZimCreator(zim_path, main_page, index_language, min_chunk_size)
 
 
 def get_tempfile(suffix):
@@ -1625,6 +1638,11 @@ def run():
     global MARKDOWN
     renderer = mistune.HTMLRenderer()
     MARKDOWN = mistune.Markdown(renderer, plugins=[plugin_url])
+
+    if not arguments["--nozim"]:
+        #TODO Get the correct path with a function similar to create_zims 
+        libzim_init("hola.zim")
+        
     if not os.path.exists(
         os.path.join(dump, "prepare.xml")
     ):  # If we haven't already prepare
@@ -1712,6 +1730,13 @@ def run():
         os.path.join(output, "static"),
     )
     if not arguments["--nozim"]:
+        # TODO Set mandatory metadata
+        #if not zim_creator.mandatory_metadata_ok():
+            #zim_creator.update_metadata(creator='python-libzim',
+                                description='Created in python',
+                                name='Hola',publisher='Monadical',
+                                title='Test Zim')
+        ZIMCREATOR.finalize()
         done = create_zims(
             title,
             publisher,
