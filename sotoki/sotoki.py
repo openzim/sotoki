@@ -788,7 +788,7 @@ def markdown(text):
         return "-"
     return text_html
 
-  
+
 def dict_factory(cursor, row):
     d = {}
     for idx, col in enumerate(cursor.description):
@@ -962,6 +962,7 @@ def download_image(url, fullpath, convert_png=False, resize=False):
                 + str(e)
                 + "\n"
             )
+            raise e
         else:
             ext = get_filetype(headers, tmp_img)
             try:
@@ -1094,9 +1095,12 @@ def grab_title_description_favicon_lang(url, output_dir, do_old):
     if favicon[:2] == "//":
         favicon = "http:" + favicon
     favicon_out = os.path.join(output_dir, "favicon.png")
-    download_image(
-        favicon, favicon_out, convert_png=True, resize=48,
-    )
+    try:
+        download_image(
+            favicon, favicon_out, convert_png=True, resize=48,
+        )
+    except Exception as e:
+        print(e)
     return [title, description, lang]
 
 
