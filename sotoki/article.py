@@ -27,7 +27,7 @@ class SotokiArticle(ZimArticle):
         return True
 
     def should_index(self):
-        return True
+        return False
 
     def get_data(self):
         return ZimBlob(self.content)

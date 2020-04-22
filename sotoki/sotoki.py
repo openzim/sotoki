@@ -828,17 +828,19 @@ def jinja(output, template, templates, raw, deflate, **context):
         page = "{% raw %}" + page + "{% endraw %}"
     if deflate:
         with open(output, "wb") as f:
-            f.write(zlib.compress(page.encode("utf-8")))
-    else:
-        with open(output, "w") as f:
-            #f.write(page)
+            #f.write(zlib.compress(page.encode("utf-8")))
             # Use uncompressed
             # TODO get correct url, title
-            article = SotokiArticle(url="hola"  ,
-                                     title="Monadical", 
+            import uuid
+            article = SotokiArticle(url='A/%s' % str(uuid.uuid1())  ,
+                                     title=str(uuid.uuid1()), 
                                      content=page.encode('utf-8'))
             ZIMCREATOR.add_article(article)
-
+    else:
+        with open(output, "w") as f:
+            f.write(page)
+          
+        
 
 def jinja_init(templates):
     global ENV
@@ -855,6 +857,7 @@ def jinja_init(templates):
 
 def libzim_init(zim_path, main_page = "index", index_language = "eng", min_chunk_size = 2048):
     global ZIMCREATOR
+    print("Initializing ZimCreator .............")
     ZIMCREATOR = ZimCreator(zim_path, main_page, index_language, min_chunk_size)
 
 
@@ -1731,25 +1734,34 @@ def run():
     )
     if not arguments["--nozim"]:
         # TODO Set mandatory metadata
-        #if not zim_creator.mandatory_metadata_ok():
-            #zim_creator.update_metadata(creator='python-libzim',
+
+        if not ZIMCREATOR.mandatory_metadata_ok():
+            ZIMCREATOR.update_metadata(creator='python-libzim',
                                 description='Created in python',
                                 name='Hola',publisher='Monadical',
                                 title='Test Zim')
-        ZIMCREATOR.finalize()
-        done = create_zims(
-            title,
-            publisher,
-            description,
-            redirect_file,
-            domain,
-            lang_input,
-            arguments["--zimpath"],
-            output,
-            arguments["--nofulltextindex"],
-            arguments["--nopic"],
-            scraper_version,
-        )
+
+        print("Finalizing ZimCreator: Writing files .............")
+        try:
+            ZIMCREATOR.finalize()
+        except:
+            raise
+        else:
+            done = True
+
+        # done = create_zims(
+        #     title,
+        #     publisher,
+        #     description,
+        #     redirect_file,
+        #     domain,
+        #     lang_input,
+        #     arguments["--zimpath"],
+        #     output,
+        #     arguments["--nofulltextindex"],
+        #     arguments["--nopic"],
+        #     scraper_version,
+        # )
         if done:
             clean(output, db, redirect_file)
 
