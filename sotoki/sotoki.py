@@ -962,10 +962,7 @@ def download_image(url, fullpath, convert_png=False, resize=False):
                 + str(e)
                 + "\n"
             )
-            raise Exception(
-                os.path.basename(fullpath)
-                + " > download_image failed to download the file"
-            )
+            raise e
         else:
             ext = get_filetype(headers, tmp_img)
             try:
