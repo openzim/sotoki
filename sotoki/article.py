@@ -1,6 +1,6 @@
 from libzim import ZimArticle, ZimBlob
 
-class SotokiArticle(ZimArticle):
+class ContentArticle(ZimArticle):
 
     def __init__(self, url, title, content):
         ZimArticle.__init__(self)

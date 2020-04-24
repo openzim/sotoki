@@ -45,7 +45,7 @@ from hashlib import sha256
 from string import punctuation
 from docopt import docopt, DocoptExit
 from distutils.dir_util import copy_tree
-from multiprocessing import cpu_count, Queue, Process
+from multiprocessing import cpu_count, Queue, Process, Manager
 from xml.sax import make_parser, handler
 import urllib.request
 import urllib.parse
@@ -67,7 +67,7 @@ from kiwixstorage import KiwixStorage
 from pif import get_public_ip
 
 from libzim import ZimCreator
-from .article import SotokiArticle
+from article import ContentArticle
 
 ROOT_DIR = pathlib.Path(__file__).parent
 NAME = ROOT_DIR.name
@@ -333,22 +333,22 @@ class QuestionRender(handler.ContentHandler):
                 + ".html\n"
             )
 
-            data_send = [
-                some_questions,
-                self.templates,
-                self.output,
-                self.title,
-                self.publisher,
-                self.post,
-                "question.html",
-                self.deflate,
-                self.site_url,
-                self.domain,
-                self.mathjax,
-                self.nopic,
-            ]
-            self.request_queue.put(data_send)
-            # some_questions(self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.deflate, self.site_url, self.domain, self.mathjax, self.nopic)
+            # data_send = [
+            #     some_questions,
+            #     self.templates,
+            #     self.output,
+            #     self.title,
+            #     self.publisher,
+            #     self.post,
+            #     "question.html",
+            #     self.deflate,
+            #     self.site_url,
+            #     self.domain,
+            #     self.mathjax,
+            #     self.nopic,
+            # ]
+            # self.request_queue.put(data_send)
+            some_questions(self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.deflate, self.site_url, self.domain, self.mathjax, self.nopic)
             # Reset element
             self.post = {}
             self.comments = []
@@ -673,22 +673,22 @@ class UsersRender(handler.ContentHandler):
                     + user["Id"]
                     + ".html\n"
                 )
-            data_send = [
-                some_user,
-                user,
-                self.generator,
-                self.templates,
-                self.output,
-                self.publisher,
-                self.site_url,
-                self.deflate,
-                self.title,
-                self.mathjax,
-                self.nopic,
-                self.nouserprofile,
-            ]
-            self.request_queue.put(data_send)
-            # some_user(user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.deflate, self.title, self.mathjax, self.nopic, self.nouserprofile)
+            # data_send = [
+            #     some_user,
+            #     user,
+            #     self.generator,
+            #     self.templates,
+            #     self.output,
+            #     self.publisher,
+            #     self.site_url,
+            #     self.deflate,
+            #     self.title,
+            #     self.mathjax,
+            #     self.nopic,
+            #     self.nouserprofile,
+            # ]
+            #self.request_queue.put(data_send)
+            some_user(user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.deflate, self.title, self.mathjax, self.nopic, self.nouserprofile)
 
     def endDocument(self):
         self.conn.commit()
@@ -817,8 +817,44 @@ def scale(number):
 def page_url(ident, name):
     return str(ident) + "/" + slugify(name)
 
-
+ZIMCREATOR = None
 ENV = None  # Jinja environment singleton
+
+
+def write_content_article_to_zim(url, title, content):
+    article = ContentArticle(url= url,
+                             title= title, 
+                             content=content)
+    try:
+        ZIMCREATOR.add_article(article)
+    except:
+        raise
+
+
+def get_title_from_render_context(template, context):
+    type_end_pos = template.name.find('.html')
+    template_type =  template.name[:type_end_pos] 
+
+    if template_type == "question":
+        return context['question']['Title']
+    elif template_type == "user":
+        return context['user']['DisplayName']
+    elif template_type == "tag":
+        return context['tag']
+    elif template_type in ["alltags","index"]:
+        return context['title']
+    else:
+        return ''
+
+
+def get_url_from_render_output(output):
+    '''Gets the url as the string following /output/ in the path'''
+    # Adds 8 as its len("/output/")
+    url_start_pos = output.find("/output/") + 8
+    if url_start_pos:
+        return output[url_start_pos:]  
+    else:
+        return ''
 
 
 def jinja(output, template, templates, raw, deflate, **context):
@@ -827,15 +863,12 @@ def jinja(output, template, templates, raw, deflate, **context):
     if raw:
         page = "{% raw %}" + page + "{% endraw %}"
     if deflate:
-        with open(output, "wb") as f:
+        #with open(output, "wb") as f:
             #f.write(zlib.compress(page.encode("utf-8")))
-            # Use uncompressed
-            # TODO get correct url, title
-            import uuid
-            article = SotokiArticle(url='A/%s' % str(uuid.uuid1())  ,
-                                     title=str(uuid.uuid1()), 
-                                     content=page.encode('utf-8'))
-            ZIMCREATOR.add_article(article)
+        title = get_title_from_render_context(template, context)
+        url = get_url_from_render_output(output)
+        write_content_article_to_zim(url, title, content=page.encode('UTF-8'))
+        
     else:
         with open(output, "w") as f:
             f.write(page)
@@ -1334,21 +1367,7 @@ def cache_credentials_ok(cache_storage_url):
 #     Zim generation    #
 #########################
 
-
-def create_zims(
-    title,
-    publisher,
-    description,
-    redirect_file,
-    domain,
-    lang_input,
-    zim_path,
-    html_dir,
-    noindex,
-    nopic,
-    scraper_version,
-):
-    print("Creating ZIM files")
+def get_zim_file_path(zim_path, domain, lang_input, nopic):
     if zim_path is None:
         zim_path = dict(
             title=domain.lower(),
@@ -1364,110 +1383,151 @@ def create_zims(
                 "work/", "{title}_{lang}_all_{date}.zim".format(**zim_path)
             )
 
-    if nopic:
-        name = "kiwix." + domain.lower() + ".nopic"
-    else:
-        name = "kiwix." + domain.lower()
-    creator = title
-    return create_zim(
-        html_dir,
-        zim_path,
-        title,
-        description,
-        languageToAlpha3(lang_input),
-        publisher,
-        creator,
-        redirect_file,
-        noindex,
-        name,
-        nopic,
-        scraper_version,
-        domain,
-    )
+    return zim_path
 
 
-def create_zim(
-    static_folder,
-    zim_path,
-    title,
-    description,
-    lang_input,
-    publisher,
-    creator,
-    redirect_file,
-    noindex,
-    name,
-    nopic,
-    scraper_version,
-    domain,
-):
-    print("\tWriting ZIM for {}".format(title))
-    context = {
-        "languages": lang_input,
-        "title": title,
-        "description": description,
-        "creator": creator,
-        "publisher": publisher,
-        "home": "index.html",
-        "favicon": "favicon.png",
-        "static": static_folder,
-        "zim": zim_path,
-        "redirect_csv": redirect_file,
-        "tags": "_category:stack_exchange;stackexchange",
-        "name": name,
-        "scraper": scraper_version,
-        "source": "https://{}".format(domain),
-    }
+# def create_zims(
+#     title,
+#     publisher,
+#     description,
+#     redirect_file,
+#     domain,
+#     lang_input,
+#     zim_path,
+#     html_dir,
+#     noindex,
+#     nopic,
+#     scraper_version,
+# ):
+#     print("Creating ZIM files")
+#     if zim_path is None:
+#         zim_path = dict(
+#             title=domain.lower(),
+#             lang=lang_input.lower(),
+#             date=datetime.datetime.now().strftime("%Y-%m"),
+#         )
+#         if nopic:
+#             zim_path = os.path.join(
+#                 "work/", "{title}_{lang}_all_{date}_nopic.zim".format(**zim_path)
+#             )
+#         else:
+#             zim_path = os.path.join(
+#                 "work/", "{title}_{lang}_all_{date}.zim".format(**zim_path)
+#             )
 
-    cmd = "zimwriterfs "
-    if nopic:
-        tmpfile = tempfile.mkdtemp()
-        os.rename(
-            os.path.join(static_folder, "static", "images"),
-            os.path.join(tmpfile, "images"),
-        )
-        os.rename(
-            os.path.join(static_folder, "static", "identicon"),
-            os.path.join(tmpfile, "identicon"),
-        )
-        cmd = cmd + '--flavour="nopic" '
-        context["tags"] += ";nopic"
+#     if nopic:
+#         name = "kiwix." + domain.lower() + ".nopic"
+#     else:
+#         name = "kiwix." + domain.lower()
+#     creator = title
+#     return create_zim(
+#         html_dir,
+#         zim_path,
+#         title,
+#         description,
+#         languageToAlpha3(lang_input),
+#         publisher,
+#         creator,
+#         redirect_file,
+#         noindex,
+#         name,
+#         nopic,
+#         scraper_version,
+#         domain,
+#     )
 
-    if noindex:
-        cmd = cmd + "--withoutFTIndex "
-    cmd = (
-        cmd
-        + ' --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" --language="{languages}" --title="{title}" --description="{description}" --creator="{creator}" --publisher="{publisher}" --tags="{tags}" --name="{name}" --scraper="{scraper}" --source="{source}" "{static}" "{zim}"'.format(
-            **context
-        )
-    )
-    print(cmd)
 
-    if exec_cmd(cmd) == 0:
-        print("Successfuly created ZIM file at {}".format(zim_path))
-        if nopic:
-            os.rename(
-                os.path.join(tmpfile, "images"),
-                os.path.join(static_folder, "static", "images"),
-            )
-            os.rename(
-                os.path.join(tmpfile, "identicon"),
-                os.path.join(static_folder, "static", "identicon"),
-            )
-            shutil.rmtree(tmpfile)
-        return True
-    print("Unable to create ZIM file :(")
-    if nopic:
-        os.rename(
-            os.path.join(tmpfile, "images"),
-            os.path.join(static_folder, "static", "images"),
-        )
-        os.rename(
-            os.path.join(tmpfile, "identicon"),
-            os.path.join(static_folder, "static", "identicon"),
-        )
-        shutil.rmtree(tmpfile)
-    return False
+# def create_zim(
+#     static_folder,
+#     zim_path,
+#     title,
+#     description,
+#     lang_input,
+#     publisher,
+#     creator,
+#     redirect_file,
+#     noindex,
+#     name,
+#     nopic,
+#     scraper_version,
+#     domain,
+# ):
+#     print("\tWriting ZIM for {}".format(title))
+#     context = {
+#         "languages": lang_input,
+#         "title": title,
+#         "description": description,
+#         "creator": creator,
+#         "publisher": publisher,
+#         "home": "index.html",
+#         "favicon": "favicon.png",
+#         "static": static_folder,
+#         "zim": zim_path,
+#         "redirect_csv": redirect_file,
+#         "tags": "_category:stack_exchange;stackexchange",
+#         "name": name,
+#         "scraper": scraper_version,
+#         "source": "https://{}".format(domain),
+#     }
+
+#     cmd = "zimwriterfs "
+#     if nopic:
+#         tmpfile = tempfile.mkdtemp()
+#         os.rename(
+#             os.path.join(static_folder, "static", "images"),
+#             os.path.join(tmpfile, "images"),
+#         )
+#         os.rename(
+#             os.path.join(static_folder, "static", "identicon"),
+#             os.path.join(tmpfile, "identicon"),
+#         )
+#         cmd = cmd + '--flavour="nopic" '
+#         context["tags"] += ";nopic"
+
+#     if noindex:
+#         cmd = cmd + "--withoutFTIndex "
+#     cmd = (
+#         cmd
+#         + ' --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" --language="{languages}" --title="{title}" --description="{description}" --creator="{creator}" --publisher="{publisher}" --tags="{tags}" --name="{name}" --scraper="{scraper}" --source="{source}" "{static}" "{zim}"'.format(
+#             **context
+#         )
+#     )
+#     print(cmd)
+
+#     if exec_cmd(cmd) == 0:
+#         print("Successfuly created ZIM file at {}".format(zim_path))
+#         if nopic:
+#             os.rename(
+#                 os.path.join(tmpfile, "images"),
+#                 os.path.join(static_folder, "static", "images"),
+#             )
+#             os.rename(
+#                 os.path.join(tmpfile, "identicon"),
+#                 os.path.join(static_folder, "static", "identicon"),
+#             )
+#             shutil.rmtree(tmpfile)
+#         return True
+#     print("Unable to create ZIM file :(")
+#     if nopic:
+#         os.rename(
+#             os.path.join(tmpfile, "images"),
+#             os.path.join(static_folder, "static", "images"),
+#         )
+#         os.rename(
+#             os.path.join(tmpfile, "identicon"),
+#             os.path.join(static_folder, "static", "identicon"),
+#         )
+#         shutil.rmtree(tmpfile)
+#     return False
+
+
+def zim_write_listener(q):
+    while 1:
+        m = q.get()
+        article = ContentArticle(url= url,
+                             title= title, 
+                             content=content)
+        ZIMCREATOR.add_article(article)
 
 
 def run():
@@ -1489,8 +1549,6 @@ def run():
         CACHE_STORAGE_URL = arguments["--optimization-cache"]
     else:
         print("No cache credentials provided. Continuing without optimization cache")
-    if not arguments["--nozim"] and not bin_is_present("zimwriterfs"):
-        sys.exit("zimwriterfs is not available, please install it.")
     # Check binary
     for binary in [
         "bash",
@@ -1643,9 +1701,18 @@ def run():
     MARKDOWN = mistune.Markdown(renderer, plugins=[plugin_url])
 
     if not arguments["--nozim"]:
-        #TODO Get the correct path with a function similar to create_zims 
-        libzim_init("hola.zim")
-        
+        libzim_init(get_zim_file_path(arguments["--zimpath"], domain, lang_input, arguments["--nopic"]))
+
+
+    ## Zim Writer Multiprocessing
+
+    zim_write_manager = Manager()
+    zim_write_queue = zim_write_manager.Queue()
+    #zim_write_pool = Pool(cpu_count() + 2)
+    # Start the listener
+    #zim_watcher = zim_write_pool.apply_async(zim_write_listener, (zim_write_queue,))
+
+
     if not os.path.exists(
         os.path.join(dump, "prepare.xml")
     ):  # If we haven't already prepare
