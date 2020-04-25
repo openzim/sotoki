@@ -45,7 +45,7 @@ from hashlib import sha256
 from string import punctuation
 from docopt import docopt, DocoptExit
 from distutils.dir_util import copy_tree
-from multiprocessing import cpu_count, Queue, Process, Manager
+from multiprocessing import cpu_count, Queue, Process
 from xml.sax import make_parser, handler
 import urllib.request
 import urllib.parse
@@ -67,7 +67,7 @@ from kiwixstorage import KiwixStorage
 from pif import get_public_ip
 
 from libzim import ZimCreator
-from article import ContentArticle
+from article import ContentArticle, RedirectArticle
 
 ROOT_DIR = pathlib.Path(__file__).parent
 NAME = ROOT_DIR.name
@@ -732,6 +732,7 @@ def some_user(
                 output_format="png",
             )  # noqa
             with open(fullpath, "wb") as f:
+                # TODO write identicon here
                 f.write(identicon)
 
     #
@@ -825,11 +826,7 @@ def write_content_article_to_zim(url, title, content):
     article = ContentArticle(url= url,
                              title= title, 
                              content=content)
-    try:
-        ZIMCREATOR.add_article(article)
-    except:
-        raise
-
+    ZIMCREATOR.add_article(article)
 
 def get_title_from_render_context(template, context):
     type_end_pos = template.name.find('.html')
@@ -888,7 +885,7 @@ def jinja_init(templates):
     )
     ENV.filters.update(filters)
 
-def libzim_init(zim_path, main_page = "index", index_language = "eng", min_chunk_size = 2048):
+def libzim_init(zim_path, main_page = "index.html", index_language = "eng", min_chunk_size = 2048):
     global ZIMCREATOR
     print("Initializing ZimCreator .............")
     ZIMCREATOR = ZimCreator(zim_path, main_page, index_language, min_chunk_size)
@@ -1026,6 +1023,7 @@ def download_image(url, fullpath, convert_png=False, resize=False):
             except Exception as exc:
                 print(f"{os.path.basename(fullpath)} {exc}")
             finally:
+                #TODO write image here
                 shutil.move(tmp_img, fullpath)
 
 
@@ -1318,7 +1316,6 @@ def clean(output, db, redirect_file):
         print("remove " + redirect_file)
         os.remove(redirect_file)
 
-
 def data_from_previous_run(output, db, redirect_file):
     for elem in ["question", "tag", "user"]:
         elem_path = os.path.join(output, elem)
@@ -1332,7 +1329,6 @@ def data_from_previous_run(output, db, redirect_file):
     ):
         return True
     return False
-
 
 def use_mathjax(domain):
     """ const True
@@ -1384,6 +1380,22 @@ def get_zim_file_path(zim_path, domain, lang_input, nopic):
             )
 
     return zim_path
+
+def write_redirect_article(ns, url, redirect_url, title):
+    redirect_art = RedirectArticle(f"{ns}/{url}", redirect_url, title)
+    ZIMCREATOR.add_article(redirect_art)
+    
+def write_redirects_from_file(redirects_file):
+    import re
+    redirect_line = re.compile("(.)\t(.+)\t(.+)\t(.+)")
+
+    with open(redirects_file, 'r') as f:
+        for line in f:
+            m=redirect_line.match(line)
+            ns, url, title, redirect_url = m[1], m[2], m[3], m[4]
+            write_redirect_article(ns, url, redirect_url, title)
+        else:
+            print('Redirects file read ok')
 
 
 # def create_zims(
@@ -1524,10 +1536,10 @@ def get_zim_file_path(zim_path, domain, lang_input, nopic):
 def zim_write_listener(q):
     while 1:
         m = q.get()
-        article = ContentArticle(url= url,
-                             title= title, 
-                             content=content)
-        ZIMCREATOR.add_article(article)
+        #article = ContentArticle(url= url,
+        #                     title= title, 
+        #                     content=content)
+        #ZIMCREATOR.add_article(article)
 
 
 def run():
@@ -1646,7 +1658,7 @@ def run():
     title, description, lang_input = grab_title_description_favicon_lang(
         url, output, not arguments["--ignoreoldsite"]
     )
-
+  
     if not os.path.exists(
         os.path.join(dump, "Posts.xml")
     ):  # If dump is not here, download it
@@ -1701,16 +1713,17 @@ def run():
     MARKDOWN = mistune.Markdown(renderer, plugins=[plugin_url])
 
     if not arguments["--nozim"]:
-        libzim_init(get_zim_file_path(arguments["--zimpath"], domain, lang_input, arguments["--nopic"]))
+        zim_file_path = get_zim_file_path(arguments["--zimpath"], domain, lang_input, arguments["--nopic"])
+        libzim_init(zim_file_path, 'index.html', languageToAlpha3(lang_input))
 
 
     ## Zim Writer Multiprocessing
 
-    zim_write_manager = Manager()
-    zim_write_queue = zim_write_manager.Queue()
-    #zim_write_pool = Pool(cpu_count() + 2)
-    # Start the listener
-    #zim_watcher = zim_write_pool.apply_async(zim_write_listener, (zim_write_queue,))
+    # zim_write_manager = Manager()
+    # zim_write_queue = zim_write_manager.Queue()
+    # # Start the listener
+    #zim_watcher = Process(target=zim_write_listener, args=(zim_write_queue,))
+    #zim_watcher.start()
 
 
     if not os.path.exists(
@@ -1800,13 +1813,25 @@ def run():
         os.path.join(output, "static"),
     )
     if not arguments["--nozim"]:
+        # Wait for all add_articles calls to join, if it doesnt work must join inside each parser
+        #zim_watcher.join()
+
+        write_redirects_from_file(redirect_file)
+
+
         # TODO Set mandatory metadata
+        # recursively write static assets different to images   
+
+        #need:
+        # mimeType = getMimeTypeForFile(url);
+        # ns = getNamespaceForMimeType(mimeType)[0];
 
         if not ZIMCREATOR.mandatory_metadata_ok():
-            ZIMCREATOR.update_metadata(creator='python-libzim',
-                                description='Created in python',
-                                name='Hola',publisher='Monadical',
-                                title='Test Zim')
+            ZIMCREATOR.update_metadata(creator=scraper_version,
+                                       description=description,
+                                       name='Hola',
+                                       publisher=publisher,
+                                       title=title)
 
         print("Finalizing ZimCreator: Writing files .............")
         try:
