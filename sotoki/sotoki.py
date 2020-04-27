@@ -41,11 +41,12 @@ import pathlib
 import tempfile
 import datetime
 import subprocess
+import collections
 from hashlib import sha256
 from string import punctuation
 from docopt import docopt, DocoptExit
 from distutils.dir_util import copy_tree
-from multiprocessing import cpu_count, Queue, Process
+from multiprocessing import cpu_count, Queue, Process, Manager, active_children, current_process
 from xml.sax import make_parser, handler
 import urllib.request
 import urllib.parse
@@ -103,6 +104,7 @@ class QuestionRender(handler.ContentHandler):
         mathjax,
         nopic,
         nouserprofile,
+        zim_write_queue,
     ):
         self.templates = templates
         self.output = output
@@ -128,6 +130,7 @@ class QuestionRender(handler.ContentHandler):
         self.mathjax = mathjax
         self.nopic = nopic
         self.nouserprofile = nouserprofile
+        self.zim_write_queue = zim_write_queue
         for i in range(self.cores):
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
@@ -333,22 +336,23 @@ class QuestionRender(handler.ContentHandler):
                 + ".html\n"
             )
 
-            # data_send = [
-            #     some_questions,
-            #     self.templates,
-            #     self.output,
-            #     self.title,
-            #     self.publisher,
-            #     self.post,
-            #     "question.html",
-            #     self.deflate,
-            #     self.site_url,
-            #     self.domain,
-            #     self.mathjax,
-            #     self.nopic,
-            # ]
-            # self.request_queue.put(data_send)
-            some_questions(self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.deflate, self.site_url, self.domain, self.mathjax, self.nopic)
+            data_send = [
+                some_questions,
+                self.templates,
+                self.output,
+                self.title,
+                self.publisher,
+                self.post,
+                "question.html",
+                self.deflate,
+                self.site_url,
+                self.domain,
+                self.mathjax,
+                self.nopic,
+                self.zim_write_queue,
+            ]
+            self.request_queue.put(data_send)
+            #some_questions(self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.deflate, self.site_url, self.domain, self.mathjax, self.nopic)
             # Reset element
             self.post = {}
             self.comments = []
@@ -377,6 +381,7 @@ def some_questions(
     domain,
     mathjax,
     nopic,
+    zim_write_queue,
 ):
     try:
         question["Score"] = int(question["Score"])
@@ -412,6 +417,7 @@ def some_questions(
                 templates,
                 False,
                 deflate,
+                zim_write_queue,
                 question=question,
                 rooturl="..",
                 title=title,
@@ -448,6 +454,7 @@ class TagsRender(handler.ContentHandler):
         tag_depth,
         description,
         mathjax,
+        zim_write_queue,
     ):
         # index page
         self.templates = templates
@@ -462,6 +469,7 @@ class TagsRender(handler.ContentHandler):
         self.description = description
         self.tag_depth = tag_depth
         self.mathjax = mathjax
+        self.zim_write_queue = zim_write_queue
         self.tags = []
         sql = "CREATE INDEX index_tag ON questiontag (Tag)"
         self.cursor.execute(sql)
@@ -495,6 +503,7 @@ class TagsRender(handler.ContentHandler):
             self.templates,
             False,
             self.deflate,
+            self.zim_write_queue,
             tags=sorted(self.tags[:200], key=lambda k: k["nb_post"], reverse=True),
             rooturl=".",
             questions=new_questions[:50],
@@ -509,6 +518,7 @@ class TagsRender(handler.ContentHandler):
             self.templates,
             False,
             self.deflate,
+            self.zim_write_queue,
             tags=sorted(self.tags, key=lambda k: k["nb_post"], reverse=True),
             rooturl=".",
             title=self.title,
@@ -555,6 +565,7 @@ class TagsRender(handler.ContentHandler):
                     self.templates,
                     False,
                     self.deflate,
+                    self.zim_write_queue,
                     tag=tag,
                     index=page,
                     questions=some_questions,
@@ -590,6 +601,7 @@ class UsersRender(handler.ContentHandler):
         mathjax,
         nopic,
         nouserprofile,
+        zim_write_queue,
     ):
         self.identicon_path = os.path.join(output, "static", "identicon")
         self.templates = templates
@@ -606,6 +618,8 @@ class UsersRender(handler.ContentHandler):
         self.nopic = nopic
         self.nouserprofile = nouserprofile
         self.id = 0
+        self.zim_write_queue = zim_write_queue
+
         if not os.path.exists(self.identicon_path):
             os.makedirs(self.identicon_path)
         os.makedirs(os.path.join(output, "user"))
@@ -673,22 +687,23 @@ class UsersRender(handler.ContentHandler):
                     + user["Id"]
                     + ".html\n"
                 )
-            # data_send = [
-            #     some_user,
-            #     user,
-            #     self.generator,
-            #     self.templates,
-            #     self.output,
-            #     self.publisher,
-            #     self.site_url,
-            #     self.deflate,
-            #     self.title,
-            #     self.mathjax,
-            #     self.nopic,
-            #     self.nouserprofile,
-            # ]
-            #self.request_queue.put(data_send)
-            some_user(user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.deflate, self.title, self.mathjax, self.nopic, self.nouserprofile)
+            data_send = [
+                some_user,
+                user,
+                self.generator,
+                self.templates,
+                self.output,
+                self.publisher,
+                self.site_url,
+                self.deflate,
+                self.title,
+                self.mathjax,
+                self.nopic,
+                self.nouserprofile,
+                self.zim_write_queue
+            ]
+            self.request_queue.put(data_send)
+            #some_user(user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.deflate, self.title, self.mathjax, self.nopic, self.nouserprofile)
 
     def endDocument(self):
         self.conn.commit()
@@ -697,7 +712,7 @@ class UsersRender(handler.ContentHandler):
             self.request_queue.put(None)
         for i in self.workers:
             i.join()
-        print("---END--")
+        print("---END USERS--")
         self.f_redirect.close()
 
 
@@ -713,6 +728,7 @@ def some_user(
     mathjax,
     nopic,
     nouserprofile,
+    zim_write_queue
 ):
     filename = user["Id"] + ".png"
     fullpath = os.path.join(output, "static", "identicon", filename)
@@ -748,6 +764,7 @@ def some_user(
             templates,
             False,
             deflate,
+            zim_write_queue,
             user=user,
             title=title,
             rooturl="..",
@@ -818,15 +835,9 @@ def scale(number):
 def page_url(ident, name):
     return str(ident) + "/" + slugify(name)
 
-ZIMCREATOR = None
 ENV = None  # Jinja environment singleton
 
 
-def write_content_article_to_zim(url, title, content):
-    article = ContentArticle(url= url,
-                             title= title, 
-                             content=content)
-    ZIMCREATOR.add_article(article)
 
 def get_title_from_render_context(template, context):
     type_end_pos = template.name.find('.html')
@@ -854,7 +865,7 @@ def get_url_from_render_output(output):
         return ''
 
 
-def jinja(output, template, templates, raw, deflate, **context):
+def jinja(output, template, templates, raw, deflate, zim_write_queue, **context):
     template = ENV.get_template(template)
     page = template.render(**context)
     if raw:
@@ -864,11 +875,14 @@ def jinja(output, template, templates, raw, deflate, **context):
             #f.write(zlib.compress(page.encode("utf-8")))
         title = get_title_from_render_context(template, context)
         url = get_url_from_render_output(output)
-        write_content_article_to_zim(url, title, content=page.encode('UTF-8'))
+
+        # Add article data to queue
+        data = ('add_content_article', url, title, page.encode('UTF-8'))
+        zim_write_queue.put(data)
         
-    else:
-        with open(output, "w") as f:
-            f.write(page)
+    # else:
+    #     with open(output, "w") as f:
+    #         f.write(page)
           
         
 
@@ -885,10 +899,9 @@ def jinja_init(templates):
     )
     ENV.filters.update(filters)
 
-def libzim_init(zim_path, main_page = "index.html", index_language = "eng", min_chunk_size = 2048):
-    global ZIMCREATOR
+def zim_creator_init(zim_path, main_page = "index.html", index_language = "eng", min_chunk_size = 2048):
     print("Initializing ZimCreator .............")
-    ZIMCREATOR = ZimCreator(zim_path, main_page, index_language, min_chunk_size)
+    return ZimCreator(zim_path, main_page, index_language, min_chunk_size)
 
 
 def get_tempfile(suffix):
@@ -1363,39 +1376,6 @@ def cache_credentials_ok(cache_storage_url):
 #     Zim generation    #
 #########################
 
-def get_zim_file_path(zim_path, domain, lang_input, nopic):
-    if zim_path is None:
-        zim_path = dict(
-            title=domain.lower(),
-            lang=lang_input.lower(),
-            date=datetime.datetime.now().strftime("%Y-%m"),
-        )
-        if nopic:
-            zim_path = os.path.join(
-                "work/", "{title}_{lang}_all_{date}_nopic.zim".format(**zim_path)
-            )
-        else:
-            zim_path = os.path.join(
-                "work/", "{title}_{lang}_all_{date}.zim".format(**zim_path)
-            )
-
-    return zim_path
-
-def write_redirect_article(ns, url, redirect_url, title):
-    redirect_art = RedirectArticle(f"{ns}/{url}", redirect_url, title)
-    ZIMCREATOR.add_article(redirect_art)
-    
-def write_redirects_from_file(redirects_file):
-    import re
-    redirect_line = re.compile("(.)\t(.+)\t(.+)\t(.+)")
-
-    with open(redirects_file, 'r') as f:
-        for line in f:
-            m=redirect_line.match(line)
-            ns, url, title, redirect_url = m[1], m[2], m[3], m[4]
-            write_redirect_article(ns, url, redirect_url, title)
-        else:
-            print('Redirects file read ok')
 
 
 # def create_zims(
@@ -1532,14 +1512,64 @@ def write_redirects_from_file(redirects_file):
 #         shutil.rmtree(tmpfile)
 #     return False
 
+def get_zim_file_path(zim_path, domain, lang_input, nopic):
+    if zim_path is None:
+        zim_path = dict(
+            title=domain.lower(),
+            lang=lang_input.lower(),
+            date=datetime.datetime.now().strftime("%Y-%m"),
+        )
+        if nopic:
+            zim_path = os.path.join(
+                "work/", "{title}_{lang}_all_{date}_nopic.zim".format(**zim_path)
+            )
+        else:
+            zim_path = os.path.join(
+                "work/", "{title}_{lang}_all_{date}.zim".format(**zim_path)
+            )
 
-def zim_write_listener(q):
-    while 1:
-        m = q.get()
-        #article = ContentArticle(url= url,
-        #                     title= title, 
-        #                     content=content)
-        #ZIMCREATOR.add_article(article)
+    return zim_path
+    
+def write_redirects_from_file(redirects_file, zim_write_queue):
+    import re
+    redirect_line = re.compile("(.)\t(.+)\t(.+)\t(.+)")
+
+    with open(redirects_file, 'r') as f:
+        for line in f:
+            m=redirect_line.match(line)
+            ns, url, title, redirect_url = m[1], m[2], m[3], m[4]
+            data = ('add_redirect_article', ns, url, redirect_url, title,)
+            zim_write_queue.put(data)
+        else:
+            print('Redirects file read ok')
+
+def get_article_for_action(item):
+    action, *args = item
+    if action == "add_content_article":
+        url, title, content = args
+        article = ContentArticle(url= url,
+                             title= title, 
+                             content=content)
+    elif action == "add_redirect_article":
+        ns, url, redirect_url, title = args
+        article = RedirectArticle(f"{ns}/{url}", redirect_url, title)
+
+    elif action == "add_static_asset_article":
+        pass
+
+    return article
+
+def zim_write_listener(q, zim_file_conf):
+    zim_creator = zim_creator_init(zim_file_conf.path, zim_file_conf.main_page, zim_file_conf.index_language)
+    while True:
+        item = q.get()
+        if item is None:
+            zim_creator.update_metadata(**zim_file_conf.metadata) 
+            zim_creator.finalize()     
+            break
+        else:
+            article = get_article_for_action(item)
+            zim_creator.add_article(article)
 
 
 def run():
@@ -1714,16 +1744,28 @@ def run():
 
     if not arguments["--nozim"]:
         zim_file_path = get_zim_file_path(arguments["--zimpath"], domain, lang_input, arguments["--nopic"])
-        libzim_init(zim_file_path, 'index.html', languageToAlpha3(lang_input))
+        #zimcreator = libzim_init(zim_file_path, 'index.html', languageToAlpha3(lang_input))
+        zim_file_metadata = {'creator': scraper_version,
+                            'description': description,
+                            'name': domain, 
+                            'publisher': publisher,
+                            'title': title }
 
 
-    ## Zim Writer Multiprocessing
+        # Zim Creator Conf
+        ZimFileConf = collections.namedtuple('ZimFileConf',['path', 'main_page', 'index_language','metadata'])
+        zim_file_conf = ZimFileConf(path=zim_file_path, main_page='index.html', 
+                                    index_language=languageToAlpha3(lang_input),
+                                    metadata=zim_file_metadata)
 
-    # zim_write_manager = Manager()
-    # zim_write_queue = zim_write_manager.Queue()
-    # # Start the listener
-    #zim_watcher = Process(target=zim_write_listener, args=(zim_write_queue,))
-    #zim_watcher.start()
+
+    # Zim Writer Multiprocessing
+
+    zim_write_manager = Manager()
+    zim_write_queue = zim_write_manager.Queue()
+    # Start a unique listener process to add articles
+    zim_watcher = Process(target=zim_write_listener, args=(zim_write_queue, zim_file_conf,))
+    zim_watcher.start()
 
 
     if not os.path.exists(
@@ -1749,6 +1791,7 @@ def run():
             use_mathjax(domain),
             arguments["--nopic"],
             arguments["--no-userprofile"],
+            zim_write_queue,
         )
     )
     parser.parse(os.path.join(dump, "usersbadges.xml"))
@@ -1773,12 +1816,13 @@ def run():
             use_mathjax(domain),
             arguments["--nopic"],
             arguments["--no-userprofile"],
+            zim_write_queue,
         )
     )
     parser.parse(os.path.join(dump, "prepare.xml"))
     conn.commit()
 
-    # Generate tags !
+    # # Generate tags !
     parser = make_parser()
     parser.setContentHandler(
         TagsRender(
@@ -1794,6 +1838,7 @@ def run():
             tag_depth,
             description,
             use_mathjax(domain),
+            zim_write_queue,
         )
     )
     parser.parse(os.path.join(dump, "Tags.xml"))
@@ -1803,6 +1848,7 @@ def run():
     shutil.rmtree(magick_tmp, ignore_errors=True)
 
     # copy static
+    # TODO recursively write static assets different to images from here
     if use_mathjax(domain):
         copy_tree(
             os.path.join(os.path.abspath(os.path.dirname(__file__)), "static_mathjax"),
@@ -1813,47 +1859,23 @@ def run():
         os.path.join(output, "static"),
     )
     if not arguments["--nozim"]:
-        # Wait for all add_articles calls to join, if it doesnt work must join inside each parser
-        #zim_watcher.join()
 
-        write_redirects_from_file(redirect_file)
-
-
-        # TODO Set mandatory metadata
-        # recursively write static assets different to images   
-
-        #need:
-        # mimeType = getMimeTypeForFile(url);
-        # ns = getNamespaceForMimeType(mimeType)[0];
-
-        if not ZIMCREATOR.mandatory_metadata_ok():
-            ZIMCREATOR.update_metadata(creator=scraper_version,
-                                       description=description,
-                                       name='Hola',
-                                       publisher=publisher,
-                                       title=title)
-
-        print("Finalizing ZimCreator: Writing files .............")
         try:
-            ZIMCREATOR.finalize()
+            write_redirects_from_file(redirect_file, zim_write_queue)
+
+            # TODO recursively write static assets different to images written   
+            #need:
+            # mimeType = getMimeTypeForFile(url);
+            # ns = getNamespaceForMimeType(mimeType)[0];
+
+            # Kill writing worker and wait for all add_articles calls to join
+            zim_write_queue.put(None)
+            zim_watcher.join()
         except:
             raise
         else:
             done = True
 
-        # done = create_zims(
-        #     title,
-        #     publisher,
-        #     description,
-        #     redirect_file,
-        #     domain,
-        #     lang_input,
-        #     arguments["--zimpath"],
-        #     output,
-        #     arguments["--nofulltextindex"],
-        #     arguments["--nopic"],
-        #     scraper_version,
-        # )
         if done:
             clean(output, db, redirect_file)
 
