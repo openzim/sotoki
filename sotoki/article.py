@@ -67,3 +67,38 @@ class RedirectArticle(ZimArticle):
 
     def get_data(self):
         return ZimBlob(b'')
+
+class StaticAssetArticle(ZimArticle):
+
+    def __init__(self, ns, url, title, mimetype, content):
+        ZimArticle.__init__(self)
+
+        self.ns = ns
+        self.url = url
+        self.title = title
+        self.mime = mimetype
+        self.content = content
+
+    def is_redirect(self):
+        return False
+
+    def get_url(self):
+        return f'{self.ns}/{self.url}'
+
+    def get_title(self):
+        return self.title
+    
+    def get_mime_type(self):
+        return self.mime
+    
+    def get_filename(self):
+        return ""
+    
+    def should_compress(self):
+        return True
+
+    def should_index(self):
+        return False
+
+    def get_data(self):
+        return ZimBlob(self.content)

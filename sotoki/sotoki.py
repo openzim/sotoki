@@ -68,7 +68,8 @@ from kiwixstorage import KiwixStorage
 from pif import get_public_ip
 
 from libzim import ZimCreator
-from article import ContentArticle, RedirectArticle
+from article import ContentArticle, RedirectArticle, StaticAssetArticle
+from mime_types import get_mime_from_extension
 
 ROOT_DIR = pathlib.Path(__file__).parent
 NAME = ROOT_DIR.name
@@ -394,21 +395,21 @@ def some_questions(
             )  # sorted is stable so accepted will be always first, then other question will be sort in ascending order
             for ans in question["answers"]:
                 ans["Body"] = interne_link(ans["Body"], domain, question["Id"])
-                ans["Body"] = image(ans["Body"], output, nopic)
+                ans["Body"] = image(ans["Body"], output, nopic, zim_write_queue)
                 if "comments" in ans:
                     for comment in ans["comments"]:
                         comment["Text"] = interne_link(
                             comment["Text"], domain, question["Id"]
                         )
-                        comment["Text"] = image(comment["Text"], output, nopic)
+                        comment["Text"] = image(comment["Text"], output, nopic, zim_write_queue)
 
         filepath = os.path.join(output, "question", question["filename"])
         question["Body"] = interne_link(question["Body"], domain, question["Id"])
-        question["Body"] = image(question["Body"], output, nopic)
+        question["Body"] = image(question["Body"], output, nopic, zim_write_queue)
         if "comments" in question:
             for comment in question["comments"]:
                 comment["Text"] = interne_link(comment["Text"], domain, question["Id"])
-                comment["Text"] = image(comment["Text"], output, nopic)
+                comment["Text"] = image(comment["Text"], output, nopic, zim_write_queue)
         question["Title"] = html.escape(question["Title"], quote=False)
         try:
             jinja(
@@ -735,7 +736,7 @@ def some_user(
     if not nopic and not os.path.exists(fullpath):
         try:
             download_image(
-                user["ProfileImageUrl"], fullpath, convert_png=True, resize=128,
+                user["ProfileImageUrl"], fullpath, zim_write_queue, convert_png=True, resize=128,
             )
         except Exception:
             # Generate big identicon
@@ -747,14 +748,14 @@ def some_user(
                 padding=padding,
                 output_format="png",
             )  # noqa
-            with open(fullpath, "wb") as f:
-                # TODO write identicon here
-                f.write(identicon)
+            #with open(fullpath, "wb") as f:
+                #f.write(identicon)
+            zim_write_queue.put(('add_static_article', 'I', fullpath, identicon, ))
 
     #
     if not nouserprofile:
         if "AboutMe" in user:
-            user["AboutMe"] = image("<p>" + user["AboutMe"] + "</p>", output, nopic)
+            user["AboutMe"] = image("<p>" + user["AboutMe"] + "</p>", output, nopic, zim_write_queue)
         # generate user profile page
         filename = "%s.html" % user["Id"]
         fullpath = os.path.join(output, "user", filename)
@@ -855,7 +856,7 @@ def get_title_from_render_context(template, context):
         return ''
 
 
-def get_url_from_render_output(output):
+def get_url_from_file_full_path(output):
     '''Gets the url as the string following /output/ in the path'''
     # Adds 8 as its len("/output/")
     url_start_pos = output.find("/output/") + 8
@@ -874,7 +875,7 @@ def jinja(output, template, templates, raw, deflate, zim_write_queue, **context)
         #with open(output, "wb") as f:
             #f.write(zlib.compress(page.encode("utf-8")))
         title = get_title_from_render_context(template, context)
-        url = get_url_from_render_output(output)
+        url = get_url_from_file_full_path(output)
 
         # Add article data to queue
         data = ('add_content_article', url, title, page.encode('UTF-8'))
@@ -991,13 +992,14 @@ def get_meta_from_url(url):
             return "content-length", response_headers["content-length"]
     return "default", "default"
 
-
-def download_image(url, fullpath, convert_png=False, resize=False):
+# Most image downloads will execute here since assertion is done by the filesystem inside image()
+def download_image(url, fullpath, zim_write_queue, convert_png=False, resize=False):
     downloaded = False
     key = None
     meta_tag = None
     meta_val = None
-    print(url + " > To be saved as " + os.path.basename(fullpath))
+    #print(url + " > To be saved as " + os.path.basename(fullpath))
+    # TODO Think how to manage files in cache.
     if CACHE_STORAGE_URL:
         meta_tag, meta_val = get_meta_from_url(url)
         if meta_tag and meta_val:
@@ -1009,7 +1011,7 @@ def download_image(url, fullpath, convert_png=False, resize=False):
     if not downloaded:
         headers = None
         tmp_img = None
-        print(os.path.basename(fullpath) + " > Downloading from URL")
+        #print(os.path.basename(fullpath) + " > Downloading from URL")
         try:
             tmp_img = get_tempfile(os.path.basename(fullpath))
             headers = download(url, tmp_img, timeout=60)
@@ -1037,7 +1039,11 @@ def download_image(url, fullpath, convert_png=False, resize=False):
                 print(f"{os.path.basename(fullpath)} {exc}")
             finally:
                 #TODO write image here
-                shutil.move(tmp_img, fullpath)
+                #shutil.move(tmp_img, fullpath)
+                # Add image article from tmp file
+                with open(tmp_img, 'rb') as f:
+                    content = f.read()
+                zim_write_queue.put(('add_static_article', 'I', fullpath, content,))
 
 
 def interne_link(text_post, domain, question_id):
@@ -1085,7 +1091,7 @@ def interne_link(text_post, domain, question_id):
     return text_post
 
 
-def image(text_post, output, nopic):
+def image(text_post, output, nopic, zim_write_queue):
     images = os.path.join(output, "static", "images")
     body = string2html(text_post)
     imgs = body.xpath("//img")
@@ -1100,7 +1106,7 @@ def image(text_post, output, nopic):
             # download the image only if it's not already downloaded and if it's not a html
             if not os.path.exists(out) and ext != ".html":
                 try:
-                    download_image(src, out, resize=540)
+                    download_image(src, out, zim_write_queue, resize=540)
                 except Exception as e:
                     # do nothing
                     print(e)
@@ -1116,7 +1122,7 @@ def image(text_post, output, nopic):
     return text_post
 
 
-def grab_title_description_favicon_lang(url, output_dir, do_old):
+def grab_title_description_favicon_lang(url, output_dir, do_old, zim_write_queue):
     if (
         "moderators.meta.stackexchange.com" in url
     ):  # We do this special handling because redirect do not exist; website have change name, but not dump name see issue #80
@@ -1155,7 +1161,7 @@ def grab_title_description_favicon_lang(url, output_dir, do_old):
         favicon = "http:" + favicon
     favicon_out = os.path.join(output_dir, "favicon.png")
     download_image(
-        favicon, favicon_out, convert_png=True, resize=48,
+        favicon, favicon_out, zim_write_queue, convert_png=True, resize=48,
     )
     return [title, description, lang]
 
@@ -1221,7 +1227,7 @@ def optimize_one(path, ftype):
             raise Exception("> jpegoptim failed for " + str(path))
     elif ftype == "png":
         ret = exec_cmd(
-            "pngquant --verbose --nofs --force --ext=.png " + path, timeout=20
+            "pngquant --nofs --force --ext=.png " + path, timeout=20
         )
         if ret != 0:
             raise Exception("> pngquant failed for " + str(path))
@@ -1554,13 +1560,21 @@ def get_article_for_action(item):
         ns, url, redirect_url, title = args
         article = RedirectArticle(f"{ns}/{url}", redirect_url, title)
 
-    elif action == "add_static_asset_article":
-        pass
+    elif action == "add_static_article":
+        ns, fullpath, content = args 
+        # Set the title as the filename+ext
+        url = get_url_from_file_full_path(fullpath)
+        title = url.split('/')[-1:][0]
+        # TODO use magic for files without extension
+        mimetype = get_mime_from_extension(title.split('.')[-1:][0])
+        article = StaticAssetArticle(ns, url, title, mimetype, content)
 
     return article
 
 def zim_write_listener(q, zim_file_conf):
-    zim_creator = zim_creator_init(zim_file_conf.path, zim_file_conf.main_page, zim_file_conf.index_language)
+    zim_creator = zim_creator_init(zim_file_conf.path, 
+                                zim_file_conf.main_page, 
+                                zim_file_conf.index_language)
     while True:
         item = q.get()
         if item is None:
@@ -1685,8 +1699,15 @@ def run():
     if not os.path.exists(os.path.join(output, "static", "images")):
         os.makedirs(os.path.join(output, "static", "images"))
 
+
+
+    # Zim Writer Multiprocessing
+
+    zim_write_manager = Manager()
+    zim_write_queue = zim_write_manager.Queue()
+
     title, description, lang_input = grab_title_description_favicon_lang(
-        url, output, not arguments["--ignoreoldsite"]
+        url, output, not arguments["--ignoreoldsite"], zim_write_queue
     )
   
     if not os.path.exists(
@@ -1759,10 +1780,6 @@ def run():
                                     metadata=zim_file_metadata)
 
 
-    # Zim Writer Multiprocessing
-
-    zim_write_manager = Manager()
-    zim_write_queue = zim_write_manager.Queue()
     # Start a unique listener process to add articles
     zim_watcher = Process(target=zim_write_listener, args=(zim_write_queue, zim_file_conf,))
     zim_watcher.start()
