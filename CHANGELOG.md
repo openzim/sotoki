@@ -1,6 +1,10 @@
 ### 1.3.1
 
 * fixed identicons for missing source image (#142)
+- log on successful downloads
+- do not depend on headers for filetype identification
+- use Pillow to convert images (except GIF) to PNG
+- use Pillow to resize images (except GIF)
 
 ### 1.3
 
