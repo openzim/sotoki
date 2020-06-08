@@ -862,29 +862,17 @@ def download(url, output, timeout=None):
     return response.headers
 
 
-def get_filetype(headers, path):
+def get_filetype(path):
     ftype = "none"
-    if "content-type" in headers:
-        if "png" in headers["content-type"].lower():
-            ftype = "png"
-        elif ("jpg" in headers["content-type"].lower()) or (
-            "jpeg" in headers["content-type"].lower()
-        ):
-            ftype = "jpeg"
-        elif "gif" in headers["content-type"].lower():
-            ftype = "gif"
-        elif "icon" in headers["content-type"].lower():
-            ftype = "ico"
-    if ftype == "none":
-        mime = magic.from_file(path)
-        if "PNG" in mime:
-            ftype = "png"
-        elif "JPEG" in mime:
-            ftype = "jpeg"
-        elif "GIF" in mime:
-            ftype = "gif"
-        elif "Windows icon" in mime:
-            ftype = "ico"
+    mime = magic.from_file(path)
+    if "PNG" in mime:
+        ftype = "png"
+    elif "JPEG" in mime:
+        ftype = "jpeg"
+    elif "GIF" in mime:
+        ftype = "gif"
+    elif "Windows icon" in mime:
+        ftype = "ico"
     return ftype
 
 
@@ -894,6 +882,7 @@ def download_from_cache(key, output, meta_tag, meta_val):
         try:
             print(os.path.basename(output) + " > Downloading from cache")
             cache_storage.download_file(key, output, progress=False)
+            print(os.path.basename(output) + " > Successfully downloaded from cache")
             return True
         except Exception as e:
             print(
@@ -911,6 +900,7 @@ def upload_to_cache(fpath, key, meta_tag, meta_val):
     cache_storage = KiwixStorage(CACHE_STORAGE_URL)
     try:
         cache_storage.upload_file(fpath, key, meta={meta_tag: meta_val})
+        print(os.path.basename(fpath) + " > Successfully uploaded to cache")
     except Exception as e:
         raise Exception(
             os.path.basename(fpath) + " > Failed to upload to cache\n" + str(e)
@@ -948,12 +938,12 @@ def download_image(url, fullpath, convert_png=False, resize=False):
             # Key looks similar to ww2.someplace.state.gov/data%2F%C3%A9t%C3%A9%2Fsome+chars%2Fimage.jpeg%3Fv%3D122%26from%3Dxxx%23yes
             downloaded = download_from_cache(key, fullpath, meta_tag, meta_val)
     if not downloaded:
-        headers = None
         tmp_img = None
         print(os.path.basename(fullpath) + " > Downloading from URL")
         try:
             tmp_img = get_tempfile(os.path.basename(fullpath))
-            headers = download(url, tmp_img, timeout=60)
+            download(url, tmp_img, timeout=60)
+            print(os.path.basename(fullpath) + " > Successfully downloaded from URL")
         except urllib.error.URLError as e:
             os.unlink(tmp_img)
             print(
@@ -964,7 +954,7 @@ def download_image(url, fullpath, convert_png=False, resize=False):
             )
             raise e
         else:
-            ext = get_filetype(headers, tmp_img)
+            ext = get_filetype(tmp_img)
             try:
                 if convert_png and ext != "png":
                     convert_to_png(tmp_img, ext)
@@ -979,6 +969,7 @@ def download_image(url, fullpath, convert_png=False, resize=False):
                 print(f"{os.path.basename(fullpath)} {exc}")
             finally:
                 shutil.move(tmp_img, fullpath)
+                print(f"Moved {tmp_img} to {fullpath}")
 
 
 def interne_link(text_post, domain, question_id):
@@ -1179,10 +1170,19 @@ def optimize_one(path, ftype):
 
 
 def resize_one(path, ftype, nb_pix):
-    if ftype in ["gif", "png", "jpeg"]:
+    if ftype == "gif":
         ret = exec_cmd("mogrify -resize " + nb_pix + r"x\> " + path, timeout=20)
-    if ret != 0:
-        raise Exception("> mogrify -resize failed for " + str(path))
+        if ret != 0:
+            raise Exception("> mogrify -resize failed for GIF " + str(path))
+    elif ftype in ["png", "jpeg"]:
+        try:
+            im = Image.open(path)
+            ratio = float(nb_pix) / float(im.size[0])
+            hsize = int(float(im.size[1]) * ratio)
+            im.resize((int(nb_pix), hsize))
+            im.save(path, ftype)
+        except (KeyError, IOError) as e:
+            raise Exception("> Pillow failed to resize\n" + e)
 
 
 def create_temporary_copy(path):
@@ -1202,16 +1202,12 @@ def convert_to_png(path, ext):
         os.remove(path_tmp)
         if ret != 0:
             raise Exception("> gif2apng failed for " + str(path))
-    elif ext == "ico":
+    else:
         try:
             im = Image.open(path)
             im.save(path, "PNG")
         except (KeyError, IOError) as e:
-            raise Exception("> Pillow failed to convert from ICO to PNG\n" + e)
-    else:
-        ret = exec_cmd("mogrify -format png " + path)
-        if ret != 0:
-            raise Exception("> mogrify -format failed for " + str(path))
+            raise Exception("> Pillow failed to convert to PNG\n" + e)
 
 
 def get_hash(site_name):
