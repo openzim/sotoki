@@ -1179,8 +1179,7 @@ def resize_one(path, ftype, nb_pix):
             im = Image.open(path)
             ratio = float(nb_pix) / float(im.size[0])
             hsize = int(float(im.size[1]) * ratio)
-            new_img = im.resize((int(nb_pix), hsize))
-            new_img.save(path, ftype)
+            im.resize((int(nb_pix), hsize)).save(path, ftype)
         except (KeyError, IOError) as e:
             raise Exception("> Pillow failed to resize\n" + e)
 
