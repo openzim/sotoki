@@ -29,7 +29,6 @@ Options:
 import re
 import sys
 import os
-import ssl
 import html
 import zlib
 import shlex
@@ -49,7 +48,6 @@ from multiprocessing import cpu_count, Queue, Process
 from xml.sax import make_parser, handler
 import urllib.request
 import urllib.parse
-import urllib.error
 from urllib.request import urlopen
 from PIL import Image
 import magic
@@ -65,6 +63,7 @@ from lxml.html import fromstring as string2html
 from lxml.html import tostring as html2string
 from kiwixstorage import KiwixStorage
 from pif import get_public_ip
+from zimscraperlib.download import save_large_file
 
 ROOT_DIR = pathlib.Path(__file__).parent
 NAME = ROOT_DIR.name
@@ -849,19 +848,6 @@ def get_tempfile(suffix):
     return tempfile.NamedTemporaryFile(suffix=suffix, dir=TMPFS_DIR, delete=False).name
 
 
-def download(url, output, timeout=None):
-    if url[0:2] == "//":
-        url = "http:" + url
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-    response = urlopen(url, timeout=timeout, context=ctx)
-    output_content = response.read()
-    with open(output, "wb") as f:
-        f.write(output_content)
-    return response.headers
-
-
 def get_filetype(path):
     ftype = "none"
     mime = magic.from_file(path)
@@ -928,6 +914,8 @@ def download_image(url, fullpath, convert_png=False, resize=False):
     key = None
     meta_tag = None
     meta_val = None
+    if url[0:2] == "//":
+        url = "http:" + url
     print(url + " > To be saved as " + os.path.basename(fullpath))
     if CACHE_STORAGE_URL:
         meta_tag, meta_val = get_meta_from_url(url)
@@ -942,9 +930,9 @@ def download_image(url, fullpath, convert_png=False, resize=False):
         print(os.path.basename(fullpath) + " > Downloading from URL")
         try:
             tmp_img = get_tempfile(os.path.basename(fullpath))
-            download(url, tmp_img, timeout=60)
+            save_large_file(url, tmp_img)
             print(os.path.basename(fullpath) + " > Successfully downloaded from URL")
-        except urllib.error.URLError as e:
+        except subprocess.CalledProcessError as e:
             os.unlink(tmp_img)
             print(
                 os.path.basename(fullpath)
