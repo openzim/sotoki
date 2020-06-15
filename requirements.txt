@@ -10,4 +10,5 @@ mistune>=2.0.0a3
 Pillow==7.1.1
 kiwixstorage>=0.2,<1.0
 pif==0.8.2
+zimscraperlib>=1.1.0,<1.2
 
