@@ -1148,9 +1148,10 @@ def optimize_one(path, ftype):
         )
         if ret != 0:
             raise Exception("> pngquant failed for " + str(path))
-        ret = exec_cmd("advdef -q -z -4 -i 5  " + path, timeout=20)
-        if ret != 0:
-            raise Exception("> advdef failed for " + str(path))
+        # TODO: avdef step disabled temporarily as suspect in blender run freeze
+        # ret = exec_cmd("advdef -q -z -4 -i 5  " + path, timeout=20)
+        # if ret != 0:
+        #     raise Exception("> advdef failed for " + str(path))
     elif ftype == "gif":
         ret = exec_cmd("gifsicle --batch -O3 -i " + path, timeout=20)
         if ret != 0:
