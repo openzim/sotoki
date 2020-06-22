@@ -602,6 +602,7 @@ class UsersRender(handler.ContentHandler):
         self.nopic = nopic
         self.nouserprofile = nouserprofile
         self.id = 0
+        self.redirect_file = redirect_file
         if not os.path.exists(self.identicon_path):
             os.makedirs(self.identicon_path)
         os.makedirs(os.path.join(output, "user"))
@@ -630,7 +631,6 @@ class UsersRender(handler.ContentHandler):
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
             i.start()
-        self.f_redirect = open(redirect_file, "a")
 
     def startElement(self, name, attrs):  # For each element
         if name == "badges":
@@ -660,15 +660,16 @@ class UsersRender(handler.ContentHandler):
                 sql, (int(user["Id"]), user["DisplayName"], user["Reputation"])
             )
             if not self.nouserprofile:
-                self.f_redirect.write(
-                    "A\tuser/"
-                    + page_url(user["Id"], user["DisplayName"])
-                    + ".html\tUser "
-                    + slugify(user["DisplayName"])
-                    + "\tA/user/"
-                    + user["Id"]
-                    + ".html\n"
-                )
+                with open(self.redirect_file, "a") as f_redirect:
+                    f_redirect.write(
+                        "A\tuser/"
+                        + page_url(user["Id"], user["DisplayName"])
+                        + ".html\tUser "
+                        + slugify(user["DisplayName"])
+                        + "\tA/user/"
+                        + user["Id"]
+                        + ".html\n"
+                    )
             data_send = [
                 some_user,
                 user,
@@ -682,6 +683,7 @@ class UsersRender(handler.ContentHandler):
                 self.mathjax,
                 self.nopic,
                 self.nouserprofile,
+                self.redirect_file,
             ]
             self.request_queue.put(data_send)
             # some_user(user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.deflate, self.title, self.mathjax, self.nopic, self.nouserprofile)
@@ -694,7 +696,6 @@ class UsersRender(handler.ContentHandler):
         for i in self.workers:
             i.join()
         print("---END--")
-        self.f_redirect.close()
 
 
 def some_user(
@@ -709,14 +710,21 @@ def some_user(
     mathjax,
     nopic,
     nouserprofile,
+    redirect_file,
 ):
     filename = user["Id"] + ".png"
-    fullpath = os.path.join(output, "static", "identicon", filename)
+    identicons_path = os.path.join(output, "static", "identicon")
+    fullpath = os.path.join(identicons_path, filename)
     if not nopic and not os.path.exists(fullpath):
         try:
-            download_image(
-                user["ProfileImageUrl"], fullpath, convert_png=True, resize=128,
+            downloaded_fpath = download_image(
+                user["ProfileImageUrl"], identicons_path, convert_png=True, resize=128,
             )
+            with open(redirect_file, "a") as f_redirect:
+                f_redirect.write(
+                    f"I\tstatic/identicon/{filename}\tUser {user['Id']}\tI/static/identicon/{os.path.basename(downloaded_fpath)}\n"
+                )
+
         except Exception:
             # Generate big identicon
             padding = (20, 20, 20, 20)
@@ -756,6 +764,7 @@ def some_user(
 #########################
 #        Tools          #
 #########################
+IMAGE_EXTENSIONS = ["png", "jpeg", "gif", "ico"]
 
 
 class Worker(Process):
@@ -864,12 +873,27 @@ def get_filetype(path):
 
 def download_from_cache(key, output, meta_tag, meta_val):
     cache_storage = KiwixStorage(CACHE_STORAGE_URL)
-    if cache_storage.has_object_matching_meta(key, meta_tag, meta_val):
+    if not cache_storage.has_object(key):
+        print(os.path.basename(output) + " > Not found in cache")
+        return False, None
+    try:
+        meta = cache_storage.get_object_stat(key).meta
+    except Exception as e:
+        print(
+            os.path.basename(output)
+            + " > Failed to get object meta from cache\n"
+            + str(e)
+            + "\n"
+        )
+        return False, None
+    if meta.get(meta_tag, "") == meta_val:
+        ext = meta.get("extension", "")
+        output = output + ext
         try:
             print(os.path.basename(output) + " > Downloading from cache")
             cache_storage.download_file(key, output, progress=False)
             print(os.path.basename(output) + " > Successfully downloaded from cache")
-            return True
+            return True, output
         except Exception as e:
             print(
                 os.path.basename(output)
@@ -877,15 +901,16 @@ def download_from_cache(key, output, meta_tag, meta_val):
                 + str(e)
                 + "\n"
             )
-            return False
-    print(os.path.basename(output) + " > Not found in cache")
-    return False
+            return False, None
+    print(os.path.basename(output) + f" > {meta_tag} doesn't match {meta_val}")
+    return False, None
 
 
-def upload_to_cache(fpath, key, meta_tag, meta_val):
+def upload_to_cache(fpath, key, meta_tag, meta_val, ext):
+    meta = {meta_tag: meta_val, "extension": ext}
     cache_storage = KiwixStorage(CACHE_STORAGE_URL)
     try:
-        cache_storage.upload_file(fpath, key, meta={meta_tag: meta_val})
+        cache_storage.upload_file(fpath, key, meta=meta)
         print(os.path.basename(fpath) + " > Successfully uploaded to cache")
     except Exception as e:
         raise Exception(
@@ -909,7 +934,31 @@ def get_meta_from_url(url):
     return "default", "default"
 
 
-def download_image(url, fullpath, convert_png=False, resize=False):
+def post_process_image(tmp_img, convert_png, resize, ext):
+    if convert_png and ext != "png":
+        convert_to_png(tmp_img, ext)
+        ext = "png"
+    if resize and ext != "gif":
+        resize_one(tmp_img, ext, str(resize))
+    optimize_one(tmp_img, ext)
+
+
+def prepare_for_post_processing(ext, tmp_img, fullpath, convert_png):
+    """ Adds extention to tmp_img and returns updated values of fullpath and tmp_img """
+    if convert_png:
+        ext = "png"
+    fullpath = fullpath + f".{ext}"
+    os.rename(tmp_img, tmp_img + f".{ext}")
+    tmp_img = tmp_img + f".{ext}"
+    return fullpath, tmp_img
+
+
+def download_image(url, dst_dir, convert_png=False, resize=False):
+    file_name = sha256(url.encode("utf-8")).hexdigest()
+    fullpath = os.path.join(dst_dir, file_name)
+    for extension in [".jpeg", ".png"]:
+        if os.path.exists(fullpath + extension):
+            return fullpath + extension
     downloaded = False
     key = None
     meta_tag = None
@@ -924,7 +973,11 @@ def download_image(url, fullpath, convert_png=False, resize=False):
             prefix = f"{src_url.scheme}://{src_url.netloc}/"
             key = f"{src_url.netloc}/{urllib.parse.quote_plus(src_url.geturl()[len(prefix):])}"
             # Key looks similar to ww2.someplace.state.gov/data%2F%C3%A9t%C3%A9%2Fsome+chars%2Fimage.jpeg%3Fv%3D122%26from%3Dxxx%23yes
-            downloaded = download_from_cache(key, fullpath, meta_tag, meta_val)
+            downloaded, fullpath = download_from_cache(
+                key, fullpath, meta_tag, meta_val
+            )
+            if downloaded:
+                return fullpath
     if not downloaded:
         tmp_img = None
         print(os.path.basename(fullpath) + " > Downloading from URL")
@@ -942,22 +995,25 @@ def download_image(url, fullpath, convert_png=False, resize=False):
             )
             raise e
         else:
+            # get extension
             ext = get_filetype(tmp_img)
-            try:
-                if convert_png and ext != "png":
-                    convert_to_png(tmp_img, ext)
-                    ext = "png"
-                if resize and ext != "gif":
-                    resize_one(tmp_img, ext, str(resize))
-                optimize_one(tmp_img, ext)
-                if CACHE_STORAGE_URL and meta_tag and meta_val:
-                    print(os.path.basename(fullpath) + " > Uploading to cache")
-                    upload_to_cache(tmp_img, key, meta_tag, meta_val)
-            except Exception as exc:
-                print(f"{os.path.basename(fullpath)} {exc}")
-            finally:
-                shutil.move(tmp_img, fullpath)
-                print(f"Moved {tmp_img} to {fullpath}")
+            if ext != "none":
+                fullpath, tmp_img = prepare_for_post_processing(
+                    ext, tmp_img, fullpath, convert_png
+                )
+                try:
+                    post_process_image(tmp_img, convert_png, resize, ext)
+                    if CACHE_STORAGE_URL and meta_tag and meta_val:
+                        print(os.path.basename(fullpath) + " > Uploading to cache")
+                        upload_to_cache(tmp_img, key, meta_tag, meta_val, ext)
+                except Exception as exc:
+                    print(f"{os.path.basename(fullpath)} {exc}")
+                finally:
+                    shutil.move(tmp_img, fullpath)
+                    print(f"Moved {tmp_img} to {fullpath}")
+                    return fullpath
+            else:
+                os.unlink(tmp_img)
 
 
 def interne_link(text_post, domain, question_id):
@@ -1014,20 +1070,12 @@ def image(text_post, output, nopic):
             img.attrib["src"] = ""
         else:
             src = img.attrib["src"]
-            ext = os.path.splitext(src.split("?")[0])[1]
-            filename = sha256(src.encode("utf-8")).hexdigest() + ext
-            out = os.path.join(images, filename)
-            # download the image only if it's not already downloaded and if it's not a html
-            if not os.path.exists(out) and ext != ".html":
-                try:
-                    download_image(src, out, resize=540)
-                except Exception as e:
-                    # do nothing
-                    print(e)
-            src = "../static/images/" + filename
-            img.attrib["src"] = src
-            img.attrib["style"] = "max-width:100%"
-            # finalize offlining
+            fpath = download_image(src, images, resize=540)
+            filename = os.path.basename(fpath)
+            if filename:
+                src = "../static/images/" + filename
+                img.attrib["src"] = src
+                img.attrib["style"] = "max-width:100%"
 
     # does the post contain images? if so, we surely modified
     # its content so save it.
@@ -1075,9 +1123,10 @@ def grab_title_description_favicon_lang(url, output_dir, do_old):
         favicon = "http:" + favicon
     favicon_out = os.path.join(output_dir, "favicon.png")
     try:
-        download_image(
-            favicon, favicon_out, convert_png=True, resize=48,
+        downloaded_file = download_image(
+            favicon, output_dir, convert_png=True, resize=48,
         )
+        shutil.move(downloaded_file, favicon_out)
     except Exception as e:
         print(e)
     return [title, description, lang]
