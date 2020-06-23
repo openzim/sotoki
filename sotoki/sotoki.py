@@ -764,9 +764,6 @@ def some_user(
 #########################
 #        Tools          #
 #########################
-IMAGE_EXTENSIONS = ["png", "jpeg", "gif", "ico"]
-
-
 class Worker(Process):
     def __init__(self, queue):
         super(Worker, self).__init__()
