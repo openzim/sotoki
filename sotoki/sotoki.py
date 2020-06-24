@@ -5,7 +5,7 @@
 """sotoki.
 
 Usage:
-  sotoki <domain> <publisher> [--directory=<dir>] [--no-tmpfs-dir] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--optimization-cache=<optimization-cache>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite] [--nopic] [--no-userprofile]
+  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--optimization-cache=<optimization-cache>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite] [--nopic] [--no-userprofile]
   sotoki (-h | --help)
   sotoki --version
 
@@ -13,7 +13,6 @@ Options:
   -h --help                                     Display this help
   --version                                     Display the version of Sotoki
   --directory=<dir>                             Configure directory in which XML files will be stored [default: download]
-  --no-tmpfs-dir                                Don't use /dev/shm downloading and optimizing temporary files
   --nozim                                       Doesn't build a ZIM file, output will be in 'work/output/' in flat HTML files (otherwise 'work/ouput/' will be in deflated form and will produce a ZIM file)
   --tag-depth=<tag_depth>                       Configure the number of questions, ordered by Score, to display in tags pages (should be a multiple of 100, default all question are in tags pages) [default: -1]
   --threads=<threads>                           Number of threads to use, default is number_of_cores/2
@@ -896,7 +895,17 @@ def upload_to_cache(fpath, key, meta_tag, meta_val):
 
 def get_meta_from_url(url):
     try:
-        response_headers = requests.head(url=url, allow_redirects=True).headers
+        for i in range(6):
+            try:
+                response_headers = requests.head(
+                    url=url, allow_redirects=True, timeout=20
+                ).headers
+                break
+            except requests.exceptions.Timeout:
+                if i == 5:
+                    raise Exception("Max retries exceeded")
+                else:
+                    print(f"{url} > HEAD request timed out. Retrying...")
     except Exception as e:
         print(url + " > Problem while head request\n" + str(e) + "\n")
         return None, None
@@ -1149,10 +1158,9 @@ def optimize_one(path, ftype):
         )
         if ret != 0:
             raise Exception("> pngquant failed for " + str(path))
-        # TODO: avdef step disabled temporarily as suspect in blender run freeze
-        # ret = exec_cmd("advdef -q -z -4 -i 5  " + path, timeout=20)
-        # if ret != 0:
-        #     raise Exception("> advdef failed for " + str(path))
+        ret = exec_cmd("advdef -q -z -4 -i 5  " + path, timeout=60)
+        if ret != 0:
+            raise Exception("> advdef failed for " + str(path))
     elif ftype == "gif":
         ret = exec_cmd("gifsicle --batch -O3 -i " + path, timeout=20)
         if ret != 0:
@@ -1450,9 +1458,6 @@ def run():
     except DocoptExit:
         print(__doc__)
         sys.exit()
-    if arguments["--no-tmpfs-dir"]:
-        global TMPFS_DIR
-        TMPFS_DIR = None
 
     print(
         "starting sotoki scraper...{}".format(f"using {TMPFS_DIR}" if TMPFS_DIR else "")
