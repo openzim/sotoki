@@ -1395,11 +1395,11 @@ def create_zim(
     cmd = "zimwriterfs "
     if nopic:
         tmpfile = tempfile.mkdtemp()
-        os.rename(
+        shutil.move(
             os.path.join(static_folder, "static", "images"),
             os.path.join(tmpfile, "images"),
         )
-        os.rename(
+        shutil.move(
             os.path.join(static_folder, "static", "identicon"),
             os.path.join(tmpfile, "identicon"),
         )
@@ -1419,11 +1419,11 @@ def create_zim(
     if exec_cmd(cmd) == 0:
         print("Successfuly created ZIM file at {}".format(zim_path))
         if nopic:
-            os.rename(
+            shutil.move(
                 os.path.join(tmpfile, "images"),
                 os.path.join(static_folder, "static", "images"),
             )
-            os.rename(
+            shutil.move(
                 os.path.join(tmpfile, "identicon"),
                 os.path.join(static_folder, "static", "identicon"),
             )
@@ -1431,11 +1431,11 @@ def create_zim(
         return True
     print("Unable to create ZIM file :(")
     if nopic:
-        os.rename(
+        shutil.move(
             os.path.join(tmpfile, "images"),
             os.path.join(static_folder, "static", "images"),
         )
-        os.rename(
+        shutil.move(
             os.path.join(tmpfile, "identicon"),
             os.path.join(static_folder, "static", "identicon"),
         )
