@@ -1141,7 +1141,7 @@ def prepare(dump_path, bin_dir):
 
 
 def check_and_optimize(path, ftype):
-    if not path.endswith(f".{ftype}"):
+    if not (path.endswith(f".{ftype}") or (path.endswith(".jpg") and ftype == "jpeg")):
         print(
             f"{os.path.basename(path)} > Extension doesn't match detected file type. Creating temp copy with proper extension to optimize"
         )
