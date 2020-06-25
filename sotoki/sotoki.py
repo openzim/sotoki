@@ -1644,7 +1644,6 @@ def run():
         prepare(dump, os.path.abspath(os.path.dirname(__file__)) + "/")
 
     # Generate users !
-    # arguments["--nopic"],
     parser = make_parser()
     parser.setContentHandler(
         UsersRender(
@@ -1660,7 +1659,7 @@ def run():
             url,
             redirect_file,
             use_mathjax(domain),
-            True,
+            arguments["--nopic"],
             arguments["--no-userprofile"],
         )
     )
