@@ -944,13 +944,16 @@ def download_image(url, fullpath, convert_png=False, resize=False):
             raise e
         else:
             ext = get_filetype(tmp_img)
+            if ext == "none":
+                os.unlink(tmp_img)
+                raise Exception(f"{os.path.basename(fullpath)} > Not an image")
             try:
                 if convert_png and ext != "png":
                     convert_to_png(tmp_img, ext)
                     ext = "png"
                 if resize and ext != "gif":
                     resize_one(tmp_img, ext, str(resize))
-                optimize_one(tmp_img, ext)
+                check_and_optimize(tmp_img, ext)
                 if CACHE_STORAGE_URL and meta_tag and meta_val:
                     print(os.path.basename(fullpath) + " > Uploading to cache")
                     upload_to_cache(tmp_img, key, meta_tag, meta_val)
@@ -1025,11 +1028,10 @@ def image(text_post, output, nopic):
                 except Exception as e:
                     # do nothing
                     print(e)
-            src = "../static/images/" + filename
-            img.attrib["src"] = src
-            img.attrib["style"] = "max-width:100%"
-            # finalize offlining
-
+                else:
+                    src = "../static/images/" + filename
+                    img.attrib["src"] = src
+                    img.attrib["style"] = "max-width:100%"
     # does the post contain images? if so, we surely modified
     # its content so save it.
     if imgs:
@@ -1138,6 +1140,22 @@ def prepare(dump_path, bin_dir):
         sys.exit("Unable to prepare xml :(")
 
 
+def check_and_optimize(path, ftype):
+    if not path.endswith(f".{ftype}"):
+        print(
+            f"{os.path.basename(path)} > Extension doesn't match detected file type. Creating temp copy with proper extension to optimize"
+        )
+        tmp_path = create_temporary_copy(path, suffix=f".{ftype}")
+        optimize_one(tmp_path, ftype)
+        print(
+            f"{os.path.basename(path)} > Copying data from temporary copy to original filepath"
+        )
+        shutil.copy2(tmp_path, path)
+        os.unlink(tmp_path)
+    else:
+        optimize_one(path, ftype)
+
+
 def optimize_one(path, ftype):
     if ftype == "jpeg":
         ret = exec_cmd("jpegoptim --strip-all -m50 " + path, timeout=20)
@@ -1174,8 +1192,10 @@ def resize_one(path, ftype, nb_pix):
             raise Exception("> Pillow failed to resize\n" + e)
 
 
-def create_temporary_copy(path):
-    fd, temp_path = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(path)))
+def create_temporary_copy(path, suffix=None):
+    fd, temp_path = tempfile.mkstemp(
+        dir=os.path.dirname(os.path.abspath(path)), suffix=suffix
+    )
     os.close(fd)
     shutil.copy2(path, temp_path)
     return temp_path
@@ -1624,6 +1644,7 @@ def run():
         prepare(dump, os.path.abspath(os.path.dirname(__file__)) + "/")
 
     # Generate users !
+    # arguments["--nopic"],
     parser = make_parser()
     parser.setContentHandler(
         UsersRender(
@@ -1639,7 +1660,7 @@ def run():
             url,
             redirect_file,
             use_mathjax(domain),
-            arguments["--nopic"],
+            True,
             arguments["--no-userprofile"],
         )
     )
