@@ -1193,11 +1193,9 @@ def resize_one(path, ftype, nb_pix):
 
 
 def create_temporary_copy(path, suffix=None):
-    fd, temp_path = tempfile.mkstemp(
-        dir=os.path.dirname(os.path.abspath(path)), suffix=suffix
-    )
-    os.close(fd)
-    shutil.copy2(path, temp_path)
+    path = pathlib.Path(path)
+    temp_path = tempfile.NamedTemporaryFile(dir=path.parent, suffix=suffix)
+    shutil.copyfile(path, temp_path)
     return temp_path
 
 
