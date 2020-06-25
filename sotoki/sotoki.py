@@ -1194,7 +1194,7 @@ def resize_one(path, ftype, nb_pix):
 
 def create_temporary_copy(path, suffix=None):
     path = pathlib.Path(path)
-    temp_path = tempfile.NamedTemporaryFile(dir=path.parent, suffix=suffix)
+    temp_path = tempfile.NamedTemporaryFile(dir=path.parent, suffix=suffix).name
     shutil.copyfile(path, temp_path)
     return temp_path
 
