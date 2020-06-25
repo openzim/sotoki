@@ -894,20 +894,17 @@ def upload_to_cache(fpath, key, meta_tag, meta_val):
 
 
 def get_meta_from_url(url):
-    try:
-        for i in range(6):
+    def get_response_headers(url):
+        for attempt in range(5):
             try:
-                response_headers = requests.head(
-                    url=url, allow_redirects=True, timeout=20
-                ).headers
-                break
+                return requests.head(url=url, allow_redirects=True, timeout=30).headers
             except requests.exceptions.Timeout:
-                if i == 5:
-                    raise Exception("Max retries exceeded")
-                else:
-                    print(f"{url} > HEAD request timed out. Retrying...")
-    except Exception as e:
-        print(url + " > Problem while head request\n" + str(e) + "\n")
+                print(f"{url} > HEAD request timed out ({attempt})")
+        raise Exception("Max retries exceeded")
+    try:
+        response_headers = get_response_headers(url)
+    except Exception as exc:
+        print(f"{url} > Problem with head request\n{exc}\n")
         return None, None
     else:
         if response_headers.get("etag") is not None:
