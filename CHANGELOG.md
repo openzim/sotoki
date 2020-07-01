@@ -1,10 +1,15 @@
 ### 1.3.1
 
 * fixed identicons for missing source image (#142)
-- log on successful downloads
-- do not depend on headers for filetype identification
-- use Pillow to convert images (except GIF) to PNG
-- use Pillow to resize images (except GIF)
+* use magic for filetype identification
+* log on successful downloads
+* do not depend on headers for filetype identification
+* use Pillow to convert images (except GIF) to PNG
+* use Pillow to resize images (except GIF)
+* Download using save_large_file from zimscraperlib
+* Prevent a crash in nopic mode if temp dir and output dir on different disks
+* Added timeout on HEAD request
+* Better handling of images with misleading extensions
 
 ### 1.3
 
