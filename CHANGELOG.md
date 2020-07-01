@@ -1,3 +1,7 @@
+### 1.3.2.dev0
+
+* n/a
+
 ### 1.3.1
 
 * fixed identicons for missing source image (#142)
