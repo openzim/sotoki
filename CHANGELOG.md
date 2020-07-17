@@ -1,6 +1,9 @@
 ### 1.3.2.dev0
 
-* n/a
+* removed pre-generated identicons (#141)
+* removed templates_mini
+* upgraded jdenticon to 2.2.0
+* single identicon behavior for normal and nopic mode
 
 ### 1.3.1
 

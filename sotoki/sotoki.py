@@ -53,7 +53,6 @@ from PIL import Image
 import magic
 import mistune
 from mistune.plugins import plugin_url
-import pydenticon
 from slugify import slugify
 import bs4 as BeautifulSoup
 from jinja2 import Environment
@@ -618,11 +617,6 @@ class UsersRender(handler.ContentHandler):
         # Set-up a background colour (taken from Sigil).
         self.background = "rgb(224,224,224)"
 
-        # Instantiate a generator that will create 5x5 block identicons
-        # using SHA256 digest.
-        self.generator = pydenticon.Generator(
-            5, 5, foreground=self.foreground, background=self.background
-        )  # noqa
         self.request_queue = Queue(cores * 2)
         self.workers = []
         self.user = {}
@@ -672,7 +666,6 @@ class UsersRender(handler.ContentHandler):
             data_send = [
                 some_user,
                 user,
-                self.generator,
                 self.templates,
                 self.output,
                 self.publisher,
@@ -699,7 +692,6 @@ class UsersRender(handler.ContentHandler):
 
 def some_user(
     user,
-    generator,
     templates,
     output,
     publisher,
@@ -717,18 +709,13 @@ def some_user(
             download_image(
                 user["ProfileImageUrl"], fullpath, convert_png=True, resize=128,
             )
-        except Exception:
-            # Generate big identicon
-            padding = (20, 20, 20, 20)
-            identicon = generator.generate(
-                slugify(user["DisplayName"]),
-                128,
-                128,
-                padding=padding,
-                output_format="png",
-            )  # noqa
-            with open(fullpath, "wb") as f:
-                f.write(identicon)
+        except Exception as exc:
+            print(
+                user["ProfileImageUrl"]
+                + " > Failed to download\n"
+                + str(exc)
+                + "\n"
+            )
 
     #
     if not nouserprofile:
@@ -1616,7 +1603,7 @@ def run():
             download_dump(domain, dump)
 
     templates = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "templates_mini"
+        os.path.abspath(os.path.dirname(__file__)), "templates"
     )
 
     # prepare db

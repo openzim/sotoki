@@ -40,7 +40,12 @@
     <div class="author">
           <div> 
                 {% if post["OwnerUserId"]["Path"] %}<a class="profile" href="../user/{{ post["OwnerUserId"]["Path"] }}.html"> {% endif %}
-                {% if post["OwnerUserId"]["Id"] %} {% if not nopic %}<img src="../static/identicon/{{ post["OwnerUserId"]["Id"] }}.png" /> {% else %} <div class="genprofilepic"><svg width="65" height="65" data-jdenticon-value="{{ post["OwnerUserId"]["Id"] }}"></svg></div> {% endif %} {% endif %}
+                {% if post["OwnerUserId"]["Id"] %}
+                <!-- object data not rewritten by zimwriterfs -->
+                <object class="genprofilepic" width="65" height="65" data="../../I/static/identicon/{{ post["OwnerUserId"]["Id"] }}.png" type="image/png">
+                  <svg class="genprofilepic" width="65" height="65" data-jdenticon-value="{{ post["OwnerUserId"]["Id"] }}"></svg>
+                </object>
+                {% endif %}
                 <p>{{ post["OwnerUserId"]["DisplayName"] }}</p>
                 {% if post["OwnerUserId"]["Path"] %}</a>{% endif %}   
                 <p>Posted <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>

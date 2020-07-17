@@ -11,11 +11,10 @@
   <div class="row">
     <div class="col-md-3">
       <div> 
-        {% if not nopic %}
-          <img src="../static/identicon/{{ user["Id"] }}.png" style="width:164px; height:164px;" /> 
-        {% else %}
-          <svg class="genprofilepic" width="164" height="164" data-jdenticon-value="{{ user["Id"] }}"></svg>
-        {% endif %}
+        <!-- object data not rewritten by zimwriterfs -->
+        <object class="genprofilepic" data="../../I/static/identicon/{{ user["Id"] }}.png" style="width:164px; height:164px;" type="image/png">
+          <svg width="164" height="164" data-jdenticon-value="{{ user["Id"] }}"></svg>
+        </object>
       </div> 
       <p class="reputation">Reputation: <span>{{ user["Reputation"] | intspace }}</span></p>
     </div>
