@@ -46,7 +46,10 @@ You can use `sotoki -h` to have more explanation about these options
 ## Example
 
 ```bash
-for S in `./list_all.sh` ; do sotoki $S Kiwix --threads=12 --reset --clean-previous --no-userprofile ; done
+for S in `./list_all.sh`
+do
+  sotoki $S Kiwix --threads=12 --reset --clean-previous --no-userprofile
+done
 ```
 
 ## License
