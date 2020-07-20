@@ -704,7 +704,7 @@ def some_user(
 ):
     filename = user["Id"] + ".png"
     fullpath = os.path.join(output, "static", "identicon", filename)
-    if not nopic and not os.path.exists(fullpath):
+    if not nopic and "ProfileImageUrl" in user and not os.path.exists(fullpath):
         try:
             download_image(
                 user["ProfileImageUrl"], fullpath, convert_png=True, resize=128,
