@@ -13,7 +13,7 @@ Options:
   -h --help                                     Display this help
   --version                                     Display the version of Sotoki
   --directory=<dir>                             Configure directory in which XML files will be stored [default: download]
-  --nozim                                       Doesn't build a ZIM file, output will be in 'work/output/' in flat HTML files (otherwise 'work/ouput/' will be in deflated form and will produce a ZIM file)
+  --nozim                                       Doesn't build a ZIM file, output will be in 'work/output/' in flat HTML files
   --tag-depth=<tag_depth>                       Configure the number of questions, ordered by Score, to display in tags pages (should be a multiple of 100, default all question are in tags pages) [default: -1]
   --threads=<threads>                           Number of threads to use, default is number_of_cores/2
   --zimpath=<zimpath>                           Final path of the zim file
@@ -31,7 +31,6 @@ import re
 import sys
 import os
 import html
-import zlib
 import shlex
 import shutil
 import requests
@@ -51,7 +50,6 @@ import urllib.request
 import urllib.parse
 from urllib.request import urlopen
 from PIL import Image
-import magic
 import mistune
 from mistune.plugins import plugin_url
 from slugify import slugify
@@ -64,6 +62,8 @@ from lxml.html import tostring as html2string
 from kiwixstorage import KiwixStorage
 from pif import get_public_ip
 from zimscraperlib.download import save_large_file
+from zimscraperlib.zim import make_zim_file
+from zimscraperlib.filesystem import get_file_mimetype
 
 ROOT_DIR = pathlib.Path(__file__).parent
 NAME = ROOT_DIR.name
@@ -92,7 +92,6 @@ class QuestionRender(handler.ContentHandler):
         cores,
         cursor,
         conn,
-        deflate,
         site_url,
         redirect_file,
         domain,
@@ -108,7 +107,6 @@ class QuestionRender(handler.ContentHandler):
         self.cores = cores
         self.cursor = cursor
         self.conn = conn
-        self.deflate = deflate
         self.site_url = site_url
         self.domain = domain
         self.post = {}
@@ -337,14 +335,13 @@ class QuestionRender(handler.ContentHandler):
                 self.publisher,
                 self.post,
                 "question.html",
-                self.deflate,
                 self.site_url,
                 self.domain,
                 self.mathjax,
                 self.nopic,
             ]
             self.request_queue.put(data_send)
-            # some_questions(self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.deflate, self.site_url, self.domain, self.mathjax, self.nopic)
+            # some_questions(self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.site_url, self.domain, self.mathjax, self.nopic)
             # Reset element
             self.post = {}
             self.comments = []
@@ -368,7 +365,6 @@ def some_questions(
     publisher,
     question,
     template_name,
-    deflate,
     site_url,
     domain,
     mathjax,
@@ -407,7 +403,6 @@ def some_questions(
                 template_name,
                 templates,
                 False,
-                deflate,
                 question=question,
                 rooturl="..",
                 title=title,
@@ -440,7 +435,6 @@ class TagsRender(handler.ContentHandler):
         cores,
         cursor,
         conn,
-        deflate,
         tag_depth,
         description,
         mathjax,
@@ -454,7 +448,6 @@ class TagsRender(handler.ContentHandler):
         self.cores = cores
         self.cursor = cursor
         self.conn = conn
-        self.deflate = deflate
         self.description = description
         self.tag_depth = tag_depth
         self.mathjax = mathjax
@@ -490,7 +483,6 @@ class TagsRender(handler.ContentHandler):
             "index.html",
             self.templates,
             False,
-            self.deflate,
             tags=sorted(self.tags[:200], key=lambda k: k["nb_post"], reverse=True),
             rooturl=".",
             questions=new_questions[:50],
@@ -504,7 +496,6 @@ class TagsRender(handler.ContentHandler):
             "alltags.html",
             self.templates,
             False,
-            self.deflate,
             tags=sorted(self.tags, key=lambda k: k["nb_post"], reverse=True),
             rooturl=".",
             title=self.title,
@@ -550,7 +541,6 @@ class TagsRender(handler.ContentHandler):
                     "tag.html",
                     self.templates,
                     False,
-                    self.deflate,
                     tag=tag,
                     index=page,
                     questions=some_questions,
@@ -580,7 +570,6 @@ class UsersRender(handler.ContentHandler):
         cores,
         cursor,
         conn,
-        deflate,
         site_url,
         redirect_file,
         mathjax,
@@ -597,7 +586,6 @@ class UsersRender(handler.ContentHandler):
         self.cores = cores
         self.cursor = cursor
         self.conn = conn
-        self.deflate = deflate
         self.site_url = site_url
         self.mathjax = mathjax
         self.nopic = nopic
@@ -673,7 +661,6 @@ class UsersRender(handler.ContentHandler):
                 self.output,
                 self.publisher,
                 self.site_url,
-                self.deflate,
                 self.title,
                 self.mathjax,
                 self.nopic,
@@ -681,7 +668,7 @@ class UsersRender(handler.ContentHandler):
                 self.nouserprofile,
             ]
             self.request_queue.put(data_send)
-            # some_user(user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.deflate, self.title, self.mathjax, self.nopic, self.nouserprofile)
+            # some_user(user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.title, self.mathjax, self.nopic, self.nouserprofile)
 
     def endDocument(self):
         self.conn.commit()
@@ -700,7 +687,6 @@ def some_user(
     output,
     publisher,
     site_url,
-    deflate,
     title,
     mathjax,
     nopic,
@@ -734,7 +720,6 @@ def some_user(
             "user.html",
             templates,
             False,
-            deflate,
             user=user,
             title=title,
             rooturl="..",
@@ -809,17 +794,13 @@ def page_url(ident, name):
 ENV = None  # Jinja environment singleton
 
 
-def jinja(output, template, templates, raw, deflate, **context):
+def jinja(output, template, templates, raw, **context):
     template = ENV.get_template(template)
     page = template.render(**context)
     if raw:
         page = "{% raw %}" + page + "{% endraw %}"
-    if deflate:
-        with open(output, "wb") as f:
-            f.write(zlib.compress(page.encode("utf-8")))
-    else:
-        with open(output, "w") as f:
-            f.write(page)
+    with open(output, "w") as f:
+        f.write(page)
 
 
 def jinja_init(templates):
@@ -842,14 +823,14 @@ def get_tempfile(suffix):
 
 def get_filetype(path):
     ftype = "none"
-    mime = magic.from_file(path)
-    if "PNG" in mime:
+    mime = get_file_mimetype(pathlib.Path(path))
+    if "png" in mime:
         ftype = "png"
-    elif "JPEG" in mime:
+    elif "jpeg" in mime:
         ftype = "jpeg"
-    elif "GIF" in mime:
+    elif "gif" in mime:
         ftype = "gif"
-    elif "Windows icon" in mime:
+    elif "ico" in mime:
         ftype = "ico"
     return ftype
 
@@ -968,9 +949,11 @@ def interne_link(text_post, domain, question_id):
     links = body.xpath("//a")
     for a in links:
         if "href" in a.attrib:
+            root_relative = False
             a_href = re.sub("^https?://", "", a.attrib["href"])
             if len(a_href) >= 2 and a_href[0] == "/" and a_href[1] != "/":
-                link = a_href
+                link = a_href[1:]
+                root_relative = True
             elif (
                 a_href[0 : len(domain)] == domain
                 or a_href[0 : len(domain) + 2] == "//" + domain
@@ -982,7 +965,9 @@ def interne_link(text_post, domain, question_id):
             else:
                 continue
             if link[0:2] == "q/" or (
-                link[0:10] == "questions/" and link[10:17] != "tagged/"
+                link[0:10] == "questions/"
+                and link[10:17] != "tagged/"
+                and link.split("/")[1].isnumeric()
             ):
                 is_a = link.split("/")[-1].split("#")
                 if len(is_a) == 2 and is_a[0] == is_a[1]:
@@ -1003,6 +988,9 @@ def interne_link(text_post, domain, question_id):
             elif link[0:6] == "users/":
                 userid = link.split("/")[1]
                 a.attrib["href"] = "../user/" + userid + ".html"
+            elif root_relative:
+                a.attrib["href"] = f"http://{domain}/{link}"
+
     if links:
         text_post = html2string(body, method="html", encoding="unicode")
     return text_post
@@ -1391,24 +1379,7 @@ def create_zim(
     domain,
 ):
     print("\tWriting ZIM for {}".format(title))
-    context = {
-        "languages": lang_input,
-        "title": title,
-        "description": description,
-        "creator": creator,
-        "publisher": publisher,
-        "home": "index.html",
-        "favicon": "favicon.png",
-        "static": static_folder,
-        "zim": zim_path,
-        "redirect_csv": redirect_file,
-        "tags": "_category:stack_exchange;stackexchange",
-        "name": name,
-        "scraper": scraper_version,
-        "source": "https://{}".format(domain),
-    }
 
-    cmd = "zimwriterfs "
     if nopic:
         tmpfile = tempfile.mkdtemp()
         shutil.move(
@@ -1419,20 +1390,42 @@ def create_zim(
             os.path.join(static_folder, "static", "identicon"),
             os.path.join(tmpfile, "identicon"),
         )
-        cmd = cmd + '--flavour="nopic" '
-        context["tags"] += ";nopic"
 
-    if noindex:
-        cmd = cmd + "--withoutFTIndex "
-    cmd = (
-        cmd
-        + ' --inflateHtml --redirects="{redirect_csv}" --welcome="{home}" --favicon="{favicon}" --language="{languages}" --title="{title}" --description="{description}" --creator="{creator}" --publisher="{publisher}" --tags="{tags}" --name="{name}" --scraper="{scraper}" --source="{source}" "{static}" "{zim}"'.format(
-            **context
+    try:
+        make_zim_file(
+            build_dir=pathlib.Path(static_folder),
+            fpath=pathlib.Path(zim_path),
+            name=name,
+            main_page="index.html",
+            favicon="favicon.png",
+            title=title,
+            description=description,
+            language=lang_input,
+            creator=creator,
+            publisher=publisher,
+            tags=["_category:stack_exchange", "stackexchange"]
+            + (["nopic"] if nopic else []),
+            scraper=scraper_version,
+            source=f"https://{domain}",
+            redirects_file=pathlib.Path(redirect_file),
+            without_fulltext_index=True if noindex else False,
+            flavour="nopic" if nopic else None,
         )
-    )
-    print(cmd)
-
-    if exec_cmd(cmd) == 0:
+    except Exception as exc:
+        print("Unable to create ZIM file :(")
+        print(exc)
+        if nopic:
+            shutil.move(
+                os.path.join(tmpfile, "images"),
+                os.path.join(static_folder, "static", "images"),
+            )
+            shutil.move(
+                os.path.join(tmpfile, "identicon"),
+                os.path.join(static_folder, "static", "identicon"),
+            )
+            shutil.rmtree(tmpfile)
+        return False
+    else:
         print("Successfuly created ZIM file at {}".format(zim_path))
         if nopic:
             shutil.move(
@@ -1445,18 +1438,6 @@ def create_zim(
             )
             shutil.rmtree(tmpfile)
         return True
-    print("Unable to create ZIM file :(")
-    if nopic:
-        shutil.move(
-            os.path.join(tmpfile, "images"),
-            os.path.join(static_folder, "static", "images"),
-        )
-        shutil.move(
-            os.path.join(tmpfile, "identicon"),
-            os.path.join(static_folder, "static", "identicon"),
-        )
-        shutil.rmtree(tmpfile)
-    return False
 
 
 def run():
@@ -1479,8 +1460,7 @@ def run():
         CACHE_STORAGE_URL = arguments["--optimization-cache"]
     else:
         print("No cache credentials provided. Continuing without optimization cache")
-    if not arguments["--nozim"] and not bin_is_present("zimwriterfs"):
-        sys.exit("zimwriterfs is not available, please install it.")
+
     # Check binary
     for binary in [
         "bash",
@@ -1529,8 +1509,6 @@ def run():
         shutil.rmtree(magick_tmp)
     os.makedirs(magick_tmp)
     os.environ.update({"MAGICK_TEMPORARY_PATH": magick_tmp})
-
-    deflate = not arguments["--nozim"]
 
     if arguments["--threads"] is not None:
         cores = int(arguments["--threads"])
@@ -1646,7 +1624,6 @@ def run():
             cores,
             cursor,
             conn,
-            deflate,
             url,
             redirect_file,
             use_mathjax(domain),
@@ -1670,7 +1647,6 @@ def run():
             cores,
             cursor,
             conn,
-            deflate,
             url,
             redirect_file,
             domain,
@@ -1694,7 +1670,6 @@ def run():
             cores,
             cursor,
             conn,
-            deflate,
             tag_depth,
             description,
             use_mathjax(domain),
