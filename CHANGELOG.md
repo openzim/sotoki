@@ -5,6 +5,9 @@
 * upgraded jdenticon to 2.2.0
 * single identicon behavior for normal and nopic mode
 * add `--no-identicons` option to skip downloading identicons and use only generated ones
+* use pylibzim to create ZIM file
+* properly handle root-relative links
+* removed zipping HTML files on disk and use of --inflateHTML zimwriterfs option
 
 ### 1.3.1
 

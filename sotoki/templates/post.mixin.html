@@ -42,7 +42,7 @@
                 {% if post["OwnerUserId"]["Path"] %}<a class="profile" href="../user/{{ post["OwnerUserId"]["Path"] }}.html"> {% endif %}
                 {% if post["OwnerUserId"]["Id"] %}
                 <!-- object data not rewritten by zimwriterfs -->
-                <object class="genprofilepic" width="65" height="65" data="../../I/static/identicon/{{ post["OwnerUserId"]["Id"] }}.png" type="image/png">
+                <object class="genprofilepic" width="65" height="65" data="{{ rooturl }}static/identicon/{{ post["OwnerUserId"]["Id"] }}.png" type="image/png">
                   <svg class="genprofilepic" width="65" height="65" data-jdenticon-value="{{ post["OwnerUserId"]["Id"] }}"></svg>
                 </object>
                 {% endif %}
