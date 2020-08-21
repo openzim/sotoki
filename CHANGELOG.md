@@ -4,6 +4,7 @@
 * removed templates_mini
 * upgraded jdenticon to 2.2.0
 * single identicon behavior for normal and nopic mode
+* add `--no-identicons` option to skip downloading identicons and use only generated ones
 
 ### 1.3.1
 

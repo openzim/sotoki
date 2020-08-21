@@ -5,7 +5,7 @@
 """sotoki.
 
 Usage:
-  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--optimization-cache=<optimization-cache>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite] [--nopic] [--no-userprofile]
+  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--optimization-cache=<optimization-cache>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite] [--nopic] [--no-userprofile] [--no-identicons]
   sotoki (-h | --help)
   sotoki --version
 
@@ -24,6 +24,7 @@ Options:
   --ignoreoldsite                               Ignore Stack Exchange closed sites
   --nopic                                       Doesn't download images
   --no-userprofile                              Doesn't include user profiles
+  --no-identicons                               Use generated profile picture only (user images won't be downloaded)
   --optimization-cache=<optimization-cache>     Use optimization cache with given URL and credentials. The argument needs to be of the form <endpoint-url>?keyId=<key-id>&secretAccessKey=<secret-access-key>&bucketName=<bucket-name>
 """
 import re
@@ -584,6 +585,7 @@ class UsersRender(handler.ContentHandler):
         redirect_file,
         mathjax,
         nopic,
+        no_identicons,
         nouserprofile,
     ):
         self.identicon_path = os.path.join(output, "static", "identicon")
@@ -599,6 +601,7 @@ class UsersRender(handler.ContentHandler):
         self.site_url = site_url
         self.mathjax = mathjax
         self.nopic = nopic
+        self.no_identicons = no_identicons
         self.nouserprofile = nouserprofile
         self.id = 0
         if not os.path.exists(self.identicon_path):
@@ -674,6 +677,7 @@ class UsersRender(handler.ContentHandler):
                 self.title,
                 self.mathjax,
                 self.nopic,
+                self.no_identicons,
                 self.nouserprofile,
             ]
             self.request_queue.put(data_send)
@@ -700,22 +704,23 @@ def some_user(
     title,
     mathjax,
     nopic,
+    no_identicons,
     nouserprofile,
 ):
     filename = user["Id"] + ".png"
     fullpath = os.path.join(output, "static", "identicon", filename)
-    if not nopic and "ProfileImageUrl" in user and not os.path.exists(fullpath):
+    if (
+        not nopic
+        and "ProfileImageUrl" in user
+        and not os.path.exists(fullpath)
+        and not no_identicons
+    ):
         try:
             download_image(
                 user["ProfileImageUrl"], fullpath, convert_png=True, resize=128,
             )
         except Exception as exc:
-            print(
-                user["ProfileImageUrl"]
-                + " > Failed to download\n"
-                + str(exc)
-                + "\n"
-            )
+            print(user["ProfileImageUrl"] + " > Failed to download\n" + str(exc) + "\n")
 
     #
     if not nouserprofile:
@@ -888,6 +893,7 @@ def get_meta_from_url(url):
             except requests.exceptions.Timeout:
                 print(f"{url} > HEAD request timed out ({attempt})")
         raise Exception("Max retries exceeded")
+
     try:
         response_headers = get_response_headers(url)
     except Exception as exc:
@@ -1602,9 +1608,7 @@ def run():
         else:
             download_dump(domain, dump)
 
-    templates = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "templates"
-    )
+    templates = os.path.join(os.path.abspath(os.path.dirname(__file__)), "templates")
 
     # prepare db
     conn = sqlite3.connect(db)  # can be :memory: for small dump
@@ -1647,6 +1651,7 @@ def run():
             redirect_file,
             use_mathjax(domain),
             arguments["--nopic"],
+            arguments["--no-identicons"],
             arguments["--no-userprofile"],
         )
     )
