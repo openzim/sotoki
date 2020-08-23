@@ -41,8 +41,7 @@
           <div> 
                 {% if post["OwnerUserId"]["Path"] %}<a class="profile" href="../user/{{ post["OwnerUserId"]["Path"] }}.html"> {% endif %}
                 {% if post["OwnerUserId"]["Id"] %}
-                <!-- object data not rewritten by zimwriterfs -->
-                <object class="genprofilepic" width="65" height="65" data="{{ rooturl }}static/identicon/{{ post["OwnerUserId"]["Id"] }}.png" type="image/png">
+                <object class="genprofilepic" width="65" height="65" data="../static/identicon/{{ post["OwnerUserId"]["Id"] }}.png" type="image/png">
                   <svg class="genprofilepic" width="65" height="65" data-jdenticon-value="{{ post["OwnerUserId"]["Id"] }}"></svg>
                 </object>
                 {% endif %}
@@ -69,7 +68,7 @@
               <span class="score {{ comment["Score"] | scale }}">{{ comment["Score"] }}</span>
             {% endif %}
             <span class="text">{{ comment["Text"] | safe }}</span> – {% if comment["Path"] %}<a href="{{ rooturl }}/user/{{ comment["Path"] }}.html">{% endif %}{{ comment["UserDisplayName"] }} {% if comment["Path"] %}</a>{% endif %} – <span class="date" title="{{ comment["CreationDate"] }}">{{ comment["CreationDate"] }}</span>
-            </p>
+          </p>
         </div>
       {% endfor %}
     </div>
