@@ -78,6 +78,9 @@ TMPFS_DIR = "/dev/shm" if os.path.isdir("/dev/shm") else None
 
 CACHE_STORAGE_URL = None
 
+redirect_file = None
+
+
 #########################
 #        Question       #
 #########################
@@ -93,7 +96,6 @@ class QuestionRender(handler.ContentHandler):
         cursor,
         conn,
         site_url,
-        redirect_file,
         domain,
         mathjax,
         nopic,
@@ -126,7 +128,6 @@ class QuestionRender(handler.ContentHandler):
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
             i.start()
-        self.f_redirect = open(redirect_file, "a")
 
     def startElement(self, name, attrs):  # For each element
         if (
@@ -308,24 +309,26 @@ class QuestionRender(handler.ContentHandler):
                 )
             # Make redirection
             for ans in self.answers:
-                self.f_redirect.write(
+                with open(redirect_file, "a") as f_redirect:
+                    f_redirect.write(
+                        "A\telement/"
+                        + str(ans["Id"])
+                        + ".html\tAnswer "
+                        + str(ans["Id"])
+                        + "\tA/question/"
+                        + self.post["Id"]
+                        + ".html\n"
+                    )
+            with open(redirect_file, "a") as f_redirect:
+                f_redirect.write(
                     "A\telement/"
-                    + str(ans["Id"])
-                    + ".html\tAnswer "
-                    + str(ans["Id"])
+                    + str(self.post["Id"])
+                    + ".html\tQuestion "
+                    + str(self.post["Id"])
                     + "\tA/question/"
                     + self.post["Id"]
                     + ".html\n"
                 )
-            self.f_redirect.write(
-                "A\telement/"
-                + str(self.post["Id"])
-                + ".html\tQuestion "
-                + str(self.post["Id"])
-                + "\tA/question/"
-                + self.post["Id"]
-                + ".html\n"
-            )
 
             data_send = [
                 some_questions,
@@ -355,7 +358,6 @@ class QuestionRender(handler.ContentHandler):
         for i in self.workers:
             i.join()
         print("---END--")
-        self.f_redirect.close()
 
 
 def some_questions(
@@ -571,7 +573,6 @@ class UsersRender(handler.ContentHandler):
         cursor,
         conn,
         site_url,
-        redirect_file,
         mathjax,
         nopic,
         no_identicons,
@@ -615,7 +616,6 @@ class UsersRender(handler.ContentHandler):
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
             i.start()
-        self.f_redirect = open(redirect_file, "a")
 
     def startElement(self, name, attrs):  # For each element
         if name == "badges":
@@ -645,15 +645,16 @@ class UsersRender(handler.ContentHandler):
                 sql, (int(user["Id"]), user["DisplayName"], user["Reputation"])
             )
             if not self.nouserprofile:
-                self.f_redirect.write(
-                    "A\tuser/"
-                    + page_url(user["Id"], user["DisplayName"])
-                    + ".html\tUser "
-                    + slugify(user["DisplayName"])
-                    + "\tA/user/"
-                    + user["Id"]
-                    + ".html\n"
-                )
+                with open(redirect_file, "a") as f_redirect:
+                    f_redirect.write(
+                        "A\tuser/"
+                        + page_url(user["Id"], user["DisplayName"])
+                        + ".html\tUser "
+                        + slugify(user["DisplayName"])
+                        + "\tA/user/"
+                        + user["Id"]
+                        + ".html\n"
+                    )
             data_send = [
                 some_user,
                 user,
@@ -678,7 +679,6 @@ class UsersRender(handler.ContentHandler):
         for i in self.workers:
             i.join()
         print("---END--")
-        self.f_redirect.close()
 
 
 def some_user(
@@ -763,18 +763,7 @@ def markdown(text):
     if len(text_html) == 0:
         return "-"
     return text_html
-
-
-def dict_factory(cursor, row):
-    d = {}
-    for idx, col in enumerate(cursor.description):
-        d[col[0]] = row[idx]
-    return d
-
-
-def scale(number):
-    """Convert number to scale to be used in style to color arrows
-    and comment score"""
+# create redirection"""
     number = int(number)
     if number < 0:
         return "negative"
@@ -866,15 +855,16 @@ def upload_to_cache(fpath, key, meta_tag, meta_val):
         )
 
 
-def get_meta_from_url(url):
-    def get_response_headers(url):
-        for attempt in range(5):
-            try:
-                return requests.head(url=url, allow_redirects=True, timeout=30).headers
-            except requests.exceptions.Timeout:
-                print(f"{url} > HEAD request timed out ({attempt})")
-        raise Exception("Max retries exceeded")
+def get_response_headers(url):
+    for attempt in range(5):
+        try:
+            return requests.head(url=url, allow_redirects=True, timeout=30).headers
+        except requests.exceptions.Timeout:
+            print(f"{url} > HEAD request timed out ({attempt})")
+    raise Exception("Max retries exceeded")
 
+
+def get_meta_from_url(url):
     try:
         response_headers = get_response_headers(url)
     except Exception as exc:
@@ -889,6 +879,31 @@ def get_meta_from_url(url):
             return "content-length", response_headers["content-length"]
     return "default", "default"
 
+def get_redirection_to_duplicate(url, convert_png, resize):
+    parsed_url = urllib.parse.urlparse(url)
+    if "gravatar.com" in parsed_url.netloc:
+        # gravatar logic
+        return gravatar_png
+    if "googleusercontent" in parsed_url.netloc:
+        # googleusercontent logic
+        return google_png
+    if "blend-exchange" in parsed_url.netloc:
+        # blend exchange logic
+        return blender_png
+    return None
+
+
+def check_duplicates_and_redirect(url, fullpath, convert_png, resize):
+    redirection = get_redirection_to_duplicate(url, convert_png, resize)
+    if redirection:
+        src_path = fullpath.split("output/")[-1]
+        dst_path = f"I/common_images/{redirection}"
+        with open(redirect_file) as f_redirect:
+            f_redirect.write("I\t" + f"{src_path}\t" + "Image Redirection\t" + f"{dst_path}\n")
+        print(f"Successfully wrote redirection from {src_path} to {dst_path}")
+        return True
+    return False
+
 
 def download_image(url, fullpath, convert_png=False, resize=False):
     downloaded = False
@@ -897,6 +912,8 @@ def download_image(url, fullpath, convert_png=False, resize=False):
     meta_val = None
     if url[0:2] == "//":
         url = "http:" + url
+    if check_duplicates_and_redirect(url, fullpath, convert_png, resize):
+        return
     print(url + " > To be saved as " + os.path.basename(fullpath))
     if CACHE_STORAGE_URL:
         meta_tag, meta_val = get_meta_from_url(url)
@@ -1245,7 +1262,7 @@ def languageToAlpha3(lang):
     return tab[lang]
 
 
-def clean(output, db, redirect_file):
+def clean(output, db):
     for elem in ["question", "tag", "user"]:
         elem_path = os.path.join(output, elem)
         if os.path.exists(elem_path):
@@ -1263,7 +1280,7 @@ def clean(output, db, redirect_file):
         os.remove(redirect_file)
 
 
-def data_from_previous_run(output, db, redirect_file):
+def data_from_previous_run(output, db):
     for elem in ["question", "tag", "user"]:
         elem_path = os.path.join(output, elem)
         if os.path.exists(elem_path):
@@ -1316,7 +1333,6 @@ def create_zims(
     title,
     publisher,
     description,
-    redirect_file,
     domain,
     lang_input,
     zim_path,
@@ -1354,7 +1370,6 @@ def create_zims(
         languageToAlpha3(lang_input),
         publisher,
         creator,
-        redirect_file,
         noindex,
         name,
         nopic,
@@ -1371,7 +1386,6 @@ def create_zim(
     lang_input,
     publisher,
     creator,
-    redirect_file,
     noindex,
     name,
     nopic,
@@ -1501,6 +1515,7 @@ def run():
 
     output = os.path.join(dump, "output")
     db = os.path.join(dump, "se-dump.db")
+    global redirect_file
     redirect_file = os.path.join(dump, "redirection.csv")
 
     # set ImageMagick's temp folder via env
@@ -1539,9 +1554,9 @@ def run():
             shutil.rmtree(os.path.join(dump, "output"))
 
     if arguments["--clean-previous"]:
-        clean(output, db, redirect_file)
+        clean(output, db)
 
-    if data_from_previous_run(output, db, redirect_file):
+    if data_from_previous_run(output, db):
         sys.exit(
             "There is still data from a previous run, you can trash them by adding --clean-previous as argument"
         )
@@ -1625,7 +1640,6 @@ def run():
             cursor,
             conn,
             url,
-            redirect_file,
             use_mathjax(domain),
             arguments["--nopic"],
             arguments["--no-identicons"],
@@ -1648,7 +1662,6 @@ def run():
             cursor,
             conn,
             url,
-            redirect_file,
             domain,
             use_mathjax(domain),
             arguments["--nopic"],
@@ -1696,7 +1709,6 @@ def run():
             title,
             publisher,
             description,
-            redirect_file,
             domain,
             lang_input,
             arguments["--zimpath"],
@@ -1706,7 +1718,7 @@ def run():
             scraper_version,
         )
         if done:
-            clean(output, db, redirect_file)
+            clean(output, db)
 
 
 if __name__ == "__main__":
