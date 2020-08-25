@@ -78,6 +78,10 @@ TMPFS_DIR = "/dev/shm" if os.path.isdir("/dev/shm") else None
 
 CACHE_STORAGE_URL = None
 
+redirect_file = None
+output_dir = None
+
+
 #########################
 #        Question       #
 #########################
@@ -85,7 +89,6 @@ class QuestionRender(handler.ContentHandler):
     def __init__(
         self,
         templates,
-        output,
         title,
         publisher,
         dump,
@@ -93,14 +96,12 @@ class QuestionRender(handler.ContentHandler):
         cursor,
         conn,
         site_url,
-        redirect_file,
         domain,
         mathjax,
         nopic,
         nouserprofile,
     ):
         self.templates = templates
-        self.output = output
         self.title = title
         self.publisher = publisher
         self.dump = dump
@@ -114,7 +115,7 @@ class QuestionRender(handler.ContentHandler):
         self.answers = []
         self.whatwedo = "post"
         self.nb = 0  # Nomber of post generate
-        os.makedirs(os.path.join(output, "question"))
+        os.makedirs(os.path.join(output_dir, "question"))
         self.request_queue = Queue(cores * 2)
         self.workers = []
         self.cores = cores
@@ -126,7 +127,6 @@ class QuestionRender(handler.ContentHandler):
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
             i.start()
-        self.f_redirect = open(redirect_file, "a")
 
     def startElement(self, name, attrs):  # For each element
         if (
@@ -308,29 +308,30 @@ class QuestionRender(handler.ContentHandler):
                 )
             # Make redirection
             for ans in self.answers:
-                self.f_redirect.write(
+                with open(redirect_file, "a") as f_redirect:
+                    f_redirect.write(
+                        "A\telement/"
+                        + str(ans["Id"])
+                        + ".html\tAnswer "
+                        + str(ans["Id"])
+                        + "\tA/question/"
+                        + self.post["Id"]
+                        + ".html\n"
+                    )
+            with open(redirect_file, "a") as f_redirect:
+                f_redirect.write(
                     "A\telement/"
-                    + str(ans["Id"])
-                    + ".html\tAnswer "
-                    + str(ans["Id"])
+                    + str(self.post["Id"])
+                    + ".html\tQuestion "
+                    + str(self.post["Id"])
                     + "\tA/question/"
                     + self.post["Id"]
                     + ".html\n"
                 )
-            self.f_redirect.write(
-                "A\telement/"
-                + str(self.post["Id"])
-                + ".html\tQuestion "
-                + str(self.post["Id"])
-                + "\tA/question/"
-                + self.post["Id"]
-                + ".html\n"
-            )
 
             data_send = [
                 some_questions,
                 self.templates,
-                self.output,
                 self.title,
                 self.publisher,
                 self.post,
@@ -341,7 +342,7 @@ class QuestionRender(handler.ContentHandler):
                 self.nopic,
             ]
             self.request_queue.put(data_send)
-            # some_questions(self.templates, self.output, self.title, self.publisher, self.post, "question.html", self.site_url, self.domain, self.mathjax, self.nopic)
+            # some_questions(self.templates, self.title, self.publisher, self.post, "question.html", self.site_url, self.domain, self.mathjax, self.nopic)
             # Reset element
             self.post = {}
             self.comments = []
@@ -355,12 +356,10 @@ class QuestionRender(handler.ContentHandler):
         for i in self.workers:
             i.join()
         print("---END--")
-        self.f_redirect.close()
 
 
 def some_questions(
     templates,
-    output,
     title,
     publisher,
     question,
@@ -381,21 +380,21 @@ def some_questions(
             )  # sorted is stable so accepted will be always first, then other question will be sort in ascending order
             for ans in question["answers"]:
                 ans["Body"] = interne_link(ans["Body"], domain, question["Id"])
-                ans["Body"] = image(ans["Body"], output, nopic)
+                ans["Body"] = image(ans["Body"], nopic)
                 if "comments" in ans:
                     for comment in ans["comments"]:
                         comment["Text"] = interne_link(
                             comment["Text"], domain, question["Id"]
                         )
-                        comment["Text"] = image(comment["Text"], output, nopic)
+                        comment["Text"] = image(comment["Text"], nopic)
 
-        filepath = os.path.join(output, "question", question["filename"])
+        filepath = os.path.join(output_dir, "question", question["filename"])
         question["Body"] = interne_link(question["Body"], domain, question["Id"])
-        question["Body"] = image(question["Body"], output, nopic)
+        question["Body"] = image(question["Body"], nopic)
         if "comments" in question:
             for comment in question["comments"]:
                 comment["Text"] = interne_link(comment["Text"], domain, question["Id"])
-                comment["Text"] = image(comment["Text"], output, nopic)
+                comment["Text"] = image(comment["Text"], nopic)
         question["Title"] = html.escape(question["Title"], quote=False)
         try:
             jinja(
@@ -428,7 +427,6 @@ class TagsRender(handler.ContentHandler):
     def __init__(
         self,
         templates,
-        output,
         title,
         publisher,
         dump,
@@ -441,7 +439,6 @@ class TagsRender(handler.ContentHandler):
     ):
         # index page
         self.templates = templates
-        self.output = output
         self.title = title
         self.publisher = publisher
         self.dump = dump
@@ -479,7 +476,7 @@ class TagsRender(handler.ContentHandler):
                 questionsids.append(question["QId"])
                 new_questions.append(question)
         jinja(
-            os.path.join(self.output, "index.html"),
+            os.path.join(output_dir, "index.html"),
             "index.html",
             self.templates,
             False,
@@ -492,7 +489,7 @@ class TagsRender(handler.ContentHandler):
             mathjax=self.mathjax,
         )
         jinja(
-            os.path.join(self.output, "alltags.html"),
+            os.path.join(output_dir, "alltags.html"),
             "alltags.html",
             self.templates,
             False,
@@ -505,9 +502,9 @@ class TagsRender(handler.ContentHandler):
         # tag page
         print("Render tag page")
         list_tag = [d["TagName"] for d in self.tags]
-        os.makedirs(os.path.join(self.output, "tag"))
+        os.makedirs(os.path.join(output_dir, "tag"))
         for tag in list(set(list_tag)):
-            dirpath = os.path.join(self.output, "tag")
+            dirpath = os.path.join(output_dir, "tag")
             tagpath = os.path.join(dirpath, "%s" % tag)
             os.makedirs(tagpath)
             # build page using pagination
@@ -563,7 +560,6 @@ class UsersRender(handler.ContentHandler):
     def __init__(
         self,
         templates,
-        output,
         title,
         publisher,
         dump,
@@ -571,15 +567,13 @@ class UsersRender(handler.ContentHandler):
         cursor,
         conn,
         site_url,
-        redirect_file,
         mathjax,
         nopic,
         no_identicons,
         nouserprofile,
     ):
-        self.identicon_path = os.path.join(output, "static", "identicon")
+        self.identicon_path = os.path.join(output_dir, "static", "identicon")
         self.templates = templates
-        self.output = output
         self.title = title
         self.publisher = publisher
         self.dump = dump
@@ -594,7 +588,7 @@ class UsersRender(handler.ContentHandler):
         self.id = 0
         if not os.path.exists(self.identicon_path):
             os.makedirs(self.identicon_path)
-        os.makedirs(os.path.join(output, "user"))
+        os.makedirs(os.path.join(output_dir, "user"))
         # Set-up a list of foreground colours (taken from Sigil).
         self.foreground = [
             "rgb(45,79,255)",
@@ -615,7 +609,6 @@ class UsersRender(handler.ContentHandler):
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
             i.start()
-        self.f_redirect = open(redirect_file, "a")
 
     def startElement(self, name, attrs):  # For each element
         if name == "badges":
@@ -645,20 +638,20 @@ class UsersRender(handler.ContentHandler):
                 sql, (int(user["Id"]), user["DisplayName"], user["Reputation"])
             )
             if not self.nouserprofile:
-                self.f_redirect.write(
-                    "A\tuser/"
-                    + page_url(user["Id"], user["DisplayName"])
-                    + ".html\tUser "
-                    + slugify(user["DisplayName"])
-                    + "\tA/user/"
-                    + user["Id"]
-                    + ".html\n"
-                )
+                with open(redirect_file, "a") as f_redirect:
+                    f_redirect.write(
+                        "A\tuser/"
+                        + page_url(user["Id"], user["DisplayName"])
+                        + ".html\tUser "
+                        + slugify(user["DisplayName"])
+                        + "\tA/user/"
+                        + user["Id"]
+                        + ".html\n"
+                    )
             data_send = [
                 some_user,
                 user,
                 self.templates,
-                self.output,
                 self.publisher,
                 self.site_url,
                 self.title,
@@ -668,7 +661,7 @@ class UsersRender(handler.ContentHandler):
                 self.nouserprofile,
             ]
             self.request_queue.put(data_send)
-            # some_user(user, self.generator, self.templates, self.output, self.publisher, self.site_url, self.title, self.mathjax, self.nopic, self.nouserprofile)
+            # some_user(user, self.generator, self.templates, self.publisher, self.site_url, self.title, self.mathjax, self.nopic, self.nouserprofile)
 
     def endDocument(self):
         self.conn.commit()
@@ -678,13 +671,11 @@ class UsersRender(handler.ContentHandler):
         for i in self.workers:
             i.join()
         print("---END--")
-        self.f_redirect.close()
 
 
 def some_user(
     user,
     templates,
-    output,
     publisher,
     site_url,
     title,
@@ -694,7 +685,7 @@ def some_user(
     nouserprofile,
 ):
     filename = user["Id"] + ".png"
-    fullpath = os.path.join(output, "static", "identicon", filename)
+    fullpath = os.path.join(output_dir, "static", "identicon", filename)
     if (
         not nopic
         and "ProfileImageUrl" in user
@@ -711,10 +702,10 @@ def some_user(
     #
     if not nouserprofile:
         if "AboutMe" in user:
-            user["AboutMe"] = image("<p>" + user["AboutMe"] + "</p>", output, nopic)
+            user["AboutMe"] = image("<p>" + user["AboutMe"] + "</p>", output_dir, nopic)
         # generate user profile page
         filename = "%s.html" % user["Id"]
-        fullpath = os.path.join(output, "user", filename)
+        fullpath = os.path.join(output_dir, "user", filename)
         jinja(
             fullpath,
             "user.html",
@@ -866,15 +857,16 @@ def upload_to_cache(fpath, key, meta_tag, meta_val):
         )
 
 
-def get_meta_from_url(url):
-    def get_response_headers(url):
-        for attempt in range(5):
-            try:
-                return requests.head(url=url, allow_redirects=True, timeout=30).headers
-            except requests.exceptions.Timeout:
-                print(f"{url} > HEAD request timed out ({attempt})")
-        raise Exception("Max retries exceeded")
+def get_response_headers(url):
+    for attempt in range(5):
+        try:
+            return requests.head(url=url, allow_redirects=True, timeout=30).headers
+        except requests.exceptions.Timeout:
+            print(f"{url} > HEAD request timed out ({attempt})")
+    raise Exception("Max retries exceeded")
 
+
+def get_meta_from_url(url):
     try:
         response_headers = get_response_headers(url)
     except Exception as exc:
@@ -890,13 +882,162 @@ def get_meta_from_url(url):
     return "default", "default"
 
 
-def download_image(url, fullpath, convert_png=False, resize=False):
+def get_image_shortcuts(url, convert_png, resize, ext):
+    """" (skip, redirect_to) shortcuts for an image if possible
+
+            skip (bool): whether this image is meaningless and should not be downloaded.
+            redirect_to: URL of a copy of this image to redirect to """
+
+    def download_and_return_name(url, source, convert_png, resize, ext):
+        """ genetare the file name given the parameters, check if present in fs and download if not present
+            returns the name of the file which was generated from the params """
+
+        convertion = "png" if convert_png else "org"
+        size = "org" if not resize else str(resize)
+        image_path = (
+            pathlib.Path(output_dir)
+            .joinpath("common_images")
+            .joinpath(f"{source}_{convertion}_{size}{ext}")
+        )
+
+        # download the duplicate file only once
+        if not image_path.exists():
+            download_image(
+                url=url,
+                fullpath=str(image_path),
+                convert_png=convert_png,
+                resize=resize,
+                skip_duplicate_check=True,
+            )
+        return image_path.name
+
+    parsed_url = urllib.parse.urlparse(url)
+    if "gravatar.com" in parsed_url.netloc:
+        # parse the url
+        url_parts = list(parsed_url)
+        query = dict(urllib.parse.parse_qsl(url_parts[4]))
+
+        # check if autogenerated identicon from gravatar
+        # for more details see https://en.gravatar.com/site/implement/images/
+        if query.get("d", query.get("default", "")) == "identicon" and query.get(
+            "f", query.get("forcedefault", "")
+        ) in ["y", "1"]:
+            return True, None
+
+        # check for mystery-person type identicon
+        if query.get("d", query.get("default", "")) == "mp":
+            return (
+                False,
+                download_and_return_name(
+                    url, "gravatar_mystery", convert_png, resize, ext
+                ),
+            )
+
+        # check for blank identicon
+        if query.get("d", query.get("default", "")) == "blank":
+            return (
+                False,
+                download_and_return_name(
+                    url, "gravatar_blank", convert_png, resize, ext
+                ),
+            )
+
+        # update query with size = 128 (its the size in which we download identicons)
+        query.update({"s": "128"})
+        url_parts[4] = urllib.parse.urlencode(query)
+        url_with_size = urllib.parse.urlunparse(url_parts)
+
+        # check if potentially a duplicate default image at size = 128
+        # these content-length values are the content-length value for
+        # the two types of default images, the default1 being the blue 'G' logo
+        # and second one being the green autogenerated identicon if hash is invalid
+        # these need to be manually changed if the images change but they
+        # are here for a pretty long time and shall stay to be so
+        headers = get_response_headers(url_with_size)
+        if headers.get("content-length") == "4268":
+            return (
+                False,
+                download_and_return_name(
+                    url, "gravatar_default1", convert_png, resize, ext
+                ),
+            )
+        elif headers.get("content-length") == "3505":
+            return (
+                False,
+                download_and_return_name(
+                    url, "gravatar_default2", convert_png, resize, ext
+                ),
+            )
+
+    if "googleusercontent" in parsed_url.netloc:
+        headers = get_response_headers(url)
+
+        # custom images have etag whereas autogenerated ones do not (mostly)
+        if not headers.get("etag", None):
+            content_length = headers.get("content-length")
+            image_name_prefix = f"googleusercontent_{content_length}"
+            return (
+                False,
+                download_and_return_name(
+                    url, image_name_prefix, convert_png, resize, ext
+                ),
+            )
+
+    if "blend-exchange" in parsed_url.netloc:
+        # a specific image is duplicated, whatever the query part
+        if parsed_url.path == "/embedImage.png":
+            return (
+                False,
+                download_and_return_name(
+                    url, "blend_exchange", convert_png, resize, ext
+                ),
+            )
+
+    return False, None
+
+
+def handle_duplicate_images(url, fullpath, convert_png, resize):
+    """ Whether image is duplicate of existing (and process accordingly)
+
+            Download image file if not (yet) a duplicate
+            Write a redirection entry if a duplicate """
+
+    org_path = pathlib.Path(fullpath)
+    skip_download, redirection = get_image_shortcuts(
+        url, convert_png, resize, org_path.suffix
+    )
+    if skip_download:
+        # we can generate similar identicon, do download is useless
+        return True
+    if redirection:
+        # got a redirection to a common image
+        src_path = str(org_path.relative_to(pathlib.Path(output_dir)))
+        dst_path = f"I/common_images/{redirection}"
+        print("before redirect write")
+        print("redirection")
+        with open(redirect_file, "a") as f_redirect:
+            f_redirect.write(
+                "I\t" + f"{src_path}\t" + "Image Redirection\t" + f"{dst_path}\n"
+            )
+        print(f"Successfully wrote redirection from {src_path} to {dst_path}")
+        return True
+    return False
+
+
+def download_image(
+    url, fullpath, convert_png=False, resize=False, skip_duplicate_check=False
+):
     downloaded = False
     key = None
     meta_tag = None
     meta_val = None
     if url[0:2] == "//":
         url = "http:" + url
+    if not skip_duplicate_check and handle_duplicate_images(
+        url, fullpath, convert_png, resize
+    ):
+        # processed as a potential duplicate
+        return
     print(url + " > To be saved as " + os.path.basename(fullpath))
     if CACHE_STORAGE_URL:
         meta_tag, meta_val = get_meta_from_url(url)
@@ -996,8 +1137,8 @@ def interne_link(text_post, domain, question_id):
     return text_post
 
 
-def image(text_post, output, nopic):
-    images = os.path.join(output, "static", "images")
+def image(text_post, nopic):
+    images = os.path.join(output_dir, "static", "images")
     body = string2html(text_post)
     imgs = body.xpath("//img")
     for img in imgs:
@@ -1026,7 +1167,7 @@ def image(text_post, output, nopic):
     return text_post
 
 
-def grab_title_description_favicon_lang(url, output_dir, do_old):
+def grab_title_description_favicon_lang(url, do_old):
     if (
         "moderators.meta.stackexchange.com" in url
     ):  # We do this special handling because redirect do not exist; website have change name, but not dump name see issue #80
@@ -1245,16 +1386,16 @@ def languageToAlpha3(lang):
     return tab[lang]
 
 
-def clean(output, db, redirect_file):
+def clean(db):
     for elem in ["question", "tag", "user"]:
-        elem_path = os.path.join(output, elem)
+        elem_path = os.path.join(output_dir, elem)
         if os.path.exists(elem_path):
             print("remove " + elem_path)
             shutil.rmtree(elem_path)
-    if os.path.exists(os.path.join(output, "favicon.png")):
-        os.remove(os.path.join(output, "favicon.png"))
-    if os.path.exists(os.path.join(output, "index.html")):
-        os.remove(os.path.join(output, "index.html"))
+    if os.path.exists(os.path.join(output_dir, "favicon.png")):
+        os.remove(os.path.join(output_dir, "favicon.png"))
+    if os.path.exists(os.path.join(output_dir, "index.html")):
+        os.remove(os.path.join(output_dir, "index.html"))
     if os.path.exists(db):
         print("remove " + db)
         os.remove(db)
@@ -1263,14 +1404,14 @@ def clean(output, db, redirect_file):
         os.remove(redirect_file)
 
 
-def data_from_previous_run(output, db, redirect_file):
+def data_from_previous_run(db):
     for elem in ["question", "tag", "user"]:
-        elem_path = os.path.join(output, elem)
+        elem_path = os.path.join(output_dir, elem)
         if os.path.exists(elem_path):
             return True
     if (
-        os.path.exists(os.path.join(output, "favicon.png"))
-        or os.path.exists(os.path.join(output, "index.html"))
+        os.path.exists(os.path.join(output_dir, "favicon.png"))
+        or os.path.exists(os.path.join(output_dir, "index.html"))
         or os.path.exists(db)
         or os.path.exists(redirect_file)
     ):
@@ -1316,11 +1457,9 @@ def create_zims(
     title,
     publisher,
     description,
-    redirect_file,
     domain,
     lang_input,
     zim_path,
-    html_dir,
     noindex,
     nopic,
     scraper_version,
@@ -1347,14 +1486,12 @@ def create_zims(
         name = "kiwix." + domain.lower()
     creator = title
     return create_zim(
-        html_dir,
         zim_path,
         title,
         description,
         languageToAlpha3(lang_input),
         publisher,
         creator,
-        redirect_file,
         noindex,
         name,
         nopic,
@@ -1364,14 +1501,12 @@ def create_zims(
 
 
 def create_zim(
-    static_folder,
     zim_path,
     title,
     description,
     lang_input,
     publisher,
     creator,
-    redirect_file,
     noindex,
     name,
     nopic,
@@ -1383,17 +1518,17 @@ def create_zim(
     if nopic:
         tmpfile = tempfile.mkdtemp()
         shutil.move(
-            os.path.join(static_folder, "static", "images"),
+            os.path.join(output_dir, "static", "images"),
             os.path.join(tmpfile, "images"),
         )
         shutil.move(
-            os.path.join(static_folder, "static", "identicon"),
+            os.path.join(output_dir, "static", "identicon"),
             os.path.join(tmpfile, "identicon"),
         )
 
     try:
         make_zim_file(
-            build_dir=pathlib.Path(static_folder),
+            build_dir=pathlib.Path(output_dir),
             fpath=pathlib.Path(zim_path),
             name=name,
             main_page="index.html",
@@ -1499,8 +1634,10 @@ def run():
     else:
         dump = arguments["--directory"]
 
-    output = os.path.join(dump, "output")
+    global output_dir
+    output_dir = os.path.join(dump, "output")
     db = os.path.join(dump, "se-dump.db")
+    global redirect_file
     redirect_file = os.path.join(dump, "redirection.csv")
 
     # set ImageMagick's temp folder via env
@@ -1539,22 +1676,24 @@ def run():
             shutil.rmtree(os.path.join(dump, "output"))
 
     if arguments["--clean-previous"]:
-        clean(output, db, redirect_file)
+        clean(db)
 
-    if data_from_previous_run(output, db, redirect_file):
+    if data_from_previous_run(db):
         sys.exit(
             "There is still data from a previous run, you can trash them by adding --clean-previous as argument"
         )
 
     if not os.path.exists(dump):
         os.makedirs(dump)
-    if not os.path.exists(output):
-        os.makedirs(output)
-    if not os.path.exists(os.path.join(output, "static", "images")):
-        os.makedirs(os.path.join(output, "static", "images"))
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    if not os.path.exists(os.path.join(output_dir, "common_images")):
+        os.makedirs(os.path.join(output_dir, "common_images"))
+    if not os.path.exists(os.path.join(output_dir, "static", "images")):
+        os.makedirs(os.path.join(output_dir, "static", "images"))
 
     title, description, lang_input = grab_title_description_favicon_lang(
-        url, output, not arguments["--ignoreoldsite"]
+        url, not arguments["--ignoreoldsite"]
     )
 
     if not os.path.exists(
@@ -1617,7 +1756,6 @@ def run():
     parser.setContentHandler(
         UsersRender(
             templates,
-            output,
             title,
             publisher,
             dump,
@@ -1625,7 +1763,6 @@ def run():
             cursor,
             conn,
             url,
-            redirect_file,
             use_mathjax(domain),
             arguments["--nopic"],
             arguments["--no-identicons"],
@@ -1640,7 +1777,6 @@ def run():
     parser.setContentHandler(
         QuestionRender(
             templates,
-            output,
             title,
             publisher,
             dump,
@@ -1648,7 +1784,6 @@ def run():
             cursor,
             conn,
             url,
-            redirect_file,
             domain,
             use_mathjax(domain),
             arguments["--nopic"],
@@ -1663,7 +1798,6 @@ def run():
     parser.setContentHandler(
         TagsRender(
             templates,
-            output,
             title,
             publisher,
             dump,
@@ -1685,28 +1819,26 @@ def run():
     if use_mathjax(domain):
         copy_tree(
             os.path.join(os.path.abspath(os.path.dirname(__file__)), "static_mathjax"),
-            os.path.join(output, "static"),
+            os.path.join(output_dir, "static"),
         )
     copy_tree(
         os.path.join(os.path.abspath(os.path.dirname(__file__)), "static"),
-        os.path.join(output, "static"),
+        os.path.join(output_dir, "static"),
     )
     if not arguments["--nozim"]:
         done = create_zims(
             title,
             publisher,
             description,
-            redirect_file,
             domain,
             lang_input,
             arguments["--zimpath"],
-            output,
             arguments["--nofulltextindex"],
             arguments["--nopic"],
             scraper_version,
         )
         if done:
-            clean(output, db, redirect_file)
+            clean(db)
 
 
 if __name__ == "__main__":
