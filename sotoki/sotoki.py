@@ -340,6 +340,7 @@ class QuestionRender(handler.ContentHandler):
                 self.domain,
                 self.mathjax,
                 self.nopic,
+                self.nouserprofile,
             ]
             self.request_queue.put(data_send)
             # some_questions(self.templates, self.title, self.publisher, self.post, "question.html", self.site_url, self.domain, self.mathjax, self.nopic)
@@ -368,6 +369,7 @@ def some_questions(
     domain,
     mathjax,
     nopic,
+    nouserprofile,
 ):
     try:
         question["Score"] = int(question["Score"])
@@ -379,21 +381,27 @@ def some_questions(
                 question["answers"], key=lambda k: k["Accepted"], reverse=True
             )  # sorted is stable so accepted will be always first, then other question will be sort in ascending order
             for ans in question["answers"]:
-                ans["Body"] = interne_link(ans["Body"], domain, question["Id"])
+                ans["Body"] = interne_link(
+                    ans["Body"], domain, question["Id"], nouserprofile
+                )
                 ans["Body"] = image(ans["Body"], nopic)
                 if "comments" in ans:
                     for comment in ans["comments"]:
                         comment["Text"] = interne_link(
-                            comment["Text"], domain, question["Id"]
+                            comment["Text"], domain, question["Id"], nouserprofile,
                         )
                         comment["Text"] = image(comment["Text"], nopic)
 
         filepath = os.path.join(output_dir, "question", question["filename"])
-        question["Body"] = interne_link(question["Body"], domain, question["Id"])
+        question["Body"] = interne_link(
+            question["Body"], domain, question["Id"], nouserprofile
+        )
         question["Body"] = image(question["Body"], nopic)
         if "comments" in question:
             for comment in question["comments"]:
-                comment["Text"] = interne_link(comment["Text"], domain, question["Id"])
+                comment["Text"] = interne_link(
+                    comment["Text"], domain, question["Id"], nouserprofile
+                )
                 comment["Text"] = image(comment["Text"], nopic)
         question["Title"] = html.escape(question["Title"], quote=False)
         try:
@@ -1088,7 +1096,7 @@ def download_image(
                 print(f"Moved {tmp_img} to {fullpath}")
 
 
-def interne_link(text_post, domain, question_id):
+def interne_link(text_post, domain, question_id, nouserprofile):
     body = string2html(text_post)
     links = body.xpath("//a")
     for a in links:
@@ -1124,14 +1132,17 @@ def interne_link(text_post, domain, question_id):
                     a.attrib["href"] = "../element/" + qid + ".html"
             elif link[0:10] == "questions/" and link[10:17] == "tagged/":
                 tag = urllib.parse.quote(link.split("/")[-1])
-                a.attrib["href"] = "../tag/" + tag + ".html"
+                a.attrib["href"] = "../tag/" + tag + "/1.html"
             elif link[0:2] == "a/":
                 qans_split = link.split("/")
                 qans = qans_split[1]
                 a.attrib["href"] = "../element/" + qans + ".html#a" + qans
             elif link[0:6] == "users/":
-                userid = link.split("/")[1]
-                a.attrib["href"] = "../user/" + userid + ".html"
+                if not nouserprofile:
+                    userid = link.split("/")[1]
+                    a.attrib["href"] = "../user/" + userid + ".html"
+                else:
+                    a.attrib["href"] = f"http://{domain}/{link}"
             elif root_relative:
                 a.attrib["href"] = f"http://{domain}/{link}"
 
@@ -1555,11 +1566,11 @@ def create_zim(
         if nopic:
             shutil.move(
                 os.path.join(tmpfile, "images"),
-                os.path.join(static_folder, "static", "images"),
+                os.path.join(output_dir, "static", "images"),
             )
             shutil.move(
                 os.path.join(tmpfile, "identicon"),
-                os.path.join(static_folder, "static", "identicon"),
+                os.path.join(output_dir, "static", "identicon"),
             )
             shutil.rmtree(tmpfile)
         return False
@@ -1568,11 +1579,11 @@ def create_zim(
         if nopic:
             shutil.move(
                 os.path.join(tmpfile, "images"),
-                os.path.join(static_folder, "static", "images"),
+                os.path.join(output_dir, "static", "images"),
             )
             shutil.move(
                 os.path.join(tmpfile, "identicon"),
-                os.path.join(static_folder, "static", "identicon"),
+                os.path.join(output_dir, "static", "identicon"),
             )
             shutil.rmtree(tmpfile)
         return True
