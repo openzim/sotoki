@@ -8,6 +8,8 @@
 * use pylibzim to create ZIM file
 * properly handle root-relative links
 * removed zipping HTML files on disk and use of --inflateHTML zimwriterfs option
+* fix invalid tag internal links
+* user profile links now redirect to online version if `--nouserprofile` option is passed
 
 ### 1.3.1
 
