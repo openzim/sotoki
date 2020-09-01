@@ -388,7 +388,10 @@ def some_questions(
                 if "comments" in ans:
                     for comment in ans["comments"]:
                         comment["Text"] = interne_link(
-                            comment["Text"], domain, question["Id"], nouserprofile,
+                            comment["Text"],
+                            domain,
+                            question["Id"],
+                            nouserprofile,
                         )
                         comment["Text"] = image(comment["Text"], nopic)
 
@@ -526,7 +529,10 @@ class TagsRender(handler.ContentHandler):
             else:
                 questions = self.cursor.execute(
                     "SELECT * FROM questiontag WHERE Tag = ? ORDER BY Score DESC LIMIT ?",
-                    (str(tag), self.tag_depth,),
+                    (
+                        str(tag),
+                        self.tag_depth,
+                    ),
                 )
 
             while offset is not None:
@@ -702,7 +708,10 @@ def some_user(
     ):
         try:
             download_image(
-                user["ProfileImageUrl"], fullpath, convert_png=True, resize=128,
+                user["ProfileImageUrl"],
+                fullpath,
+                convert_png=True,
+                resize=128,
             )
         except Exception as exc:
             print(user["ProfileImageUrl"] + " > Failed to download\n" + str(exc) + "\n")
@@ -891,14 +900,14 @@ def get_meta_from_url(url):
 
 
 def get_image_shortcuts(url, convert_png, resize, ext):
-    """" (skip, redirect_to) shortcuts for an image if possible
+    """(skip, redirect_to) shortcuts for an image if possible
 
-            skip (bool): whether this image is meaningless and should not be downloaded.
-            redirect_to: URL of a copy of this image to redirect to """
+    skip (bool): whether this image is meaningless and should not be downloaded.
+    redirect_to: URL of a copy of this image to redirect to"""
 
     def download_and_return_name(url, source, convert_png, resize, ext):
-        """ genetare the file name given the parameters, check if present in fs and download if not present
-            returns the name of the file which was generated from the params """
+        """genetare the file name given the parameters, check if present in fs and download if not present
+        returns the name of the file which was generated from the params"""
 
         convertion = "png" if convert_png else "org"
         size = "org" if not resize else str(resize)
@@ -1008,10 +1017,10 @@ def get_image_shortcuts(url, convert_png, resize, ext):
 
 
 def handle_duplicate_images(url, fullpath, convert_png, resize):
-    """ Whether image is duplicate of existing (and process accordingly)
+    """Whether image is duplicate of existing (and process accordingly)
 
-            Download image file if not (yet) a duplicate
-            Write a redirection entry if a duplicate """
+    Download image file if not (yet) a duplicate
+    Write a redirection entry if a duplicate"""
 
     org_path = pathlib.Path(fullpath)
     skip_download, redirection = get_image_shortcuts(
@@ -1221,7 +1230,10 @@ def grab_title_description_favicon_lang(url, do_old):
     favicon_out = os.path.join(output_dir, "favicon.png")
     try:
         download_image(
-            favicon, favicon_out, convert_png=True, resize=48,
+            favicon,
+            favicon_out,
+            convert_png=True,
+            resize=48,
         )
     except Exception as e:
         print(e)
@@ -1434,11 +1446,11 @@ def data_from_previous_run(db):
 
 
 def use_mathjax(domain):
-    """ const True
+    """const True
 
-        used to be a static list of domains for which mathjax should be enabled.
-        this list was updated with help from find_mathml_site.sh script (looks for
-        mathjax string in homepage of the domain) """
+    used to be a static list of domains for which mathjax should be enabled.
+    this list was updated with help from find_mathml_site.sh script (looks for
+    mathjax string in homepage of the domain)"""
     return True
 
 
