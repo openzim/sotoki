@@ -40,7 +40,7 @@
           <h3>Duplicate</h3>
           <ul>
             {% for dupe in question["duplicate"] %}
-                <li><a href="{{ rooturl }}/question/{{ dupe["PostId"] }}.html" >{{ dupe["PostName"] }}</a></li>
+                <li><a href="{{ rooturl }}/question/{{ dupe["PostId"] }}" >{{ dupe["PostName"] }}</a></li>
             {% endfor %}
             </ul>
         </div>
@@ -50,7 +50,7 @@
           <h3>Related</h3>
           <ul>
             {% for related in question["relateds"] %}
-                <li><a href="{{ rooturl }}/question/{{ related["PostId"] }}.html" >{{ related["PostName"] }}</a></li>
+                <li><a href="{{ rooturl }}/question/{{ related["PostId"] }}" >{{ related["PostName"] }}</a></li>
             {% endfor %}
            </ul>
         </div>

@@ -4,7 +4,7 @@
 
 {% block body %}
   <div class="row">
-  <a href="{{ rooturl }}/index.html"><img src="{{ rooturl }}/static/img/se-logo.png" class=sclogo></a>
+  <a href="{{ rooturl }}/index"><img src="{{ rooturl }}/static/img/se-logo.png" class=sclogo></a>
     <h2 class="title">{{ title }} <small>by {{ publisher }}</small></h2>
     <p class=description>{{ description }}</p>
    </div>
@@ -12,7 +12,7 @@
   <div class="col-md-8 tag indexQuestions">
 <h3 class="title">Most popular questions</h3>
 {% for question in questions %}
-        <p class="question"><span class="score {{ question["Score"] | scale }}">{{ question["Score"] }}</span> <a href="{{ rooturl }}/question/{{ question["filepath"] }}.html">{{ question["Title"] }}</a> <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
+        <p class="question"><span class="score {{ question["Score"] | scale }}">{{ question["Score"] }}</span> <a href="{{ rooturl }}/question/{{ question["filepath"] }}">{{ question["Title"] }}</a> <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
 {% endfor %}
 
 </div>
@@ -25,11 +25,11 @@
          {% set numbertags = numbertags + 1 %}
          {% if (numbertags >= 100) : %} 
 	  {% else %}
-        <li><a href="{{ rooturl }}/tag/{{ tag["TagUrl"] }}/1.html">{{ tag["TagName"] }}</a></li>
+        <li><a href="{{ rooturl }}/tag/{{ tag["TagUrl"] }}/1">{{ tag["TagName"] }}</a></li>
          {% endif %}
       {% endfor %}
     </ul>
-     <a href = "{{ rooturl }}/alltags.html" class=button>All tags</a>
+     <a href = "{{ rooturl }}/alltags" class=button>All tags</a>
      </div>
 </div>
   </div>
