@@ -14,7 +14,7 @@
   <div class="col-md-8 tag indexQuestions">
 <h3 class="title"><i class="glyphicon glyphicon-question-sign"></i> Most popular questions</h3>
 {% for question in questions %}
-        <p class="question"><span class="score {{ question["Score"] | scale }}">{{ question["Score"] }}</span> <a href="{{ rooturl }}/question/{{ question["filepath"] }}.html">{{ question["Title"] }}</a> <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
+        <p class="question"><span class="score {{ question["Score"] | scale }}">{{ question["Score"] }}</span> <a href="{{ rooturl }}/question/{{ question["filepath"] }}">{{ question["Title"] }}</a> <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
 {% endfor %}
 
 </div>
@@ -23,10 +23,10 @@
   <div class=tagsblob>
     <ul>
       {% for tag in tags %}
-        <li><a href="{{ rooturl }}/tag/{{ tag["TagUrl"] }}/1.html">{{ tag["TagName"] }}</a></li>
+        <li><a href="{{ rooturl }}/tag/{{ tag["TagUrl"] }}/1">{{ tag["TagName"] }}</a></li>
       {% endfor %}
     </ul>
-     <a href = "{{ rooturl }}/alltags.html" class=button><i class="glyphicon glyphicon-tags"></i> &nbsp; All tags</a>
+     <a href = "{{ rooturl }}/alltags" class=button><i class="glyphicon glyphicon-tags"></i> &nbsp; All tags</a>
      </div>
 </div>
   </div>

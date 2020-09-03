@@ -10,6 +10,8 @@
 * removed zipping HTML files on disk and use of --inflateHTML zimwriterfs option
 * fix invalid tag internal links
 * user profile links now redirect to online version if `--nouserprofile` option is passed
+* `.html` extension is now removed from the articles
+* internal link redirection is now possible from user profiles
 
 ### 1.3.1
 

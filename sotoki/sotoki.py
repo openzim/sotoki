@@ -241,7 +241,7 @@ class QuestionRender(handler.ContentHandler):
                 self.post[k] = attrs[k]
             self.post["relateds"] = []  # Prepare list for relateds question
             self.post["duplicate"] = []  # Prepare list for duplicate question
-            self.post["filename"] = "%s.html" % self.post["Id"]
+            self.post["filename"] = self.post["Id"]
 
             if (
                 "OwnerUserId" in self.post
@@ -312,21 +312,21 @@ class QuestionRender(handler.ContentHandler):
                     f_redirect.write(
                         "A\telement/"
                         + str(ans["Id"])
-                        + ".html\tAnswer "
+                        + "\tAnswer "
                         + str(ans["Id"])
                         + "\tA/question/"
                         + self.post["Id"]
-                        + ".html\n"
+                        + "\n"
                     )
             with open(redirect_file, "a") as f_redirect:
                 f_redirect.write(
                     "A\telement/"
                     + str(self.post["Id"])
-                    + ".html\tQuestion "
+                    + "\tQuestion "
                     + str(self.post["Id"])
                     + "\tA/question/"
                     + self.post["Id"]
-                    + ".html\n"
+                    + "\n"
                 )
 
             data_send = [
@@ -381,30 +381,23 @@ def some_questions(
                 question["answers"], key=lambda k: k["Accepted"], reverse=True
             )  # sorted is stable so accepted will be always first, then other question will be sort in ascending order
             for ans in question["answers"]:
-                ans["Body"] = interne_link(
-                    ans["Body"], domain, question["Id"], nouserprofile
-                )
+                ans["Body"] = interne_link(ans["Body"], domain, nouserprofile)
                 ans["Body"] = image(ans["Body"], nopic)
                 if "comments" in ans:
                     for comment in ans["comments"]:
                         comment["Text"] = interne_link(
                             comment["Text"],
                             domain,
-                            question["Id"],
                             nouserprofile,
                         )
                         comment["Text"] = image(comment["Text"], nopic)
 
         filepath = os.path.join(output_dir, "question", question["filename"])
-        question["Body"] = interne_link(
-            question["Body"], domain, question["Id"], nouserprofile
-        )
+        question["Body"] = interne_link(question["Body"], domain, nouserprofile)
         question["Body"] = image(question["Body"], nopic)
         if "comments" in question:
             for comment in question["comments"]:
-                comment["Text"] = interne_link(
-                    comment["Text"], domain, question["Id"], nouserprofile
-                )
+                comment["Text"] = interne_link(comment["Text"], domain, nouserprofile)
                 comment["Text"] = image(comment["Text"], nopic)
         question["Title"] = html.escape(question["Title"], quote=False)
         try:
@@ -487,7 +480,7 @@ class TagsRender(handler.ContentHandler):
                 questionsids.append(question["QId"])
                 new_questions.append(question)
         jinja(
-            os.path.join(output_dir, "index.html"),
+            os.path.join(output_dir, "index"),
             "index.html",
             self.templates,
             False,
@@ -500,7 +493,7 @@ class TagsRender(handler.ContentHandler):
             mathjax=self.mathjax,
         )
         jinja(
-            os.path.join(output_dir, "alltags.html"),
+            os.path.join(output_dir, "alltags"),
             "alltags.html",
             self.templates,
             False,
@@ -536,7 +529,7 @@ class TagsRender(handler.ContentHandler):
                 )
 
             while offset is not None:
-                fullpath = os.path.join(tagpath, "%s.html" % page)
+                fullpath = os.path.join(tagpath, "%s" % page)
                 some_questions = questions.fetchmany(100)
                 if len(some_questions) != 100:
                     offset = None
@@ -585,6 +578,7 @@ class UsersRender(handler.ContentHandler):
         nopic,
         no_identicons,
         nouserprofile,
+        domain,
     ):
         self.identicon_path = os.path.join(output_dir, "static", "identicon")
         self.templates = templates
@@ -599,6 +593,7 @@ class UsersRender(handler.ContentHandler):
         self.nopic = nopic
         self.no_identicons = no_identicons
         self.nouserprofile = nouserprofile
+        self.domain = domain
         self.id = 0
         if not os.path.exists(self.identicon_path):
             os.makedirs(self.identicon_path)
@@ -656,11 +651,11 @@ class UsersRender(handler.ContentHandler):
                     f_redirect.write(
                         "A\tuser/"
                         + page_url(user["Id"], user["DisplayName"])
-                        + ".html\tUser "
+                        + "\tUser "
                         + slugify(user["DisplayName"])
                         + "\tA/user/"
                         + user["Id"]
-                        + ".html\n"
+                        + "\n"
                     )
             data_send = [
                 some_user,
@@ -673,9 +668,10 @@ class UsersRender(handler.ContentHandler):
                 self.nopic,
                 self.no_identicons,
                 self.nouserprofile,
+                self.domain,
             ]
             self.request_queue.put(data_send)
-            # some_user(user, self.generator, self.templates, self.publisher, self.site_url, self.title, self.mathjax, self.nopic, self.nouserprofile)
+            # some_user(user, self.generator, self.templates, self.publisher, self.site_url, self.title, self.mathjax, self.nopic, self.nouserprofile, self.domain)
 
     def endDocument(self):
         self.conn.commit()
@@ -697,6 +693,7 @@ def some_user(
     nopic,
     no_identicons,
     nouserprofile,
+    domain,
 ):
     filename = user["Id"] + ".png"
     fullpath = os.path.join(output_dir, "static", "identicon", filename)
@@ -719,9 +716,12 @@ def some_user(
     #
     if not nouserprofile:
         if "AboutMe" in user:
-            user["AboutMe"] = image("<p>" + user["AboutMe"] + "</p>", output_dir, nopic)
+            user["AboutMe"] = interne_link(
+                "<p>" + user["AboutMe"] + "</p>", domain, nouserprofile
+            )
+            user["AboutMe"] = image(user["AboutMe"], nopic)
         # generate user profile page
-        filename = "%s.html" % user["Id"]
+        filename = user["Id"]
         fullpath = os.path.join(output_dir, "user", filename)
         jinja(
             fullpath,
@@ -1105,7 +1105,7 @@ def download_image(
                 print(f"Moved {tmp_img} to {fullpath}")
 
 
-def interne_link(text_post, domain, question_id, nouserprofile):
+def interne_link(text_post, domain, nouserprofile):
     body = string2html(text_post)
     links = body.xpath("//a")
     for a in links:
@@ -1134,22 +1134,22 @@ def interne_link(text_post, domain, question_id, nouserprofile):
                 if len(is_a) == 2 and is_a[0] == is_a[1]:
                     # it a answers
                     qans = is_a[0]
-                    a.attrib["href"] = "../element/" + qans + ".html#a" + qans
+                    a.attrib["href"] = "../element/" + qans + "#a" + qans
                 else:
                     # question
                     qid = link.split("/")[1]
-                    a.attrib["href"] = "../element/" + qid + ".html"
+                    a.attrib["href"] = "../element/" + qid
             elif link[0:10] == "questions/" and link[10:17] == "tagged/":
                 tag = urllib.parse.quote(link.split("/")[-1])
-                a.attrib["href"] = "../tag/" + tag + "/1.html"
+                a.attrib["href"] = "../tag/" + tag + "/1"
             elif link[0:2] == "a/":
                 qans_split = link.split("/")
                 qans = qans_split[1]
-                a.attrib["href"] = "../element/" + qans + ".html#a" + qans
+                a.attrib["href"] = "../element/" + qans + "#a" + qans
             elif link[0:6] == "users/":
-                if not nouserprofile:
-                    userid = link.split("/")[1]
-                    a.attrib["href"] = "../user/" + userid + ".html"
+                userid = link.split("/")[1]
+                if not nouserprofile and userid.isnumeric():
+                    a.attrib["href"] = "../user/" + userid
                 else:
                     a.attrib["href"] = f"http://{domain}/{link}"
             elif root_relative:
@@ -1420,8 +1420,8 @@ def clean(db):
             shutil.rmtree(elem_path)
     if os.path.exists(os.path.join(output_dir, "favicon.png")):
         os.remove(os.path.join(output_dir, "favicon.png"))
-    if os.path.exists(os.path.join(output_dir, "index.html")):
-        os.remove(os.path.join(output_dir, "index.html"))
+    if os.path.exists(os.path.join(output_dir, "index")):
+        os.remove(os.path.join(output_dir, "index"))
     if os.path.exists(db):
         print("remove " + db)
         os.remove(db)
@@ -1437,7 +1437,7 @@ def data_from_previous_run(db):
             return True
     if (
         os.path.exists(os.path.join(output_dir, "favicon.png"))
-        or os.path.exists(os.path.join(output_dir, "index.html"))
+        or os.path.exists(os.path.join(output_dir, "index"))
         or os.path.exists(db)
         or os.path.exists(redirect_file)
     ):
@@ -1557,7 +1557,7 @@ def create_zim(
             build_dir=pathlib.Path(output_dir),
             fpath=pathlib.Path(zim_path),
             name=name,
-            main_page="index.html",
+            main_page="index",
             favicon="favicon.png",
             title=title,
             description=description,
@@ -1793,6 +1793,7 @@ def run():
             arguments["--nopic"],
             arguments["--no-identicons"],
             arguments["--no-userprofile"],
+            domain,
         )
     )
     parser.parse(os.path.join(dump, "usersbadges.xml"))
