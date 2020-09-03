@@ -381,30 +381,23 @@ def some_questions(
                 question["answers"], key=lambda k: k["Accepted"], reverse=True
             )  # sorted is stable so accepted will be always first, then other question will be sort in ascending order
             for ans in question["answers"]:
-                ans["Body"] = interne_link(
-                    ans["Body"], domain, question["Id"], nouserprofile
-                )
+                ans["Body"] = interne_link(ans["Body"], domain, nouserprofile)
                 ans["Body"] = image(ans["Body"], nopic)
                 if "comments" in ans:
                     for comment in ans["comments"]:
                         comment["Text"] = interne_link(
                             comment["Text"],
                             domain,
-                            question["Id"],
                             nouserprofile,
                         )
                         comment["Text"] = image(comment["Text"], nopic)
 
         filepath = os.path.join(output_dir, "question", question["filename"])
-        question["Body"] = interne_link(
-            question["Body"], domain, question["Id"], nouserprofile
-        )
+        question["Body"] = interne_link(question["Body"], domain, nouserprofile)
         question["Body"] = image(question["Body"], nopic)
         if "comments" in question:
             for comment in question["comments"]:
-                comment["Text"] = interne_link(
-                    comment["Text"], domain, question["Id"], nouserprofile
-                )
+                comment["Text"] = interne_link(comment["Text"], domain, nouserprofile)
                 comment["Text"] = image(comment["Text"], nopic)
         question["Title"] = html.escape(question["Title"], quote=False)
         try:
@@ -585,6 +578,7 @@ class UsersRender(handler.ContentHandler):
         nopic,
         no_identicons,
         nouserprofile,
+        domain,
     ):
         self.identicon_path = os.path.join(output_dir, "static", "identicon")
         self.templates = templates
@@ -599,6 +593,7 @@ class UsersRender(handler.ContentHandler):
         self.nopic = nopic
         self.no_identicons = no_identicons
         self.nouserprofile = nouserprofile
+        self.domain = domain
         self.id = 0
         if not os.path.exists(self.identicon_path):
             os.makedirs(self.identicon_path)
@@ -673,9 +668,10 @@ class UsersRender(handler.ContentHandler):
                 self.nopic,
                 self.no_identicons,
                 self.nouserprofile,
+                self.domain,
             ]
             self.request_queue.put(data_send)
-            # some_user(user, self.generator, self.templates, self.publisher, self.site_url, self.title, self.mathjax, self.nopic, self.nouserprofile)
+            # some_user(user, self.generator, self.templates, self.publisher, self.site_url, self.title, self.mathjax, self.nopic, self.nouserprofile, self.domain)
 
     def endDocument(self):
         self.conn.commit()
@@ -697,6 +693,7 @@ def some_user(
     nopic,
     no_identicons,
     nouserprofile,
+    domain,
 ):
     filename = user["Id"] + ".png"
     fullpath = os.path.join(output_dir, "static", "identicon", filename)
@@ -719,7 +716,10 @@ def some_user(
     #
     if not nouserprofile:
         if "AboutMe" in user:
-            user["AboutMe"] = image("<p>" + user["AboutMe"] + "</p>", output_dir, nopic)
+            user["AboutMe"] = interne_link(
+                "<p>" + user["AboutMe"] + "</p>", domain, nouserprofile
+            )
+            user["AboutMe"] = image(user["AboutMe"], nopic)
         # generate user profile page
         filename = user["Id"]
         fullpath = os.path.join(output_dir, "user", filename)
@@ -1105,7 +1105,7 @@ def download_image(
                 print(f"Moved {tmp_img} to {fullpath}")
 
 
-def interne_link(text_post, domain, question_id, nouserprofile):
+def interne_link(text_post, domain, nouserprofile):
     body = string2html(text_post)
     links = body.xpath("//a")
     for a in links:
@@ -1147,8 +1147,8 @@ def interne_link(text_post, domain, question_id, nouserprofile):
                 qans = qans_split[1]
                 a.attrib["href"] = "../element/" + qans + "#a" + qans
             elif link[0:6] == "users/":
-                if not nouserprofile:
-                    userid = link.split("/")[1]
+                userid = link.split("/")[1]
+                if not nouserprofile and userid.isnumeric():
                     a.attrib["href"] = "../user/" + userid
                 else:
                     a.attrib["href"] = f"http://{domain}/{link}"
@@ -1793,6 +1793,7 @@ def run():
             arguments["--nopic"],
             arguments["--no-identicons"],
             arguments["--no-userprofile"],
+            domain,
         )
     )
     parser.parse(os.path.join(dump, "usersbadges.xml"))
