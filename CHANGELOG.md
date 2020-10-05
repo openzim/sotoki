@@ -12,6 +12,7 @@
 * user profile links now redirect to online version if `--nouserprofile` option is passed
 * `.html` extension is now removed from the articles
 * internal link redirection is now possible from user profiles
+* error during ZIM creation now properly returns 1
 
 ### 1.3.1
 
