@@ -1866,7 +1866,10 @@ def run():
         )
         if done:
             clean(db)
+        if not done:
+            return 1
+    return 0
 
 
 if __name__ == "__main__":
-    run()
+    sys.exit(run())
