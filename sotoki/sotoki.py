@@ -1112,6 +1112,9 @@ def interne_link(text_post, domain, nouserprofile):
         if "href" in a.attrib:
             root_relative = False
             a_href = re.sub("^https?://", "", a.attrib["href"])
+            if a_href == "/":
+                a.attrib["href"] = f"https://{domain}"
+                continue
             if len(a_href) >= 2 and a_href[0] == "/" and a_href[1] != "/":
                 link = a_href[1:]
                 root_relative = True

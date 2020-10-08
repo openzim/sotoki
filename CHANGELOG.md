@@ -13,6 +13,7 @@
 * `.html` extension is now removed from the articles
 * internal link redirection is now possible from user profiles
 * error during ZIM creation now properly returns 1
+* handle internal `\` link
 
 ### 1.3.1
 
