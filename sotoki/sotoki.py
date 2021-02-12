@@ -5,7 +5,7 @@
 """sotoki.
 
 Usage:
-  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--optimization-cache=<optimization-cache>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite] [--nopic] [--no-userprofile] [--no-identicons] [--no-externallink]
+  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--optimization-cache=<optimization-cache>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite] [--nopic] [--no-userprofile] [--no-identicons] [--no-externallink] [--no-unansweredquestion]
   sotoki (-h | --help)
   sotoki --version
 
@@ -26,6 +26,7 @@ Options:
   --no-userprofile                              Doesn't include user profiles
   --no-identicons                               Use generated profile picture only (user images won't be downloaded)
   --no-externallink                             Remove external link
+  --no-unansweredquestion                       Doesn't include questions with no answers
   --optimization-cache=<optimization-cache>     Use optimization cache with given URL and credentials. The argument needs to be of the form <endpoint-url>?keyId=<key-id>&secretAccessKey=<secret-access-key>&bucketName=<bucket-name>
 """
 import re
@@ -102,6 +103,7 @@ class QuestionRender(handler.ContentHandler):
         nopic,
         nouserprofile,
         noexternallink,
+        no_unansweredquestion,
     ):
         self.templates = templates
         self.title = title
@@ -125,6 +127,7 @@ class QuestionRender(handler.ContentHandler):
         self.nopic = nopic
         self.nouserprofile = nouserprofile
         self.noexternallink = noexternallink
+        self.no_unansweredquestion = no_unansweredquestion
         for i in range(self.cores):
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
@@ -290,6 +293,12 @@ class QuestionRender(handler.ContentHandler):
             self.post["comments"] = self.comments
 
         if name == "post":
+            if self.no_unansweredquestion and self.answers == [] :
+                # Reset element
+                self.post = {}
+                self.comments = []
+                self.answers = []
+                return
             # print self.post
             self.nb += 1
             if self.nb % 1000 == 0:
@@ -1840,6 +1849,7 @@ def run():
             arguments["--nopic"],
             arguments["--no-userprofile"],
             arguments["--no-externallink"],
+            arguments["--no-unansweredquestion"],
         )
     )
     parser.parse(os.path.join(dump, "prepare.xml"))
