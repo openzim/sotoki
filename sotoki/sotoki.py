@@ -5,7 +5,7 @@
 """sotoki.
 
 Usage:
-  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--optimization-cache=<optimization-cache>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite] [--nopic] [--no-userprofile] [--no-identicons] [--no-externallink]
+  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--optimization-cache=<optimization-cache>] [--censor-list=<censor-list>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite] [--nopic] [--no-userprofile] [--no-identicons] [--no-externallink]
   sotoki (-h | --help)
   sotoki --version
 
@@ -27,6 +27,7 @@ Options:
   --no-identicons                               Use generated profile picture only (user images won't be downloaded)
   --no-externallink                             Remove external link
   --optimization-cache=<optimization-cache>     Use optimization cache with given URL and credentials. The argument needs to be of the form <endpoint-url>?keyId=<key-id>&secretAccessKey=<secret-access-key>&bucketName=<bucket-name>
+  --censor-list=<censor-list>                   Path to a text file with 1 word to censor on each list
 """
 import re
 import sys
@@ -819,11 +820,20 @@ def jinja(output, template, templates, raw, **context):
     with open(output, "w") as f:
         f.write(page)
 
+def censor(var):
+    global CENSOR_LIST
+    var = str(var)
+    for censor_word in CENSOR_LIST:
+        var = var.replace(censor_word, "XXX")
+    return var
 
-def jinja_init(templates):
+def jinja_init(templates, censor_list):
     global ENV
     templates = os.path.abspath(templates)
-    ENV = Environment(loader=FileSystemLoader((templates,)))
+    if censor_list:
+        ENV = Environment(loader=FileSystemLoader((templates,)), finalize=censor)
+    else:
+        ENV = Environment(loader=FileSystemLoader((templates,)))
     filters = dict(
         markdown=markdown,
         intspace=intspace,
@@ -1316,6 +1326,10 @@ def prepare(dump_path, bin_dir):
     else:
         sys.exit("Unable to prepare xml :(")
 
+def load_censorlist(path):
+    with open(path) as f:
+        return [line.strip() for line in f]
+
 
 def check_and_optimize(path, ftype):
     if not (path.endswith(f".{ftype}") or (path.endswith(".jpg") and ftype == "jpeg")):
@@ -1701,6 +1715,13 @@ def run():
     else:
         cores = cpu_count() / 2 or 1
 
+    if arguments["--censor-list"]:
+        global CENSOR_LIST
+        if not os.path.exists(arguments["--censor-list"]):
+            sys.exit("Censor list " + arguments["--censor-list"] + " does not exist")
+        CENSOR_LIST = load_censorlist(arguments["--censor-list"])
+        print("Load " + str(len(CENSOR_LIST)) + " words from censor list " + arguments["--censor-list"])
+
     if arguments["--reset"]:
         if os.path.exists(dump):
             for elem in [
@@ -1791,7 +1812,7 @@ def run():
     cursor.execute(sql)
     conn.commit()
 
-    jinja_init(templates)
+    jinja_init(templates, arguments["--censor-list"])
     global MARKDOWN
     renderer = mistune.HTMLRenderer()
     MARKDOWN = mistune.Markdown(renderer, plugins=[plugin_url])
