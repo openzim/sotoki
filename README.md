@@ -5,7 +5,7 @@
 The goal of this project is to create a suite of tools to create
 [zim](https://openzim.org) files required by
 [kiwix](https://kiwix.org/) reader to make available [Stack Overflow](https://stackoverflow.com/)
-offline (without access to Internet).
+offline (without access to Internet). This use stackexchange dump from [Stack Exchange Data Dump](https://archive.org/details/stackexchange)
 
 [![PyPI](https://img.shields.io/pypi/v/sotoki.svg)](https://pypi.python.org/pypi/sotoki)
 [![Docker Build Status](https://img.shields.io/docker/build/openzim/sotoki)](https://hub.docker.com/r/openzim/sotoki)
