@@ -5,7 +5,7 @@
 """sotoki.
 
 Usage:
-  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--optimization-cache=<optimization-cache>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite] [--nopic] [--no-userprofile] [--no-identicons]
+  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--optimization-cache=<optimization-cache>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite] [--nopic] [--no-userprofile] [--no-identicons] [--no-externallink]
   sotoki (-h | --help)
   sotoki --version
 
@@ -25,6 +25,7 @@ Options:
   --nopic                                       Doesn't download images
   --no-userprofile                              Doesn't include user profiles
   --no-identicons                               Use generated profile picture only (user images won't be downloaded)
+  --no-externallink                             Remove external link
   --optimization-cache=<optimization-cache>     Use optimization cache with given URL and credentials. The argument needs to be of the form <endpoint-url>?keyId=<key-id>&secretAccessKey=<secret-access-key>&bucketName=<bucket-name>
 """
 import re
@@ -100,6 +101,7 @@ class QuestionRender(handler.ContentHandler):
         mathjax,
         nopic,
         nouserprofile,
+        noexternallink,
     ):
         self.templates = templates
         self.title = title
@@ -118,11 +120,11 @@ class QuestionRender(handler.ContentHandler):
         os.makedirs(os.path.join(output_dir, "question"))
         self.request_queue = Queue(cores * 2)
         self.workers = []
-        self.cores = cores
         self.conn = conn
         self.mathjax = mathjax
         self.nopic = nopic
         self.nouserprofile = nouserprofile
+        self.noexternallink = noexternallink
         for i in range(self.cores):
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
@@ -341,6 +343,7 @@ class QuestionRender(handler.ContentHandler):
                 self.mathjax,
                 self.nopic,
                 self.nouserprofile,
+                self.noexternallink,
             ]
             self.request_queue.put(data_send)
             # some_questions(self.templates, self.title, self.publisher, self.post, "question.html", self.site_url, self.domain, self.mathjax, self.nopic)
@@ -370,6 +373,7 @@ def some_questions(
     mathjax,
     nopic,
     nouserprofile,
+    noexternallink,
 ):
     try:
         question["Score"] = int(question["Score"])
@@ -381,7 +385,7 @@ def some_questions(
                 question["answers"], key=lambda k: k["Accepted"], reverse=True
             )  # sorted is stable so accepted will be always first, then other question will be sort in ascending order
             for ans in question["answers"]:
-                ans["Body"] = interne_link(ans["Body"], domain, nouserprofile)
+                ans["Body"] = interne_link(ans["Body"], domain, nouserprofile, noexternallink)
                 ans["Body"] = image(ans["Body"], nopic)
                 if "comments" in ans:
                     for comment in ans["comments"]:
@@ -389,15 +393,16 @@ def some_questions(
                             comment["Text"],
                             domain,
                             nouserprofile,
+                            noexternallink,
                         )
                         comment["Text"] = image(comment["Text"], nopic)
 
         filepath = os.path.join(output_dir, "question", question["filename"])
-        question["Body"] = interne_link(question["Body"], domain, nouserprofile)
+        question["Body"] = interne_link(question["Body"], domain, nouserprofile, noexternallink)
         question["Body"] = image(question["Body"], nopic)
         if "comments" in question:
             for comment in question["comments"]:
-                comment["Text"] = interne_link(comment["Text"], domain, nouserprofile)
+                comment["Text"] = interne_link(comment["Text"], domain, nouserprofile, noexternallink)
                 comment["Text"] = image(comment["Text"], nopic)
         question["Title"] = html.escape(question["Title"], quote=False)
         try:
@@ -578,6 +583,7 @@ class UsersRender(handler.ContentHandler):
         nopic,
         no_identicons,
         nouserprofile,
+        noexternallink,
         domain,
     ):
         self.identicon_path = os.path.join(output_dir, "static", "identicon")
@@ -593,6 +599,7 @@ class UsersRender(handler.ContentHandler):
         self.nopic = nopic
         self.no_identicons = no_identicons
         self.nouserprofile = nouserprofile
+        self.noexternallink = noexternallink
         self.domain = domain
         self.id = 0
         if not os.path.exists(self.identicon_path):
@@ -668,6 +675,7 @@ class UsersRender(handler.ContentHandler):
                 self.nopic,
                 self.no_identicons,
                 self.nouserprofile,
+                self.noexternallink,
                 self.domain,
             ]
             self.request_queue.put(data_send)
@@ -693,6 +701,7 @@ def some_user(
     nopic,
     no_identicons,
     nouserprofile,
+    noexternallink,
     domain,
 ):
     filename = user["Id"] + ".png"
@@ -717,7 +726,7 @@ def some_user(
     if not nouserprofile:
         if "AboutMe" in user:
             user["AboutMe"] = interne_link(
-                "<p>" + user["AboutMe"] + "</p>", domain, nouserprofile
+                "<p>" + user["AboutMe"] + "</p>", domain, nouserprofile, noexternallink
             )
             user["AboutMe"] = image(user["AboutMe"], nopic)
         # generate user profile page
@@ -1105,7 +1114,7 @@ def download_image(
                 print(f"Moved {tmp_img} to {fullpath}")
 
 
-def interne_link(text_post, domain, nouserprofile):
+def interne_link(text_post, domain, nouserprofile, noexternallink):
     body = string2html(text_post)
     links = body.xpath("//a")
     for a in links:
@@ -1113,7 +1122,10 @@ def interne_link(text_post, domain, nouserprofile):
             root_relative = False
             a_href = re.sub("^https?://", "", a.attrib["href"])
             if a_href == "/":
-                a.attrib["href"] = f"https://{domain}"
+                if noexternallink:
+                    a.attrib.pop("href")
+                else:
+                    a.attrib["href"] = f"https://{domain}"
                 continue
             if len(a_href) >= 2 and a_href[0] == "/" and a_href[1] != "/":
                 link = a_href[1:]
@@ -1127,6 +1139,8 @@ def interne_link(text_post, domain, nouserprofile):
                 else:
                     link = a_href[len(domain) + 1 :]
             else:
+                if noexternallink:
+                    a.attrib.pop("href")
                 continue
             if link[0:2] == "q/" or (
                 link[0:10] == "questions/"
@@ -1154,9 +1168,15 @@ def interne_link(text_post, domain, nouserprofile):
                 if not nouserprofile and userid.isnumeric():
                     a.attrib["href"] = "../user/" + userid
                 else:
-                    a.attrib["href"] = f"http://{domain}/{link}"
+                    if noexternallink:
+                        a.attrib.pop("href")
+                    else:
+                        a.attrib["href"] = f"http://{domain}/{link}"
             elif root_relative:
-                a.attrib["href"] = f"http://{domain}/{link}"
+                if noexternallink:
+                    a.attrib.pop("href")
+                else:
+                    a.attrib["href"] = f"http://{domain}/{link}"
 
     if links:
         text_post = html2string(body, method="html", encoding="unicode")
@@ -1796,6 +1816,7 @@ def run():
             arguments["--nopic"],
             arguments["--no-identicons"],
             arguments["--no-userprofile"],
+            arguments["--no-externallink"],
             domain,
         )
     )
@@ -1818,6 +1839,7 @@ def run():
             use_mathjax(domain),
             arguments["--nopic"],
             arguments["--no-userprofile"],
+            arguments["--no-externallink"],
         )
     )
     parser.parse(os.path.join(dump, "prepare.xml"))
