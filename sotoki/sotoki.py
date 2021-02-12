@@ -5,7 +5,7 @@
 """sotoki.
 
 Usage:
-  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--optimization-cache=<optimization-cache>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite] [--nopic] [--no-userprofile] [--no-identicons]
+  sotoki <domain> <publisher> [--directory=<dir>] [--nozim] [--tag-depth=<tag_depth>] [--threads=<threads>] [--zimpath=<zimpath>] [--optimization-cache=<optimization-cache>] [--reset] [--reset-images] [--clean-previous] [--nofulltextindex] [--ignoreoldsite] [--nopic] [--no-userprofile] [--no-identicons] [--no-username]
   sotoki (-h | --help)
   sotoki --version
 
@@ -24,6 +24,7 @@ Options:
   --ignoreoldsite                               Ignore Stack Exchange closed sites
   --nopic                                       Doesn't download images
   --no-userprofile                              Doesn't include user profiles
+  --no-username                                 Doesn't include user profiles
   --no-identicons                               Use generated profile picture only (user images won't be downloaded)
   --optimization-cache=<optimization-cache>     Use optimization cache with given URL and credentials. The argument needs to be of the form <endpoint-url>?keyId=<key-id>&secretAccessKey=<secret-access-key>&bucketName=<bucket-name>
 """
@@ -100,6 +101,7 @@ class QuestionRender(handler.ContentHandler):
         mathjax,
         nopic,
         nouserprofile,
+        nousername
     ):
         self.templates = templates
         self.title = title
@@ -123,6 +125,7 @@ class QuestionRender(handler.ContentHandler):
         self.mathjax = mathjax
         self.nopic = nopic
         self.nouserprofile = nouserprofile
+        self.nousername = nousername
         for i in range(self.cores):
             self.workers.append(Worker(self.request_queue))
         for i in self.workers:
@@ -341,6 +344,7 @@ class QuestionRender(handler.ContentHandler):
                 self.mathjax,
                 self.nopic,
                 self.nouserprofile,
+                self.nousername,
             ]
             self.request_queue.put(data_send)
             # some_questions(self.templates, self.title, self.publisher, self.post, "question.html", self.site_url, self.domain, self.mathjax, self.nopic)
@@ -370,6 +374,7 @@ def some_questions(
     mathjax,
     nopic,
     nouserprofile,
+    nousername,
 ):
     try:
         question["Score"] = int(question["Score"])
@@ -413,6 +418,7 @@ def some_questions(
                 site_url=site_url,
                 mathjax=mathjax,
                 nopic=nopic,
+                nousername=nousername,
             )
         except Exception as e:
             print("Failed to generate %s" % filepath)
@@ -610,7 +616,6 @@ class UsersRender(handler.ContentHandler):
         ]
         # Set-up a background colour (taken from Sigil).
         self.background = "rgb(224,224,224)"
-
         self.request_queue = Queue(cores * 2)
         self.workers = []
         self.user = {}
@@ -1679,7 +1684,7 @@ def run():
     if arguments["--threads"] is not None:
         cores = int(arguments["--threads"])
     else:
-        cores = cpu_count() / 2 or 1
+        cores = int(cpu_count() / 2) or 1
 
     if arguments["--reset"]:
         if os.path.exists(dump):
@@ -1818,6 +1823,7 @@ def run():
             use_mathjax(domain),
             arguments["--nopic"],
             arguments["--no-userprofile"],
+            arguments["--no-username"]
         )
     )
     parser.parse(os.path.join(dump, "prepare.xml"))

@@ -45,7 +45,9 @@
                   <svg class="genprofilepic" width="65" height="65" data-jdenticon-value="{{ post["OwnerUserId"]["Id"] }}"></svg>
                 </object>
                 {% endif %}
-                <p>{{ post["OwnerUserId"]["DisplayName"] }}</p>
+                {% if not nousername %}
+                  <p>{{ post["OwnerUserId"]["DisplayName"] }}</p>
+                {% endif %}
                 {% if post["OwnerUserId"]["Path"] %}</a>{% endif %}   
                 <p>Posted <span class="date" title="{{ question["CreationDate"] }}">{{ question["CreationDate"] }}</span></p>
                 <p>Reputation: {{ post["OwnerUserId"]["Reputation"] | intspace }}</p>
@@ -67,7 +69,7 @@
             {% if comment["Score"] != 0 %}
               <span class="score {{ comment["Score"] | scale }}">{{ comment["Score"] }}</span>
             {% endif %}
-            <span class="text">{{ comment["Text"] | safe }}</span> – {% if comment["Path"] %}<a href="{{ rooturl }}/user/{{ comment["Path"] }}">{% endif %}{{ comment["UserDisplayName"] }} {% if comment["Path"] %}</a>{% endif %} – <span class="date" title="{{ comment["CreationDate"] }}">{{ comment["CreationDate"] }}</span>
+            <span class="text">{{ comment["Text"] | safe }}</span>{% if not nousername %} {% if comment["Path"] %}– <a href="{{ rooturl }}/user/{{ comment["Path"] }}">{% endif %}{{ comment["UserDisplayName"] }} {% if comment["Path"] %}</a>{% endif %} – <span class="date" title="{{ comment["CreationDate"] }}">{{ comment["CreationDate"] }}</span>{% endif %}
           </p>
         </div>
       {% endfor %}
