@@ -1652,7 +1652,7 @@ def run():
         url = domain
         domain = re.sub("^https?://", "", domain).split("/")[0]
     else:
-        url = "http://" + domain
+        url = "https://" + domain
     publisher = arguments["<publisher>"]
 
     if not os.path.exists("work"):
