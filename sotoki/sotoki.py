@@ -1677,11 +1677,13 @@ def run():
     if tag_depth != -1 and tag_depth <= 0:
         sys.exit("--tag-depth should be a positive integer")
     domain = arguments["<domain>"]
-    if re.match("^https?://", domain):
-        url = domain
-        domain = re.sub("^https?://", "", domain).split("/")[0]
+    if re.match("^https?://",domain):
+        domain = re.sub("^https://","",domain).split("/")[0]
+    elif re.match("^http?://",domain):
+        domain = re.sub("^http://","",domain).split("/")[0]
     else:
-        url = "http://" + domain
+        domain = domain.split("/")[0]
+    url = "https://" + domain
     publisher = arguments["<publisher>"]
 
     if not os.path.exists("work"):
