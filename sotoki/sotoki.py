@@ -1677,6 +1677,7 @@ def run():
     if tag_depth != -1 and tag_depth <= 0:
         sys.exit("--tag-depth should be a positive integer")
     domain = arguments["<domain>"]
+    url = domain
     if re.match("^https?://", url):
         domain = re.sub("^https?://", "", domain).split("/")[0] 
     url = "https://" + domain
