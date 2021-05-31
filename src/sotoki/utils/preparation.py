@@ -386,92 +386,106 @@ def add_post_names_to_links(
         csv_src.unlink()
 
 
-def merge_posts_answers_links(
-    questions_src: pathlib.Path,
-    answers_src: pathlib.Path,
-    links_src: pathlib.Path,
-    dst: pathlib.Path,
-    delete_src: bool = False,
-):
-    """merge <answers /> from answers file and <links /> from links file into posts"""
+class PostsAnswersLinksMerger:
+    """merge <answers /> from answers file and <links /> from links file into posts
 
-    id_index = get_index_in(questions_src, "Id")
-    parent_id_index = get_index_in(answers_src, "ParentId")
-    related_post_id_index = get_index_in(links_src, "RelatedPostId")
-    with open(questions_src, "rb") as questh, open(answers_src, "rb") as answh, open(
-        links_src, "rb"
-    ) as linksh, open(dst, "wb") as dsth:
+    Factored as a multi-methods class in order to lower code complexity"""
 
-        def read_answer():
-            line = answh.readline()
-            if not line:
-                return None
-            return (
-                get_id_in(line, parent_id_index, within=get_within_chars(39, 2)),
-                line,
-            )
-
-        def read_link():
-            line = linksh.readline()
-            if not line:
-                return None
-            return (
-                get_id_in(line, related_post_id_index, within=get_within_chars(78, 3)),
-                line,
-            )
+    def __init__(
+        self,
+        questions_src: pathlib.Path,
+        answers_src: pathlib.Path,
+        links_src: pathlib.Path,
+        dst: pathlib.Path,
+        delete_src: bool = False,
+    ):
+        self.files = {
+            "questions": questions_src,
+            "answers": answers_src,
+            "links": links_src,
+            "dst": dst,
+        }
+        self.handlers = {}  # file handles for all files
+        # index of used Id used for matching in respective files
+        self.indexes = {
+            "id": get_index_in(questions_src, "Id"),
+            "parent_id": get_index_in(answers_src, "ParentId"),
+            "related_post_id": get_index_in(links_src, "RelatedPostId"),
+        }
+        self.open_files()
 
         # write header to dest
-        dsth.write(b'<?xml version="1.0" encoding="utf-8"?>\n')
-        dsth.write(b"<root>\n")
+        self.handlers["dst"].write(b'<?xml version="1.0" encoding="utf-8"?>\n')
+        self.handlers["dst"].write(b"<root>\n")
+        self.write_lines()
+        self.handlers["dst"].write(b"</root>")
 
+        self.release_files(delete_src)
+
+    def write_lines(self):
         # read first lines of answers and links
-        current_answer = read_answer()
-        current_link = read_link()
+        current_answer = self.read_line("answers")
+        current_link = self.read_line("links")
 
         # loop on questions file that we'll complete with answers and links
-        for question_line in questh:
-            post_id = get_id_in(question_line, id_index)
+        for question_line in self.handlers["questions"]:
+            post_id = get_id_in(question_line, self.indexes["id"])
 
             # write user line to dest; removing end tag and CRLF
-            dsth.write(question_line[0:-8])
+            self.handlers["dst"].write(question_line[0:-8])
 
             # fetch matching answers. every answers is tied to a question
             has_answers = False
             while current_answer is not None and current_answer[0] < post_id:
-                current_answer = read_answer()
+                current_answer = self.read_line("answers")
             while current_answer is not None and current_answer[0] == post_id:
                 if not has_answers:
-                    dsth.write(b"<answers>")
+                    self.handlers["dst"].write(b"<answers>")
                     has_answers = True
 
-                dsth.write(current_answer[1][0:-1])  # skip CRLF
-                current_answer = read_answer()
+                self.handlers["dst"].write(current_answer[1][0:-1])  # skip CRLF
+                current_answer = self.read_line("answers")
             if has_answers:
-                dsth.write(b"</answers>")
+                self.handlers["dst"].write(b"</answers>")
             has_answers = False
 
             # fetch subs matching this ID (continuous)
             has_links = False
             while current_link is not None and current_link[0] < post_id:
-                current_link = read_link()
+                current_link = self.read_line("links")
             while current_link is not None and current_link[0] == post_id:
                 if not has_links:
-                    dsth.write(b"<links>")
+                    self.handlers["dst"].write(b"<links>")
                     has_links = True
-                dsth.write(current_link[1][:-1])  # skip CRLF
-                current_link = read_link()
+                self.handlers["dst"].write(current_link[1][:-1])  # skip CRLF
+                current_link = self.read_line("links")
             if has_links:
-                dsth.write(b"</links>")
+                self.handlers["dst"].write(b"</links>")
             has_links = False
 
-            dsth.write(b"</post>\n")
+            self.handlers["dst"].write(b"</post>\n")
 
-        dsth.write(b"</root>")
+    def read_line(self, kind):
+        """read line in requested file and return matched-id, line"""
+        within = get_within_chars(*{"answers": (39, 2), "links": (78, 3)}[kind])
+        index = self.indexes[{"answers": "parent_id", "links": "related_post_id"}[kind]]
 
-    if delete_src:
-        questions_src.unlink()
-        answers_src.unlink()
-        links_src.unlink()
+        line = self.handlers[kind].readline()
+        if not line:
+            return None
+        return get_id_in(line, index, within=within), line
+
+    def open_files(self):
+        self.handlers = {
+            key: open(value, "wb" if key == "dst" else "rb")
+            for key, value in self.files.items()
+        }
+
+    def release_files(self, delete_src):
+        for key, handler in self.handlers.items():
+            handler.close()
+            if delete_src and handler.mode.startswith("r"):
+                self.files[key].unlink()
 
 
 def merge_users_with_badges(
@@ -587,7 +601,7 @@ def merge_posts_with_answers_comments(
     logger.info("sorted named post links by RelatedPostId")
 
     posts_complete = workdir / "posts_complete.xml"
-    merge_posts_answers_links(
+    PostsAnswersLinksMerger(
         questions_src=posts_com_questions_sorted,
         answers_src=posts_com_answers_sorted,
         links_src=postlinks_named_sorted,
