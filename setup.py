@@ -1,10 +1,11 @@
-import pathlib
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# vim: ai ts=4 sts=4 et sw=4 nu
 
+import pathlib
 from setuptools import setup, find_packages
 
 root_dir = pathlib.Path(__file__).parent
-with open(root_dir.joinpath("requirements.txt"), "r") as fh:
-    requirements = fh.read()
 
 
 def read(*names, **kwargs):
@@ -14,28 +15,35 @@ def read(*names, **kwargs):
 
 setup(
     name="sotoki",
-    version=read("sotoki", "VERSION").strip(),
-    description="Make zimfile from stackexchange dump",
-    long_description=open("README.md").read(),
-    author="dattaz",
-    author_email="taz@dattaz.fr",
-    url="http://github.com/kiwix/sotoki",
-    keywords="kiwix zim stackexchange offline",
-    license="GPL",
-    packages=find_packages(exclude=["contrib", "docs", "tests*"]),
+    version=read("src", "sotoki", "VERSION").strip(),
+    description="Turn StackExchange dumps into ZIM files for offline usage",
+    long_description=read("README.md"),
+    long_description_content_type="text/markdown",
+    author="Kiwix",
+    author_email="contact+dev@kiwix.org",
+    url="https://github.com/openzim/sotoki",
+    keywords="kiwix zim offline stackechange stackoverflow",
+    license="GPLv3+",
+    packages=find_packages("src"),
+    package_dir={"": "src"},
     install_requires=[
         line.strip()
-        for line in requirements.splitlines()
+        for line in read("requirements.txt").splitlines()
         if not line.strip().startswith("#")
     ],
     zip_safe=False,
-    platforms="Linux",
     include_package_data=True,
-    entry_points={"console_scripts": ["sotoki=sotoki.sotoki:run"]},
+    entry_points={
+        "console_scripts": [
+            "sotoki=sotoki.__main__:main",
+        ]
+    },
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.9",
+        "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     ],
+    python_requires=">=3.6",
 )

@@ -1,3 +1,10 @@
+### 2.0.0.dev0
+
+- rewrite using python-libzim (libzim7)
+- added --list-all option to list all available stackexchange domains
+- added --preparation-only to only prepare XML files
+- faster XML dumps creation step (x5)
+
 ### 1.3.2.dev0
 
 * removed pre-generated identicons (#141)

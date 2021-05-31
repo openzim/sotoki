@@ -1,38 +1,25 @@
-FROM python:3.8
+FROM python:3.8-slim
 
-# Install necessary packages
-RUN apt-get update -y && \
-    apt-get install -y --no-install-recommends advancecomp libxml2-dev libxslt1-dev libbz2-dev p7zip-full gif2apng imagemagick libjpeg-dev libpng-dev locales && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN echo "UTC" >  /etc/timezone
+ENV TZ "UTC"
 
-# Install jpegoptim
-RUN wget http://www.kokkonen.net/tjko/src/jpegoptim-1.4.6.tar.gz && \
-    tar xvf jpegoptim-1.4.6.tar.gz && \
-    cd jpegoptim-1.4.6 && ./configure && make all install && \
-    rm -rf jpegoptim-1.4.6*
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends unzip p7zip tzdata wget \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install pngquant
-RUN wget http://pngquant.org/pngquant-2.12.5-src.tar.gz && \
-    tar xvf pngquant-2.12.5-src.tar.gz && \
-    cd pngquant-2.12.5 && ./configure && make all install && \
-    rm -rf pngquant-2.12.5*
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
 
-# Install gifsicle
-RUN wget https://www.lcdf.org/gifsicle/gifsicle-1.92.tar.gz && \
-    tar xvf gifsicle-1.92.tar.gz && \
-    cd gifsicle-1.92 && ./configure && make all install && \
-    rm -rf gifsicle-1.92*
+# TEMP: install pylibzim and scraperlib through built wheels (until release)
+RUN wget --progress=dot:giga http://tmp.kiwix.org/wheels/libzim-1.0.0.dev0-cp38-cp38-manylinux1_x86_64.whl \
+    && wget --progress=dot:giga http://tmp.kiwix.org/wheels/zimscraperlib-1.4.0.dev0-py3-none-any.whl \
+    && pip install --no-cache-dir ./*.whl
 
-# Install sotoki
-RUN locale-gen "en_US.UTF-8"
 COPY requirements.txt /tmp/requirements.txt
-RUN pip3 install -r /tmp/requirements.txt
-COPY . /app
-WORKDIR /app
-RUN python3 setup.py install
-WORKDIR /
-RUN rm -rf /app
+RUN pip install --no-cache-dir -U pip && pip install --no-cache-dir -r /tmp/requirements.txt
+COPY . /app/
+RUN cd /app && python setup.py install && cd - && rm -rf /app
 
-# Boot commands
-CMD sotoki ; /bin/bash
+CMD ["sotoki", "--help"]
