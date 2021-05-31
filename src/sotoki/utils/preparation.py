@@ -192,7 +192,7 @@ def merge_two_xml_files(
         def read_sub():
             line = subfh.readline()
             if not line:
-                return None, None
+                return None
             return get_id_in(line, field_index_in_sub, within=40), line
 
         nodes_start = f"<{sub_node_name}s>".encode(UTF8)
@@ -215,10 +215,11 @@ def merge_two_xml_files(
             dsth.write(main_line[:-4])
             dsth.write(b">")
 
-            # TODO: check if we need to check bound
             # fetch subs matching this ID (IDs are sorted so it's continuous)
             has_subs = False
-            while current_sub[0] == main_id:
+            while current_sub is not None and current_sub[0] <= main_id:
+                current_sub = read_sub()
+            while current_sub is not None and current_sub[0] == main_id:
                 if not has_subs:
                     dsth.write(nodes_start)
                     has_subs = True
