@@ -1,2 +1,4 @@
+graft src
 include *.md
-recursive-include sotoki *.js *.md *.txt *.sh *.css *.svg *.eot *.ttf *.woff *.woff2 *.html VERSION
+include requirements.txt
+include LICENSE
