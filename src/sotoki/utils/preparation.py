@@ -217,7 +217,7 @@ def merge_two_xml_files(
 
             # fetch subs matching this ID (IDs are sorted so it's continuous)
             has_subs = False
-            while current_sub is not None and current_sub[0] <= main_id:
+            while current_sub is not None and current_sub[0] < main_id:
                 current_sub = read_sub()
             while current_sub is not None and current_sub[0] == main_id:
                 if not has_subs:
