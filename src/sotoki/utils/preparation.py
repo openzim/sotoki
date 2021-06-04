@@ -10,6 +10,7 @@
 import os
 import re
 import pathlib
+import xml.sax
 import subprocess
 from typing import Union
 
@@ -217,7 +218,7 @@ def merge_two_xml_files(
 
             # fetch subs matching this ID (IDs are sorted so it's continuous)
             has_subs = False
-            while current_sub is not None and current_sub[0] <= main_id:
+            while current_sub is not None and current_sub[0] < main_id:
                 current_sub = read_sub()
             while current_sub is not None and current_sub[0] == main_id:
                 if not has_subs:
@@ -327,13 +328,19 @@ def split_posts_by_posttypeid(
 
 
 def extract_posts_titles(src: pathlib.Path, dst: pathlib.Path):
-    """extract all post titles and IDs from source and store as ID,title CSV"""
+    """extract all post titles and IDs from source and store as ID,"title" CSV
+
+    CSV must include appropriate quoting for use as an SGML attribute"""
     index = get_index_in(src, "Id")
     with open(src, "r") as srch, open(dst, "w") as dsth:
         for line in srch:
             try:
                 post_id = get_id_in(line, index, sep='"')
-                title = line.rsplit(r'Title="', 1)[-1].rsplit(r'" Tags="')[0]
+                title = xml.sax.saxutils.quoteattr(
+                    line.rsplit(r'Title="', 1)[-1]
+                    .rsplit(r'" Tags="')[0]
+                    .replace('"', "")
+                )
             except IndexError:
                 break
 
@@ -357,7 +364,7 @@ def add_post_names_to_links(
             if not line:
                 return None
             pid, title = line.split(b",", 1)
-            return int(pid), title[:-2]
+            return int(pid), title[:-1]  # remove CRLF, keep quotes
 
         # read first CSV line so we can compare it in loop
         current_csv = read_csv()
@@ -378,9 +385,10 @@ def add_post_names_to_links(
                 # write user line to dest; removing tag end and CRLF
                 dsth.write(b"<link")
                 dsth.write(line[6:-4])
-                dsth.write(b' PostName="')
+                # CSV title already includes appropriate quoting
+                dsth.write(b" PostName=")
                 dsth.write(current_csv[1])
-                dsth.write(b'" />\n')
+                dsth.write(b" />\n")
 
     if delete_src:
         links_src.unlink()
@@ -541,6 +549,8 @@ def merge_posts_with_answers_comments(
     # split posts into questions and answers files
     posts_com_questions = workdir / "posts_com_questions.xml"
     posts_com_answers = workdir / "posts_com_answers.xml"
+    # TODO: we shall keep and reuse PostTypeId="4": Tags descriptions
+    # and prob. PostTypeId="5": Tags excerpt (Wiki)
     split_posts_by_posttypeid(
         posts_comments,
         {"1": (posts_com_questions, "post"), "2": (posts_com_answers, "answer")},
