@@ -27,8 +27,9 @@ class Generator:
     def run(self):
         self.database.begin()
 
-        # parse XML file
-        parser = xml.sax.make_parser()
+        # parse XML file. not using defusedxml for performances reasons.
+        # although containing user-generated content, we trust Stack Exchange dump
+        parser = xml.sax.make_parser()  # nosec
         parser.setContentHandler(
             self.walker(
                 processor=self.processor_callback,
