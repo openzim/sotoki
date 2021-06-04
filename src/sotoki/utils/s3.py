@@ -10,7 +10,7 @@ from ..constants import getLogger
 logger = getLogger()
 
 
-def s3_credentials_ok(s3_storage, s3_url_with_credentials):
+def setup_s3_and_check_credentials(s3_url_with_credentials):
     logger.info("testing S3 Optimization Cache credentials")
     s3_storage = KiwixStorage(s3_url_with_credentials)
     if not s3_storage.check_credentials(
@@ -21,5 +21,5 @@ def s3_credentials_ok(s3_storage, s3_url_with_credentials):
         logger.error(f"  Bucket: {s3_storage.bucket_name}")
         logger.error(f"  Key ID: {s3_storage.params.get('keyid')}")
         logger.error(f"  Public IP: {get_public_ip()}")
-        return False
-    return True
+        raise ValueError("Unable to connect to Optimization Cache. Check its URL.")
+    return s3_storage

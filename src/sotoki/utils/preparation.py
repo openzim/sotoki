@@ -549,6 +549,8 @@ def merge_posts_with_answers_comments(
     # split posts into questions and answers files
     posts_com_questions = workdir / "posts_com_questions.xml"
     posts_com_answers = workdir / "posts_com_answers.xml"
+    # TODO: we shall keep and reuse PostTypeId="4": Tags descriptions
+    # and prob. PostTypeId="5": Tags excerpt (Wiki)
     split_posts_by_posttypeid(
         posts_comments,
         {"1": (posts_com_questions, "post"), "2": (posts_com_answers, "answer")},

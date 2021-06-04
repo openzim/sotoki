@@ -5,6 +5,7 @@
 import pathlib
 import logging
 import tempfile
+import urllib.parse
 import multiprocessing
 from typing import Optional, List
 from dataclasses import dataclass, field
@@ -102,17 +103,22 @@ class Sotoconf:
     without_names: Optional[bool] = False
 
     # debug/devel
+    use_redis: Optional[str] = ""
     keep_build_dir: Optional[bool] = False
     debug: Optional[bool] = False
     prepare_only: Optional[bool] = False
-    keep_xml_files: Optional[bool] = False
+    keep_intermediate_files: Optional[bool] = False
     statsFilename: Optional[str] = None
     #
     build_dir_is_tmp_dir: Optional[bool] = False
 
     @property
-    def tags(self):
-        return self.tag
+    def is_stackO(self):
+        return self.domain == "stackoverflow.com"
+
+    @property
+    def with_user_identicons(self):
+        return not self.without_images and not self.without_user_identicons
 
     def __post_init__(self):
         self.name = self.domain.replace(".", "_")
@@ -126,3 +132,7 @@ class Sotoconf:
             self.build_dir = pathlib.Path(
                 tempfile.mkdtemp(prefix=f"{self.domain}_", dir=self.tmp_dir)
             )
+
+        self.redis_url = (
+            urllib.parse.urlparse(self.use_redis) if self.use_redis else None
+        )

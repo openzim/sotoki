@@ -107,6 +107,7 @@ def main():
         "--tag",
         help="Add tag to the ZIM file. "
         "category:stack_exchange and stack_exchange added automatically",
+        default=["_category:stack_exchange", "stack_exchange"],
         action="append",
     )
 
@@ -179,6 +180,14 @@ def main():
     )
 
     advanced.add_argument(
+        "--use-redis",
+        help="Redis URL to use as database. "
+        "Uses SQLite if not set. Url must be redis://user?:pass?@host:port/dbnum. "
+        "Use file:///path/to/redis.sock?db=dbnum for sockets",
+        dest="use_redis",
+    )
+
+    advanced.add_argument(
         "--debug", help="Enable verbose output", action="store_true", default=False
     )
 
@@ -199,7 +208,7 @@ def main():
         help="Don't remove intermediate files during prepare step (debug/devel)",
         default=False,
         action="store_true",
-        dest="keep_xml_files",
+        dest="keep_intermediate_files",
     )
 
     advanced.add_argument(
