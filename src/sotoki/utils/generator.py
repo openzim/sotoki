@@ -48,7 +48,6 @@ class Generator:
         self.database.commit(done=True)
 
         # check whether any of the jobs failed
-        failed = False
         for future in result.done:
             exc = future.exception()
             if exc:
@@ -56,16 +55,12 @@ class Generator:
                 logger.error(f"Error processing {item}: {exc}")
                 logger.exception(exc)
                 raise exc
-                failed = True
 
-        if not failed and result.not_done:
+        if result.not_done:
             logger.error(
                 "Some not_done futrues: \n - "
                 + "\n - ".join([self.futures.get(future) for future in result.not_done])
             )
-            failed = True
-
-        if failed:
             raise Exception("Unable to complete download and extraction")
 
     def processor_callback(self, item):
