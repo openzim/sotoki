@@ -1,0 +1,6 @@
+this fodler is a stub to include *static assets* to.
+
+sotoki depends on a number of static assets (CSS and JS libraries) that we have no interest
+in bundling/copying but that we distribute in our release packages.
+
+When building packages, we copy those into this folder.
