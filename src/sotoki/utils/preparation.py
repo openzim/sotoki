@@ -105,7 +105,6 @@ def sort_dump_by_id_gnusort(
     args = [
         "/usr/bin/env",
         "sort",
-        "--qsort",
         '--field-separator="',
         f"--key={field_num + 1},{field_num + 1}n",  # from nth field to nth field, numerical
         f"--output={dst}",
@@ -259,7 +258,7 @@ def create_sorted_comments(
     sort_dump_by_id(
         src=comments_nohead,
         dst=comments_sorted,
-        id_attr="UserId",
+        id_attr="PostId",
         delete_src=delete_src,
     )
     logger.info("sorted Comments by UserId")
