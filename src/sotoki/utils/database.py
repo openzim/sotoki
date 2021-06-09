@@ -227,14 +227,12 @@ class RedisDatabase(Database):
         if self.conf.redis_url.scheme == "file":
             kwargs.update({"unix_socket_path": self.conf.redis_url.path})
             if self.conf.redis_url.query:
-                kwargs.update(
-                    {
-                        "db": urllib.parse.parse_qs(self.conf.redis_url.query)
-                        .get("db", [])
-                        .pop()
-                    }
+                db = (
+                    urllib.parse.parse_qs(self.conf.redis_url.query).get("db", []).pop()
                 )
-        else:  # assume uses of redis://
+                if db is not None:
+                    kwargs.update({"db": db})
+        elif self.conf.redis_url.scheme == "redis":
             kwargs.update(
                 {
                     "host": self.conf.redis_url.hostname,
