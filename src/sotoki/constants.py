@@ -123,6 +123,7 @@ class Sotoconf:
     def __post_init__(self):
         self.name = self.domain.replace(".", "_")
         self.output_dir = pathlib.Path(self._output_dir).expanduser().resolve()
+        self.output_dir.mkdir(parents=True, exist_ok=True)
         self.tmp_dir = pathlib.Path(self._tmp_dir).expanduser().resolve()
         if self.tmp_dir:
             self.tmp_dir.mkdir(parents=True, exist_ok=True)
@@ -136,3 +137,8 @@ class Sotoconf:
         self.redis_url = (
             urllib.parse.urlparse(self.use_redis) if self.use_redis else None
         )
+        if self.redis_url and self.redis_url.scheme not in ("file", "redis"):
+            raise ValueError(
+                f"Unknown scheme `{self.redis_url.scheme}` for redis. "
+                "Use redis:// or file://"
+            )
