@@ -5,8 +5,8 @@
 import pathlib
 import logging
 import tempfile
+import threading
 import urllib.parse
-import multiprocessing
 from typing import Optional, List
 from dataclasses import dataclass, field
 
@@ -18,32 +18,24 @@ NAME = ROOT_DIR.name
 with open(ROOT_DIR.joinpath("VERSION"), "r") as fh:
     VERSION = fh.read().strip()
 
+UTF8 = "utf-8"
 SCRAPER = f"{NAME} {VERSION}"
 DOWNLOAD_ROOT = "https://archive.org/download/stackexchange"
-
-
-def is_running_inside_container():
-    fpath = pathlib.Path("/proc/self/cgroup")
-    if not fpath.exists():
-        return False
-    try:
-        with open(fpath, "r") as fh:
-            for line in fh.readlines():
-                if line.strip().rsplit(":", 1)[-1] != "/":
-                    return True
-    finally:
-        pass
-    return False
+PROFILE_IMAGE_SIZE = 128
+IMAGES_ENCODER_VERSION = 1
 
 
 class Global:
+    """Shared context accross all scraper components"""
+
     debug = False
-    inside_container = is_running_inside_container()
-
-
-Global.nb_available_cpus = (
-    1 if Global.inside_container else multiprocessing.cpu_count() - 1 or 1
-)
+    conf = None  # main scraper configuration
+    site = None
+    database = None
+    creator = None  # zim Creator
+    imager = None  # image downloader/optimizer/uploader
+    renderer = None  # HTML page renderer
+    lock = threading.Lock()  # saves importing threading everywhere
 
 
 def setDebug(debug):
@@ -67,6 +59,7 @@ class Sotoconf:
     ]
 
     domain: str
+    _redis_url: str
 
     # zim params
     name: str
@@ -103,7 +96,6 @@ class Sotoconf:
     without_names: Optional[bool] = False
 
     # debug/devel
-    use_redis: Optional[str] = ""
     keep_build_dir: Optional[bool] = False
     debug: Optional[bool] = False
     prepare_only: Optional[bool] = False
@@ -111,6 +103,10 @@ class Sotoconf:
     statsFilename: Optional[str] = None
     #
     build_dir_is_tmp_dir: Optional[bool] = False
+
+    @property
+    def s3_url(self):
+        return self.s3_url_with_credentials
 
     @property
     def is_stackO(self):
@@ -134,9 +130,7 @@ class Sotoconf:
                 tempfile.mkdtemp(prefix=f"{self.domain}_", dir=self.tmp_dir)
             )
 
-        self.redis_url = (
-            urllib.parse.urlparse(self.use_redis) if self.use_redis else None
-        )
+        self.redis_url = urllib.parse.urlparse(self._redis_url)
         if self.redis_url and self.redis_url.scheme not in ("file", "redis"):
             raise ValueError(
                 f"Unknown scheme `{self.redis_url.scheme}` for redis. "

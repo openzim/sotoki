@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+    <div id="question-header" class="grid sm:fd-column">
+        <h1 itemprop="name" class="fs-headline1 ow-break-word mb8 grid--cell fl1"><a href="questions/{{ post.Id }}" class="question-hyperlink">{{ post.Title }}</a></h1>
+    </div>
+    <div class="grid fw-wrap pb8 mb16 bb bc-black-075">
+        <div class="grid--cell ws-nowrap mr16 mb8" title="2016-01-12 19:07:53Z">
+            <span class="fc-light mr2">Asked</span>
+            <time itemprop="dateCreated" datetime="{{ post.CreationDate }}" class="fromnow">{{ post.CreationDate }}</time>
+        </div>
+        <div class="grid--cell ws-nowrap mr16 mb8">
+            <span class="fc-light mr2">Active</span>
+            <time class="fromnow" title="{{ post.LastActivityDate }}">{{ post.LastActivityDate }}</a>
+        </div>
+        <div class="grid--cell ws-nowrap mb8" title="Viewed {{ post.ViewCount|number }} times">
+            <span class="fc-light mr2">Viewed</span> {{ post.ViewCount|number_short }} times
+        </div>
+    </div>
+
+    <div id="mainbar" role="main" aria-label="questions and answers">
+        <div id="question" class="question" data-questionid="{{ post.Id }}" data-ownerid="{{ post.OwnerUserId }}" data-score="{{ post.Score }}">
+            {% with post_answer=post, is_question=True %}
+                {% include "post_layout.html" %}
+            {% endwith %}
+        </div>
+
+
+        <div id="answers">
+            <a name="tab-top"></a>
+            <div id="answers-header">
+                <div class="answers-subheader grid ai-center mb8">
+                    <div class="grid--cell fl1">
+                        <h2 class="mb0" data-answercount="9">{{ post.answers|length }} Answers<span style="display:none;" itemprop="answerCount">{{ post.answers|length }}</span></h2>
+                    </div>
+                </div>
+            </div>
+            {% for answer in post.answers %}
+            <a name="{{ answer.Id }}"></a>
+            <div id="answer-{{ answer.Id }}" class="answer accepted-answer" data-answerid="34" data-ownerid="56" data-score="47" itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+                {% with post_answer=answer %}
+                    {% include "post_layout.html" %}
+                {% endwith %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% if post.links.duplicates or post.links.relateds %}
+    <div id="sidebar" class="show-votes" role="complementary" aria-label="sidebar">
+        {% with list=post.links.duplicates, name="Linked" %}
+            {% include "linked_list.html" %}
+        {% endwith %}
+
+        {% with list=post.links.relateds, name="Related" %}
+            {% include "linked_list.html" %}
+        {% endwith %}
+    </div>
+    {% endif %}
+{% endblock %}

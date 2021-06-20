@@ -5,21 +5,18 @@
 """ Temporary Store of data that needs to be reused in a later step
 
     Users details must be stored so we can use user names when building post pages
-    but posts only reference Users's Ids for instamce.
-
-    TBD:
-      - fastest backend for this task
-      - whether this can fit in RAM
-      - whether we should have a flexible RAM usage (ie. can this be run iwith 4GB)"""
+    but posts only reference Users's Ids for instance.
+"""
 
 import json
 import pathlib
-import sqlite3
 import urllib.parse
+from typing import Union, Iterator, Tuple
 
 import redis
 
-from ..constants import Sotoconf, getLogger
+from ..constants import getLogger, Global
+from ..utils.html import get_text
 
 logger = getLogger()
 
@@ -27,7 +24,7 @@ logger = getLogger()
 class Database:
     """Database Interface
 
-    Should allow use to quickly test alternative backends
+    Should allow us to quickly test alternative backends
 
     General principles:
       - DB can be initialized (setup of underlyig layers)
@@ -41,14 +38,16 @@ class Database:
     COMMIT_EVERY = 20000
     record_on_main_thread = False
 
-    def __init__(self, conf: Sotoconf):
-        self.conf = conf
+    def __init__(self):
         self.nb_seen = 0
 
     @property
     def build_dir(self) -> pathlib.Path:
         # file:// URI requires a full path
-        return self.conf.build_dir.resolve()
+        return Global.conf.build_dir.resolve()
+
+    def initialize(self):
+        """to override: initialize database"""
 
     @property
     def should_commit(self) -> bool:
@@ -57,9 +56,6 @@ class Database:
         This impl. compares `self.nb_seen` with `COMMIT_EVERY` constant"""
         return self.nb_seen % self.COMMIT_EVERY == 0
 
-    def initialize(self):
-        """to override: initialize database"""
-
     def commit_maybe(self):
         """commit() should should_commit allows it"""
         if self.should_commit:
@@ -67,26 +63,15 @@ class Database:
 
     def begin(self):
         """to override: start a session/transaction"""
-        pass
+
+    def bump_seen(self, by: int = 1):
+        self.nb_seen += by
 
     def make_dummy_query(self):
         """to override: used to ensure a started session can be closed safely"""
-        pass
 
     def commit(self):
         """to override: end a session"""
-        pass
-
-    def record_user(self, user: dict):
-        """to override/extend: record user details to DB"""
-        self.nb_seen += 1
-
-    def get_user_detail(self, user_id: int) -> dict:
-        """to override: user details as dict from user_id"""
-
-    def record_post(self, post: dict):
-        """to override/extend: record user details to DB"""
-        self.nb_seen += 1
 
     def teardown(self):
         """to override: release database"""
@@ -94,219 +79,413 @@ class Database:
     def remove(self):
         """to override: remove database data"""
 
+    def get_set_count(self, set_name: str) -> int:
+        """Number of recorded entries in set"""
+        return self.conn.zcard(set_name)
 
-class SqliteDatabase(Database):
-    """SQLite in-memory DB or as a file for StackOverflow"""
+    def query_set(
+        self,
+        set_name: str,
+        start: int = 0,
+        num: int = None,
+        desc: bool = True,
+        scored: bool = True,
+    ) -> Iterator[Union[Tuple[object, int], object]]:
+        """Query entries in named sorted set"""
 
-    # all writes must be done from same thread
-    record_on_main_thread = True
+        # query max score by popping it out and adding it back
+        max_item = self.conn.zpopmax(set_name)
+        max_item = max_item[0]
+        self.conn.zadd(set_name, mapping={max_item[0]: max_item[1]}, nx=True)
 
-    def __init__(self, conf: Sotoconf, initialize=False):
-        super().__init__(conf)
-        self.fpath = self.build_dir.joinpath("db.sqlite")
-        kwargs = (
-            {
-                "database": f"file:{self.build_dir.joinpath('db.sqlite')}",
-                "uri": True,
-            }
-            if self.conf.is_stackO
-            else {"database": ":memory:"}
-        )
-        kwargs.update({"check_same_thread": False})
-        self.conn = sqlite3.connect(**kwargs)
+        func = getattr(self.conn, "zrevrangebyscore" if desc else "zrangebyscore")
 
-        if not kwargs.get("database").startswith("file:"):
-            self.fpath = None
+        if num is None:
+            num = self.conn.zcard(set_name)
 
-        if self.conf.is_stackO:
-            kwargs.update({"database": f'{kwargs["database"]}?mode=ro'})
-            self.conn_ro = sqlite3.connect(**kwargs)
-        else:
-            self.conn_ro = self.conn
-        self.conn_ro.row_factory = sqlite3.Row
-        self.cursor = self.conn.cursor()
-        self.cursor.execute("PRAGMA synchronous=OFF")
-        self.cursor.execute("PRAGMA count_changes=OFF")
-        self.cursor.execute("PRAGMA journal_mode=OFF;")
-        self.cursor.execute("PRAGMA cache_size = -209715200;")  # 200Mib
+        kwargs = {
+            "name": set_name,
+            "max": max_item[1],
+            "min": 0,
+            "start": start,
+            "num": num,
+            "withscores": scored,
+            "score_cast_func": int,
+        }
+        return func(**kwargs)
 
-        if initialize:
-            self.initialize()
 
-    def initialize(self):
-        """Creates tables and indexes"""
-        super().initialize()
-        self.cursor.execute("DROP TABLE IF EXISTS users;")
-        self.cursor.execute("DROP TABLE IF EXISTS questiontag;")
-        # self.cursor.execute("DROP TABLE IF EXISTS links;")
-        # gets an auto index in id
-        self.cursor.execute(
-            "CREATE TABLE users(id INTEGER PRIMARY KEY UNIQUE, "
-            "DisplayName TEXT, Reputation TEXT);"
-        )
-        self.cursor.execute(
-            "CREATE TABLE IF NOT EXISTS questiontag(id INTEGER PRIMARY KEY "
-            "AUTOINCREMENT UNIQUE, Score INTEGER, Title TEXT, QId INTEGER, "
-            "CreationDate TEXT, Tag TEXT);"
-        )
-        # usage:
-        # select all TAGS (KEYS "tag:")
-        self.conn.execute("CREATE INDEX index_tag ON questiontag (Tag)")
-        # self.cursor.execute(
-        #     "CREATE TABLE IF NOT EXISTS links (id INTEGER, title TEXT);"
-        # )
+class TagsDatabaseMixin:
+    """Tags related Database operations
 
-    def record_user(self, user: dict):
-        """saves ID, name and reputation to users table"""
-        super().record_user(user)
-        self.cursor.execute(
-            "INSERT INTO users(id, DisplayName, Reputation) VALUES (?, ?, ?)",
-            (int(user["Id"]), user["DisplayName"], user["Reputation"]),
-        )
-        self.commit_maybe()
+    Tags are mainly stored in a single `tags` sorted set which contains
+    the tag name string and is scored via the Count tag value which represents
+    the number of posts using it (aka popularity)
 
-    def record_post(self, post: dict):
-        """saves post's Score, Title, Id, CreationDate and tag for each tag in post"""
-        super().record_post(post)
-        self.cursor.executemany(
-            "INSERT INTO questiontag (Score, Title, QId, CreationDate, Tag) "
-            "VALUES(?, ?, ?, ?, ?)",
-            [
-                (
-                    post["Score"],
-                    post["Title"],
-                    post["Id"],
-                    post["CreationDate"],
-                    tag,
-                )
-                for tag in post.get("Tags", [])
-            ],
-        )
-        self.commit_maybe()
+    In addition, we individually keep 2 keys for each tag:
+    - T:E:{name}: the excerpt str text for the tag
+    - T:D:{name}: the description str text for the tag
 
-    def get_user_detail(self, user_id: int) -> str:
+    We also *temporarily* store as a dict inside this object a all PostIds: Tag
+    corresponding to the `ExcerptPostId` and `WikiPostId` found in Tags.
+    This mapping is then used when walking through wiki and excerpt dedicated
+    files so we record only those we need"""
+
+    @staticmethod
+    def tag_key(name):
+        return f"T:{name}"
+
+    @staticmethod
+    def tags_key():
+        return "tags"
+
+    @staticmethod
+    def tag_excerpt_key(name):
+        return f"T:E:{name}"
+
+    @staticmethod
+    def tag_desc_key(name):
+        return f"T:D:{name}"
+
+    @classmethod
+    def tag_detail_key(cls, name: str, field: str):
         return {
-            "name": self.conn_ro.execute(
-                "SELECT DisplayName as name FROM users WHERE id = ?", (user_id,)
-            ).fetchone()[0]
+            "excerpt": cls.tag_excerpt_key(name),
+            "description": cls.tag_desc_key(name),
+        }.get(field)
+
+    def record_tag(self, tag: dict):
+        """record tag name in sorted set by Count (nb questions using it)
+
+        Also updates the tag_details_ids with Excerpt/Desc Ids for later use"""
+
+        self.bump_seen()
+
+        # record excerpt and wiki content post IDs in mapping
+        if tag.get("ExcerptPostId"):
+            self.tags_details_ids[tag["ExcerptPostId"]] = tag["TagName"]
+        if tag.get("WikiPostId"):
+            self.tags_details_ids[tag["WikiPostId"]] = tag["TagName"]
+
+        # update our sorted set of tags
+        self.pipe.zadd(self.tags_key(), mapping={tag["TagName"]: tag["Count"]}, nx=True)
+
+        self.commit_maybe()
+
+    def record_tag_detail(self, name: str, field: str, content: str):
+        """insert or update tag row for excerpt or description"""
+        self.pipe.set(self.tag_detail_key(name, field), content)
+
+    def clear_tags_mapping(self):
+        """releases the PostId/Type mapping used to filter usedful posts"""
+        del self.tags_details_ids
+
+    def get_tag_detail(self, name: str, field: str) -> str:
+        """single detail (excerpt or description) for a tag"""
+        return self.conn.get(self.tag_detail_key(name, field))
+
+    def get_tag_details(self, name) -> dict:
+        """dict of all the recorded known details for tag"""
+        return {
+            "excerpt": self.get_tag_detail(name, "excerpt"),
+            "description": self.get_tag_detail(name, "description"),
         }
 
-    def make_dummy_query(self):
-        """send a resourceless query to cursor so an empty transaction can be closed"""
-        self.cursor.execute("SELECT 1")
+    def get_tag_full(self, name: str, score: int = None) -> dict:
+        """All recorded information for a tag
 
-    def begin(self):
-        """start transaction"""
-        self.cursor.execute("BEGIN;")
+        name, score, excerpt?, description?"""
+        if score is None:
+            score = self.conn.zscore(self.tags_key(), name)
 
-    def commit(self, done=False):
-        """end transaction ; starting another one unless `done` is True"""
-        self.cursor.execute("COMMIT;")
-        if not done:
-            self.begin()
-
-    def teardown(self):
-        """end transaction and close connection"""
-        try:
-            self.commit(done=True)
-        except sqlite3.OperationalError:
-            pass
-        self.conn.close()
-
-    def remove(self):
-        """remove sqlite file if a file was used"""
-        if self.fpath and not self.conf.keep_intermediate_files:
-            self.fpath.unlink()
+        item = self.get_tag_details(name) or {}
+        item["score"] = score
+        item["name"] = name
+        return item
 
 
-class RedisDatabase(Database):
-    def __init__(self, conf: Sotoconf, initialize: bool = False):
-        super().__init__(conf)
+class UsersDatabaseMixin:
+    """Users related Database operations
 
-        kwargs = {}
-        if self.conf.redis_url.scheme == "file":
-            kwargs.update({"unix_socket_path": self.conf.redis_url.path})
-            if self.conf.redis_url.query:
-                db = (
-                    urllib.parse.parse_qs(self.conf.redis_url.query).get("db", []).pop()
-                )
-                if db is not None:
-                    kwargs.update({"db": db})
-        elif self.conf.redis_url.scheme == "redis":
-            kwargs.update(
-                {
-                    "host": self.conf.redis_url.hostname,
-                    "port": self.conf.redis_url.port,
-                    "db": self.conf.redis_url.path[1:]
-                    if len(self.conf.redis_url.path) > 1
-                    else None,
-                    "username": self.conf.redis_url.username,
-                    "password": self.conf.redis_url.password,
-                }
-            )
-        self.conn = redis.Redis(**kwargs)
-        self.pipe = self.conn.pipeline()
+    We mainly store some basic profile-details for each user so that we can display
+    the user card wherever needed (in questions listing and inside question pages).
+    Most important datapoint is the name (DisplayName) followed by Reputation (a score)
+    We also store the number of badges owned by class (gold, silver, bronze) as this
+    is this is an extension to thre reputation.
 
-        if initialize:
-            self.initialize()
+    We store this as a list in U:{userId} key for each user
+
+    We also have a sorted set of UserIds scored by Reputation.
+    Because we first go through Posts to eliminate all Users without interactions,
+    we first gather an un-ordered list of UserIds: a non-sorted set.
+    Once we're trhough with this step, we create the sorted one and trash the first one.
+
+    List of users is essential to exclude users without interactions, so we don't
+    create pages for them.
+
+    Sorted list of users allows us to build a page with the list of Top users.
+
+    Note: interactions associated with Deleted users are recorded to a name and not
+    a UserId.
+
+    Note: we don't track User's profile image URL as we store images in-Zim at a fixed
+    location based on UserId."""
 
     @staticmethod
     def user_key(user_id):
-        return f"u:{user_id}"
+        return f"U:{user_id}"
 
     @staticmethod
-    def post_key(post_id):
-        return f"p:{post_id}"
+    def users_key():
+        return "users"
 
-    def initialize(self):
-        """flush database"""
-        self.conn.flushdb()
+    @staticmethod
+    def unsorted_users_key():
+        return "unsorted_users"
 
     def record_user(self, user: dict):
-        """record name and reputation on a user:{id} key"""
-        super().record_user(user)
+        """record basic user details to MEM at U:{id} key
+
+        Name, Reputation, NbGoldBages, NbSilverBadges, NbBronzeBadges"""
+
+        self.bump_seen()
+
+        # record profile details into individual key
         self.pipe.set(
             self.user_key(user["Id"]),
-            json.dumps({"name": user["DisplayName"], "rep": user["Reputation"]}),
+            json.dumps(
+                (
+                    user["DisplayName"],
+                    user["Reputation"],
+                    user["nb_gold"],
+                    user["nb_silver"],
+                    user["nb_bronze"],
+                )
+            ),
         )
         self.commit_maybe()
 
-    def record_post(self, post: dict):
-        """record post details and associated tags
+    def sort_users(self):
+        """convert our unsorted users ids set into a sorted one
+        now that we have individual scores for each"""
 
-        - JSON string of score, title and date on a p:{id} key
-        - update questions ordered set with post ID and score
-        - update/create tag ordered set with postId and score for each tag"""
-        super().record_post(post)
+        nb_items = 100  # batch number to pop/insert together
+        user_ids = self.conn.spop(self.unsorted_users_key(), nb_items)
+        while user_ids:
+            self.pipe.zadd(
+                self.users_key(),
+                mapping={
+                    uid: self.get_reputation_for(uid)
+                    for uid in user_ids
+                    if uid is not None
+                },
+                nx=True,
+            )
+
+            self.bump_seen(nb_items)
+            self.commit_maybe()
+
+            user_ids = self.conn.spop(nb_items)
+        self.users_are_sorted = True
+
+    def get_user_full(self, user_id: int) -> str:
+        """All recorded information for a UserId
+
+        id, name, rep, nb_gold, nb_silver, nb_bronze"""
+        user = self.conn.get(self.user_key(user_id))
+        if not user:
+            logger.warning(f"get_user_full('{user_id}') is None")
+            return None
+        user = json.loads(user)
+        return {
+            "id": user_id,
+            "name": user[0],
+            "rep": user[1],
+            "nb_gold": user[2],
+            "nb_silver": user[3],
+            "nb_bronze": user[4],
+        }
+
+    def is_active_user(self, user_id):
+        """whether a user_id is considered active (has interaction in content)"""
+        # depending on whether we've pasted the sorting step or not, retrieval differs
+        if self.users_are_sorted:
+            return self.conn.zscore(self.users_key(), user_id) is not None
+        return self.conn.sismember(self.unsorted_users_key(), user_id)
+
+    def get_reputation_for(self, user_id: int):
+        """Reputation score for a user_id"""
+        user = self.conn.get(self.user_key(user_id))
+        if not user:
+            return 0
+        return json.loads(user)[1]
+
+
+class PostsDatabaseMixin:
+    """Posts related Database operations
+
+    Both Questions and Answers are `Posts` in SE. The Database doesn't care about
+    answers as those are processed solely using XML Data.
+
+    We mostly store list of questions:
+
+    - A `questions` ordered set of PostId ordered by question Score (votes).
+    We use this to build the list of questions for the home page.
+
+    - A `T:{tag}` ordered set of PostId ordered by question Score for each Tag.
+    We use this to build the list of questions inside individual Tag pages.
+
+    - A `Q:{id}` containing a JSON list of CreationDate, OwnerName and a bool of whether
+    this question has an accepted answer.
+    We use those to expand post-info when building list of questions
+
+    - A `QD:{id}` containing a JSON list of Title, Excerpt for all questions. This alone
+    can take up to 9GB for StackOverflow.
+    We use this to display title and excerpt for posts in questions listing.
+
+    Note: When using the --without-unanswered flag, nothing is recorded for questions
+    with a zero count of answers."""
+
+    @staticmethod
+    def question_key(post_id):
+        return f"Q:{post_id}"
+
+    @staticmethod
+    def question_details_key(post_id):
+        return f"QD:{post_id}"
+
+    @staticmethod
+    def questions_key():
+        return "questions"
+
+    def record_question(self, post: dict):
+        self.bump_seen()
+
+        # update set of users_ids (users with activity)
+        if post.get("users_ids"):
+            if None in post["users_ids"]:
+                logger.error(f"None in users_ids for {post['Id']}")
+            self.pipe.sadd(self.unsorted_users_key(), *post["users_ids"])
+
+        # add this postId to the ordered list of questions sorted by score
+        self.pipe.zadd(
+            self.questions_key(), mapping={post["Id"]: post["Score"]}, nx=True
+        )
+
+        # Add this question's PostId to the ordered questions sets of all its tags
+        for tag in post.get("Tags", []):
+            self.pipe.zadd(
+                self.tag_key(tag), mapping={post["Id"]: post["Score"]}, nx=True
+            )
+
+        # TODO: just storing name instead of id is not safe. a deleted user could
+        # have a name such as "3200" and that would be rendered as User#3200
+        if not post.get("OwnerUserId"):
+            logger.debug(f"No OwnerUserId for {post['Id']}")
         # store question details
         self.pipe.setnx(
-            f'q:{post["Id"]}',
+            self.question_key(post["Id"]),
             json.dumps(
-                {
-                    "score": post["Score"],
-                    "title": post["Title"],
-                    "date": post["CreationDate"],
-                }
+                (
+                    post["CreationDate"],
+                    post["OwnerName"],
+                    post["has_accepted"],
+                )
             ),
         )
 
-        # add this postId to the ordered list of questions sorted by score
-        self.pipe.zadd("questions", mapping={post["Id"]: post["Score"]}, nx=True)
-
-        # record each tag as an ordered set of question IDs (by quest score)
-        for tag in post.get("tags", []):
-            self.pipe.zadd(f"tag:{tag}", mapping={post["Id"]: post["Score"]}, nx=True)
+        # record question's meta: ID: title, excerpt for use in home and tag pages
+        self.pipe.set(
+            self.question_details_key(post["Id"]),
+            json.dumps((post["Title"], get_text(post["Body"], strip_at=250))),
+        )
 
         self.commit_maybe()
 
-    def get_user_detail(self, user_id: int) -> str:
-        user = self.conn.get(self.user_key(user_id))
-        if not user:
-            return None
-        return json.loads(user)
+    def get_question_title_desc(self, post_id: int) -> dict:
+        """dict including title and excerpt fo a question by PostId"""
+        data = json.loads(self.conn.get(self.question_details_key(post_id)))
+        return {"title": data[0], "excerpt": data[1]}
+
+    def get_question_details(self, post_id, score: int = None):
+        """Detailed information for a question
+
+        is, score, creation_date, owner_user_id, has_accepted"""
+        if score is None:
+            score = self.conn.zscore(self.questions_key(), post_id)
+
+        item = self.get_question_title_desc(post_id) or {}
+        item["score"] = score
+        item["id"] = post_id
+
+        post_entry = self.conn.get(self.question_key(post_id))
+        if post_entry:
+            (
+                item["creation_date"],
+                item["owner_user_id"],
+                item["has_accepted"],
+            ) = json.loads(post_entry)
+        return item
+
+    def get_question_score(self, post_id: int) -> int:
+        """Score of a question by PostId"""
+        return int(self.conn.zscore(self.questions_key(), int(post_id)))
+
+    def question_has_accepted_answer(self, post_id: int) -> bool:
+        """Whether the question has an accepted answer or not"""
+        post_entry = self.conn.get(self.question_key(post_id))
+        if post_entry:
+            return json.loads(post_entry)[2]  # 3rd entry, has accepted
+        return False
+
+
+class RedisDatabase(
+    Database, TagsDatabaseMixin, UsersDatabaseMixin, PostsDatabaseMixin
+):
+    def __init__(self, initialize: bool = False):
+        super().__init__()
+
+        kwargs = {"charset": "utf-8", "decode_responses": True}
+        if Global.conf.redis_url.scheme == "file":
+            kwargs.update({"unix_socket_path": Global.conf.redis_url.path})
+            if Global.conf.redis_url.query:
+                db = (
+                    urllib.parse.parse_qs(Global.conf.redis_url.query)
+                    .get("db", [])
+                    .pop()
+                )
+                if db is not None:
+                    kwargs.update({"db": db})
+        elif Global.conf.redis_url.scheme == "redis":
+            kwargs.update(
+                {
+                    "host": Global.conf.redis_url.hostname,
+                    "port": Global.conf.redis_url.port,
+                    "db": Global.conf.redis_url.path[1:]
+                    if len(Global.conf.redis_url.path) > 1
+                    else None,
+                    "username": Global.conf.redis_url.username,
+                    "password": Global.conf.redis_url.password,
+                }
+            )
+        self.conn = redis.StrictRedis(**kwargs)
+        self.pipe = self.conn.pipeline()
+
+        self.users_are_sorted = False
+        self.tags_details_ids = {}
+
+        if initialize:
+            self.initialize()
+
+    def initialize(self):
+        # test connection
+        self.conn.get("NOOP")
+
+        # clean up potentially existing DB
+        self.conn.flushdb()
 
     def make_dummy_query(self):
-        self.conn.get("")
+        self.pipe.get("")
 
     def commit(self, done=False):
         self.pipe.execute()
@@ -317,10 +496,10 @@ class RedisDatabase(Database):
 
     def remove(self):
         """flush database"""
+        # TODO: remove
+        return
         self.conn.flushdb()
 
 
-def get_database(conf: Sotoconf) -> Database:
-    """get appropriate, initialized, Database instance from conf"""
-    cls = RedisDatabase if conf.use_redis else SqliteDatabase
-    return cls(conf, initialize=True)
+def get_database() -> Database:
+    return RedisDatabase(initialize=True)

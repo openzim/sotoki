@@ -87,7 +87,7 @@ def main():
 
     metadata.add_argument(
         "--favicon",
-        help="URL/path for Favicon. Site square logo otherwise",
+        help="URL/path for Zim Illustration. Site square logo otherwise",
     )
 
     metadata.add_argument(
@@ -208,11 +208,12 @@ def main():
     )
 
     advanced.add_argument(
-        "--use-redis",
+        "--redis-url",
         help="Redis URL to use as database. "
-        "Uses SQLite if not set. Url must be redis://user?:pass?@host:port/dbnum. "
+        "Must be redis://user?:pass?@host:port/dbnum. "
         "Use file:///path/to/redis.sock?db=dbnum for sockets",
-        dest="use_redis",
+        default="redis://localhost:6379",
+        dest="_redis_url",
     )
 
     advanced.add_argument(

@@ -298,7 +298,7 @@ def split_posts_by_posttypeid(
     Tuple is (fpath, node_name) where fpath is where to write the nodes matchin ID
     and node_name is how those rows should be renamed (instead of input <row />)
     """
-    fhs = {int(pid): open(item[0], "wb") for pid, item in dst_map.items()}
+    fhs = {int(pid): open(item[0], "ab") for pid, item in dst_map.items()}
     starts = {int(pid): f"<{item[1]}".encode(UTF8) for pid, item in dst_map.items()}
     ends = {int(pid): f"{item[1]}>\n".encode(UTF8) for pid, item in dst_map.items()}
 
@@ -548,13 +548,27 @@ def merge_posts_with_answers_comments(
     # split posts into questions and answers files
     posts_com_questions = workdir / "posts_com_questions.xml"
     posts_com_answers = workdir / "posts_com_answers.xml"
-    # TODO: we shall keep and reuse PostTypeId="4": Tags descriptions
-    # and prob. PostTypeId="5": Tags excerpt (Wiki)
+    posts_excerpt = workdir / "posts_excerpt.xml"
+    posts_wiki = workdir / "posts_wiki.xml"
+    header = b'<?xml version="1.0" encoding="utf-8"?>\n<posts>\n'
+    footer = b"</posts>"
+    with open(posts_excerpt, "wb") as fhe, open(posts_wiki, "wb") as fhw:
+        fhe.write(header)
+        fhw.write(header)
+
     split_posts_by_posttypeid(
         posts_comments,
-        {"1": (posts_com_questions, "post"), "2": (posts_com_answers, "answer")},
+        {
+            "1": (posts_com_questions, "post"),
+            "2": (posts_com_answers, "answer"),
+            "4": (posts_excerpt, "post"),
+            "5": (posts_wiki, "post"),
+        },
         delete_src=delete_src,
     )
+    with open(posts_excerpt, "ab") as fhe, open(posts_wiki, "ab") as fhw:
+        fhe.write(footer)
+        fhw.write(footer)
     logger.info("split Posts-Comments by PostType")
     del posts_comments
 

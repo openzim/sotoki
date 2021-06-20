@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+        <div id="mainbar-full">
+            <h1 class="fs-headline1 mb24">Users</h1>
+            <div class="page-description mb12"><div class="grid jc-space-between"><div class="grid--cell ml-auto"></div></div></div>
+
+
+            <div id="user-browser">
+                <div class="grid-layout">
+                    {% for user in users %}
+                    <div class="user-info  user-hover">
+                        <div class="user-gravatar48">
+                            <a href="users/{{ user.id }}/{{ user.slug }}">
+                                <div class="gravatar-wrapper-48">
+                                    <object class="bar-sm" data="images/user/{{ id }}" type="image/webp" width="48" height="48">
+                                        <svg width="48" height="48" data-jdenticon-value="{{ user.name }}"></svg>
+                                    </object>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="user-details">
+                            <a href="users/{{ user.id }}/{{ user.slug }}">{{ user.name }}</a>
+                            {% if user.Location %}<span class="user-location">{{ user.Location }}</span>{% endif %}
+                            <div class="-flair">
+                                <span class="reputation-score" title="reputation score " dir="ltr">{{ user.rep|number }}</span>
+                                {% if user.nb_gold %}
+                                <span title="{{ user.nb_gold}} gold badges" aria-hidden="true"><span class="badge1"></span><span class="badgecount">{{ user.nb_gold }}</span></span><span class="v-visible-sr">{{ user.nb_gold }} gold badges</span>
+                                {% endif %}
+                                {% if user.nb_silver %}
+                                <span title="{{ user.nb_silver}} silver badges" aria-hidden="true"><span class="badge2"></span><span class="badgecount">{{ user.nb_silver }}</span></span><span class="v-visible-sr">{{ user.nb_silver }} silver badges</span>
+                                {% endif %}
+                                {% if user.nb_bronze %}
+                                <span title="{{ user.nb_bronze}} bronze badges" aria-hidden="true"><span class="badge3"></span><span class="badgecount">{{ user.nb_bronze }}</span></span><span class="v-visible-sr">{{ user.nb_bronze }} bronze badges</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="user-tags"></div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="s-pagination pager fr"></div>
+            </div>
+        </div>
+{% endblock %}

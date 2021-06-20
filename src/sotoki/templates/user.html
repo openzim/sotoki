@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block content %}
+    <div id="mainbar-full">
+
+            <div id="user-card" class="user-card">
+            <div class="grid gs24">
+                <div class="grid--cell fl-shrink0 ws2 overflow-hidden">
+                    <div id="avatar-card" class="profile-avatar s-card mb16 p12 bc-black-100 ta-center">
+                        <div class="avatar mt16 mx-auto overflow-hidden">
+                            <a class="d-block" href="users/{{ Id }}">
+                                <div class="gravatar-wrapper-164">
+                                    <object class="bar-sm avatar-user" data="images/user/{{ Id }}" type="image/webp" width="164" height="164">
+                                        <svg width="164" height="164" data-jdenticon-value="{{ DisplayName }}"></svg>
+                                    </object>
+                                </div>
+                            </a>
+                        </div>
+                    <div class="my12 fw-normal lh-sm" title="reputation">
+                        <div class="grid gs8 grid__center">
+                            <div class="grid--cell fs-title fc-dark">{{ Reputation|number }}</div>
+                            <div class="grid--cell fs-fine fc-light tt-uppercase">reputation</div>
+                        </div>
+                    </div>
+                    {% if nb_gold or nb_silver or nb_bronze %}
+                    <div class="m4">
+                        <div class="grid gs4 grid__fl1">
+                            {% if nb_gold %}
+                            <div class="grid--cell">
+                                <div class="grid ai-center s-badge s-badge__gold" title="{{ nb_gold }} gold badges">
+                                    <span class="grid--cell badge1"></span>
+                                    <span class="grid grid__center fl1">{{ nb_gold }}</span>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if nb_silver %}
+                            <div class="grid--cell">
+                                <div class="grid ai-center s-badge s-badge__silver" title="{{ nb_silver }} silver badges">
+                                    <span class="grid--cell badge2"></span>
+                                    <span class="grid grid__center fl1">{{ nb_silver }}</span>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if nb_bronze %}
+                            <div class="grid--cell">
+                                <div class="grid ai-center s-badge s-badge__bronze" title="{{ nb_bronze }} bronze badges">
+                                    <span class="grid--cell badge3"></span>
+                                    <span class="grid grid__center fl1">{{ nb_bronze }}</span>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    </div>
+                </div>
+                <div class="grid--cell fl1 wmn0">
+                    <div class="grid gs16">
+                        <div class="grid--cell fl1 w0 overflow-x-hidden overflow-y-auto pr16 profile-user--about about">
+                            <div class="grid fd-column gs8 gsy">
+                                <div class="grid--cell">
+                                    <h2 class="grid gs4 fw-wrap ai-center fs-headline1 lh-xs fc-dark wb-break-all profile-user--name">
+                                        <div class="grid--cell fw-bold">{{ DisplayName }}</div>
+                                    </h2>
+                                </div>
+                                <div class="grid--cell mt16 s-prose profile-user--bio ">
+                                {{ AboutMe }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid--cell fl-shrink0 pr24 wmx3">
+                            <div class="ps-relative s-anchors s-anchors__inherit">
+                                <ul class="list-reset grid gs8 gsy fd-column fc-medium">
+                                    {% if Location %}
+                                    <li class="grid--cell ow-break-word">
+                                            <div class="grid gs8 gsx ai-center">
+                                                <div class="grid--cell fc-black-350"><svg aria-hidden="true" class="svg-icon iconLocation" width="18" height="18" viewBox="0 0 18 18"><path d="M2 6.38C2 9.91 8.1 17.7 8.1 17.7c.22.29.58.29.8 0 0 0 6.1-7.8 6.1-11.32A6.44 6.44 0 008.5 0 6.44 6.44 0 0 0 2 6.38zm9.25.12a2.75 2.75 0 11-5.5 0 2.75 2.75 0 0 1 5.5 0z"></path></svg></div>
+                                                <div class="grid--cell fl1">{{ Location }}</div>
+                                            </div>
+                                        </li>
+                                    {% endif %}
+                                    <li class="grid--cell ow-break-word">
+                                        <div class="grid gs8 gsx ai-center">
+                                            <div class="grid--cell fc-black-350">
+                                                <svg aria-hidden="true" class="svg-icon iconHistory" width="19" height="18" viewBox="0 0 19 18">
+                                                    <path d="M3 9a8 8 0 113.73 6.77L8.2 14.3A6 6 0 105 9l3.01-.01-4 4-4-4h3L3 9zm7-4h1.01L11 9.36l3.22 2.1-.6.93L10 10V5z"></path>
+                                                </svg>
+                                            </div>
+                                            <div class="grid--cell fl1">Member for <span title="2021-03-30 19:16:33Z">{{ CreationDate }} months</span></div>
+                                        </div>
+                                    </li>
+                                    <li class="grid--cell ow-break-word">
+                                        <div class="grid gs8 gsx ai-center">
+                                            <div class="grid--cell fc-black-350"><svg aria-hidden="true" class="svg-icon iconEye" width="18" height="18" viewBox="0 0 18 18"><path d="M9.06 3C4 3 1 9 1 9s3 6 8.06 6C14 15 17 9 17 9s-3-6-7.94-6zM9 13a4 4 0 110-8 4 4 0 0 1 0 8zm0-2a2 2 0 002-2 2 2 0 0 0-2-2 2 2 0 0 0-2 2 2 2 0 0 0 2 2z"></path></svg></div>
+                                            <div class="grid--cell fl1">{{ Views }} profile views</div>
+                                        </div>
+                                    </li>
+                                    <li class="grid--cell ow-break-word">
+                                        <div class="grid gs8 gsx ai-center">
+                                            <div class="grid--cell fc-black-350"><svg aria-hidden="true" class="svg-icon iconClock" width="18" height="18" viewBox="0 0 18 18"><path d="M9 17c-4.36 0-8-3.64-8-8 0-4.36 3.64-8 8-8 4.36 0 8 3.64 8 8 0 4.36-3.64 8-8 8zm0-2c3.27 0 6-2.73 6-6s-2.73-6-6-6-6 2.73-6 6 2.73 6 6 6zM8 5h1.01L9 9.36l3.22 2.1-.6.93L8 10V5z"></path></svg></div>
+                                            <div class="grid--cell fl1">Last seen <span title="2021-04-30 06:44:24Z" class="relativetime">{{ LastAccessDate|datetime }}</span></div>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

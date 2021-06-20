@@ -6,7 +6,7 @@ import concurrent.futures as cf
 
 from zimscraperlib.download import stream_file, save_large_file
 
-from .constants import getLogger, Sotoconf
+from .constants import getLogger, Global
 from .utils.system import has_binary
 from .utils.sevenzip import extract_7z
 from .utils.preparation import (
@@ -18,45 +18,43 @@ logger = getLogger()
 
 
 class ArchiveManager:
-    """ Handle retrieval and processing of StackExchange dump files
+    """Handle retrieval and processing of StackExchange dump files
 
-        Each website is available as a single 7z archive
-        except stackoverflow which is split in multiple ones
+    Each website is available as a single 7z archive
+    except stackoverflow which is split in multiple ones
 
-        7z files extracts to a number of XML files. We are interested in a few
-        that we need to read and combine (and thus sort).
+    7z files extracts to a number of XML files. We are interested in a few
+    that we need to read and combine (and thus sort).
 
-        Manipulations of the XML files is done in preparation module.
+    Manipulations of the XML files is done in preparation module.
 
-        As this is a lenghty process (several hours for SO) and the output doesn't
-        change until next dump (twice a year), this handles reusing existing files"""
-    def __init__(self, conf: Sotoconf):
-        self.conf = conf
+    As this is a lenghty process (several hours for SO) and the output doesn't
+    change until next dump (twice a year), this handles reusing existing files"""
 
     @property
     def build_dir(self):
-        return self.conf.build_dir
+        return Global.conf.build_dir
 
     @property
     def domain(self):
-        return self.conf.domain
+        return Global.conf.domain
 
     @property
     def mirror(self):
-        return self.conf.mirror
+        return Global.conf.mirror
 
     @property
     def delete_src(self):
-        return not self.conf.keep_intermediate_files
+        return not Global.conf.keep_intermediate_files
 
     @property
     def dump_parts(self):
-        """ XML Dump files we're interested in """
+        """XML Dump files we're interested in"""
         return ("Badges", "Comments", "PostLinks", "Posts", "Tags", "Users")
 
     @property
     def archives(self):
-        """ list of 7z archive files"""
+        """list of 7z archive files"""
         if self.domain != "stackoverflow.com":
             return [self.build_dir / f"{self.domain}.7z"]
         return [self.build_dir / f"{self.domain}-{part}.7z" for part in self.dump_parts]

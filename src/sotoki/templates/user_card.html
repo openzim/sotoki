@@ -1,0 +1,26 @@
+{% if user.deleted %}
+<div class="s-user-card s-user-card__deleted">
+    <time class="s-user-card--time{% if action_from_now %} fromnow{% endif %}">{{ action_time }}</time>
+    <div class="s-avatar s-avatar__32 s-user-card--avatar">
+    </div>
+    <div class="s-user-card--info">{{ user.name }}</div>
+</div>
+{% else %}
+<div class="s-user-card s-user-card{% if highlighted %}__highlighted{% endif %}">
+    <time class="s-user-card--time{% if action_from_now %} fromnow{% endif %}">{{ action_time }}</time>
+    <a href="users/{{ user.id }}/{{ user.slug }}" class="s-avatar s-avatar__32 s-user-card--avatar">
+        <object class="s-avatar--image" data="images/user/{{ user.id }}" type="image/webp">
+          <svg width="32" height="32" data-jdenticon-value="{{ user.name }}"></svg>
+        </object>
+    </a>
+    <div class="s-user-card--info">
+        <a href="users/{{ user.id }}/{{ user.slug }}" class="s-user-card--link">{{ user.name }}</a>
+        <ul class="s-user-card--awards">
+            <li class="s-user-card--rep" title="reputation score">{{ user.rep|number }}</li>
+            {% if user.nb_gold %}<li class="s-award-bling s-award-bling__gold" title="{{ user.nb_gold|number }} gold badge{{ user.nb_gold|pluralize }}">{{ user.nb_gold|number }}</li>{% endif %}
+            {% if user.nb_silver %}<li class="s-award-bling s-award-bling__silver" title="{{ user.nb_silver|number }} silver badge{{ user.nb_gold|pluralize }}">{{ user.nb_silver|number }}</li>{% endif %}
+            {% if user.nb_bronze %}<li class="s-award-bling s-award-bling__bronze" title="{{ user.nb_bronze|number }} bronze badge{{ user.nb_gold|pluralize }}">{{ user.nb_bronze|number }}</li>{% endif %}
+        </ul>
+    </div>
+</div>
+{% endif %}

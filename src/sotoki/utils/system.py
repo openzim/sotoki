@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def has_binary(name):
-    """ whether system has this binary in PATH"""
+    """whether system has this binary in PATH"""
     return (
         subprocess.run(
             ["/usr/bin/env", "which", name], stdout=subprocess.DEVNULL

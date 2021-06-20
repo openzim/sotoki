@@ -2,17 +2,15 @@
 # -*- coding: utf-8 -*-
 # vim: ai ts=4 sts=4 et sw=4 nu
 
-
-""" Generate one page per Tag with list of related questions and a list of tags"""
-
 from .constants import getLogger
 from .utils.generator import Generator, Walker
+from .renderer import SortedSetPaginator
 
 logger = getLogger()
 
 
 class TagsWalker(Walker):
-    """posts_complete SAX parser
+    """Tags.xml SAX parser
 
     Schema:
 
@@ -21,59 +19,103 @@ class TagsWalker(Walker):
     </tags>
     """
 
-    def __init__(self, processor, recorder):
-        self.processor = processor
-        # fake a query as we won't record anything
-        recorder(item=None)
-
     def startElement(self, name, attrs):
         if name == "row":
             self.processor(item=dict(attrs.items()))
 
 
-class TagGenerator(Generator):
+class TagFinder(Generator):
     walker = TagsWalker
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.fpath = self.conf.build_dir / "Tags.xml"
-        # keep a record of all tags names and Count (nb of posts using it)
-        # SO is 60K tags so ~1MiB in RAM
-        self.tags = []
-
-    def run(self):
-        super().run()
-
-        logger.debug("Sort all tags by number of questions")
-        self.tags.sort(key=lambda t: t[1], reverse=True)
-        logger.debug("done")
-
-        # create alltags page at tags/
-        with self.creator_lock:
-            self.creator.add_item_for(
-                path="tags",
-                title="Tags",
-                content="<ul><li>"
-                + "</li><li>".join([t[0] for t in self.tags])
-                + "</li></ul>",
-                mimetype="text/html",
-            )
-
-    def recorder(self, item):
-        self.database.make_dummy_query()
 
     def processor(self, item):
         tag = item
-        if self.conf.without_unanswered and tag["Count"] == "0":
+        if tag["Count"] == "0":
+            logger.debug(f"Tag {item['TagName']} is not used.")
             return
-        name = tag["TagName"]
-        self.tags.append((name, int(tag["Count"])))
 
-        # create tag page at questions/tagged/{name}
-        with self.creator_lock:
-            self.creator.add_item_for(
-                path=f"questions/tagged/{name}",
-                title="'{name}' Questions",
-                content="content for tag",
-                mimetype="text/html",
+        tag["Count"] = int(tag["Count"])
+        self.database.record_tag(tag)
+
+
+class TagsExcerptWalker(Walker):
+    def startElement(self, name, attrs):
+        if name == "post":
+            self.processor(item=dict(attrs.items()))
+
+
+class TagExcerptDescriptionRecorder(Generator):
+    walker = TagsExcerptWalker
+    fname = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.fpath = self.conf.build_dir / self.fname
+
+    def processor(self, item):
+        # only record if post is in DB's list of IDs we want
+        tag_name = self.database.tags_details_ids.get(item.get("Id"))
+        if tag_name:
+            self.database.record_tag_detail(
+                name=tag_name, field=self.field, content=item.get("Body")
+            )
+
+
+class TagExcerptRecorder(TagExcerptDescriptionRecorder):
+    fname = "posts_excerpt.xml"
+    field = "excerpt"
+
+
+class TagDescriptionRecorder(TagExcerptDescriptionRecorder):
+    fname = "posts_wiki.xml"
+    field = "description"
+
+
+class TagGenerator(Generator):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.fpath = self.conf.build_dir / "Tags.xml"
+
+    def run(self):
+        # create individual pages for all tags
+        for tag_name in self.database.query_set(
+            self.database.tags_key(), num=10, scored=False
+        ):
+            paginator = SortedSetPaginator(self.database.tag_key(tag_name), 20)
+            for page_number in paginator.page_range:
+                page = paginator.get_page(page_number)
+                with self.lock:
+                    self.creator.add_item_for(
+                        path=f"questions/tagged/{tag_name}_page={page_number}",
+                        content=self.renderer.get_tag_for_page(tag_name, page),
+                        mimetype="text/html",
+                    )
+
+            with self.lock:
+                self.creator.add_redirect(
+                    path=f"questions/tagged/{tag_name}",
+                    target_path=f"questions/tagged/{tag_name}_page=1",
+                    title=f"Highest Voted '{tag_name}' Questions",
+                )
+
+        # create paginated pages for tags
+        paginator = SortedSetPaginator(self.database.tags_key(), 8)
+        for page_number in paginator.page_range:
+            page = paginator.get_page(page_number)
+            with self.lock:
+                # we don't index same-title page for all paginated pages
+                # instead we index the redirect to the first page
+                self.creator.add_item_for(
+                    path=f"tags_page={page_number}",
+                    content=self.renderer.get_all_tags_for_page(page),
+                    mimetype="text/html",
+                )
+        with self.lock:
+            self.creator.add_redirect(
+                path="tags",
+                target_path="tags_page=1",
+                title="Tags",
             )
