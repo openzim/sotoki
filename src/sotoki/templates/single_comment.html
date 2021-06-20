@@ -1,0 +1,7 @@
+<div class="comment-text  js-comment-text-and-form">
+    <div class="comment-body js-comment-edit-hide">
+        <span class="comment-copy">{{ comment.Text }}</span>
+        –&nbsp;{% if user.deleted %}<a class="comment-user {% if user.id == ownerId %}owner{%endif %}">{{ user.name }}</a>{%else %}<a href="users/{{ user.id }}/{{ user.slug }}" title="{{ user.rep|number }} reputation" class="comment-user {% if user.id == ownerId %}owner{%endif %}">{{ user.name }}</a>{% endif %}
+                <span class="comment-date" dir="ltr"><a class="comment-link" href="#comment{{ comment.Id }}_{{ comment.PostId }}"><span title="{{ comment.CreationDate }} License: {{ comment.ContentLicense }}" class="relativetime-clean">{{ comment.CreationDate|datetime }}</span></a></span>
+    </div>
+</div>

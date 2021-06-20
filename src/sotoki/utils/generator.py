@@ -5,47 +5,35 @@
 import xml.sax
 import concurrent.futures as cf
 
-from ..constants import getLogger
+from ..constants import getLogger, Global
+from ..utils import GlobalMixin
 
 logger = getLogger()
 
 
-class Generator:
+class Generator(GlobalMixin):
 
     walker = None
 
-    def __init__(self, conf, creator, creator_lock, executor, database):
-        self.conf = conf
-        self.creator = creator
-        self.creator_lock = creator_lock
-        self.executor = executor
-        self.database = database
+    def __init__(self):
 
         self.fpath = None
         self.futures = {}
 
     def run(self):
-        self.database.begin()
+        Global.database.begin()
 
         # parse XML file. not using defusedxml for performances reasons.
         # although containing user-generated content, we trust Stack Exchange dump
         parser = xml.sax.make_parser()  # nosec
-        parser.setContentHandler(
-            self.walker(
-                processor=self.processor_callback,
-                # for non-thread-safe database writes: we'll record from the main
-                # thread which is the one running the parser
-                recorder=self.recorder
-                if self.database.record_on_main_thread
-                else self.recorder_callback,
-            )
-        )
+        parser.setContentHandler(self.walker(processor=self.processor_callback))
         parser.parse(self.fpath)
+        logger.debug("Done parsing, collecting workers…")
 
         # await offloaded processing
         result = cf.wait(self.futures.keys(), return_when=cf.FIRST_EXCEPTION)
         # ensure we commited tail of data
-        self.database.commit(done=True)
+        Global.database.commit(done=True)
 
         # check whether any of the jobs failed
         for future in result.done:
@@ -65,22 +53,14 @@ class Generator:
 
     def processor_callback(self, item):
         future = self.executor.submit(self.processor, item=item)
-        self.futures.update({future: item.get("Id")})
-
-    def recorder_callback(self, item):
-        future = self.executor.submit(self.recorder, item=item)
-        self.futures.update({future: item.get("Id")})
+        if item:
+            self.futures.update({future: item.get("Id")})
 
     def processor(self, item):
         """to override: process item"""
         raise NotImplementedError()
 
-    def recorder(self, item):
-        """to override: record item"""
-        raise NotImplementedError()
 
-
-class Walker(xml.sax.handler.ContentHandler):
-    def __init__(self, processor, recorder):
+class Walker(xml.sax.handler.ContentHandler, GlobalMixin):
+    def __init__(self, processor):
         self.processor = processor
-        self.recorder = recorder

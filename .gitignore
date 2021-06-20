@@ -132,3 +132,4 @@ dmypy.json
 .DS_Store
 
 .dockerignore
+src/sotoki/assets/*

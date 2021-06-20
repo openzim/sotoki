@@ -18,6 +18,8 @@ It is based on Stack Exchange's Data Dumps hosted by [The Internet Archive](http
 
 `sotoki` works off a `domain` that you must provide. That is the domain-name of the stackexchange website you want to scrape. Run `sotoki --list-all` to get a list of those
 
+**Note**: when running off the git repository, you'll need to download a few external dependencies that we pack in Python releases. Just run `python src/sotoki/dependencies.py`
+
 ### Docker
 
 ```bash

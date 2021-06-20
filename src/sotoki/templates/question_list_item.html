@@ -1,0 +1,28 @@
+<div class="question-summary" id="question-summary-{{ question.id }}">
+    <div class="statscontainer">
+        <div class="stats">
+            <div class="status {% if question.has_accepted %}answered-accepted{% endif %}">
+                <div class="status">
+                    <strong>{{ question.score }}</strong> vote{{ question.score|pluralize }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="summary">
+        {# should maybe end with /{{ question.title|slug }} #}
+        <h3><a href="questions/{{ question.id }}" class="question-hyperlink">{{ question.title }}</a></h3>
+        <div class="excerpt">{{ question.excerpt }}</div>
+        <div class="grid ai-start jc-space-between fw-wrap">
+            <div class="grid gs4 fw-wrap tags {% for tag in tags %}t-{{ tag }}{% endfor %}">
+                {% for tag in question.tags %}
+                <a href="questions/tagged/{{ tag }}" class="post-tag grid--cell" title="show questions tagged '{{ tag }}'" rel="tag">{{ tag }}</a> 
+                {% endfor %}
+            </div>
+            <div class="started mt0">
+                {% with user=question.owner_user_id|user, action_time="asked " + question.creation_date|datetime, action_from_now=False %}
+                    {% include "user_card.html" %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+</div>

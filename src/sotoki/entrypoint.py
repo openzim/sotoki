@@ -77,23 +77,22 @@ def main():
 
     metadata.add_argument(
         "--title",
-        help="Custom title for your ZIM. Kolibri channel name otherwise",
+        help="Custom title for your ZIM. Site name otherwise",
     )
 
     metadata.add_argument(
         "--description",
-        help="Custom description for your ZIM. Kolibri channel description otherwise",
+        help="Custom description for your ZIM. Site tagline otherwise",
     )
 
     metadata.add_argument(
         "--favicon",
-        help="URL/path for Favicon. Kolibri channel thumbnail otherwise "
-        "or default Kolobri logo if missing",
+        help="URL/path for Zim Illustration. Site square logo otherwise",
     )
 
     metadata.add_argument(
         "--creator",
-        help="Name of content creator. Kolibri channel author or “Kolibri” otherwise",
+        help="Name of content creator. “Stack Exchange” otherwise",
         dest="author",
     )
 
@@ -116,16 +115,45 @@ def main():
         "Options to strip-out some content for censorship or optimization reasons",
     )
 
-    censored.add_argument("--without-images", action="store_true", default=False)
-    censored.add_argument("--without-user-profiles", action="store_true", default=False)
     censored.add_argument(
-        "--without-user-identicons", action="store_true", default=False
+        "--without-images",
+        action="store_true",
+        default=False,
+        help="Don't include images (in-post images, user icons). Faster.",
     )
     censored.add_argument(
-        "--without-external-links", action="store_true", default=False
+        "--without-user-profiles",
+        action="store_true",
+        default=False,
+        help="Don't include user profile pages. Faster",
     )
-    censored.add_argument("--without-unanswered", action="store_true", default=False)
-    censored.add_argument("--without-users-links", action="store_true", default=False)
+    censored.add_argument(
+        "--without-user-identicons",
+        action="store_true",
+        default=False,
+        help="Don't include user's profile pictures. "
+        "Replaced by generated ones. Faster",
+    )
+    censored.add_argument(
+        "--without-external-links",
+        action="store_true",
+        default=False,
+        help="Remove all external links from posts and user profiles. "
+        "Link text is kept but not the address. Slower",
+    )
+    censored.add_argument(
+        "--without-unanswered",
+        action="store_true",
+        default=False,
+        help="Don't include posts that have zero answer. Faster",
+    )
+    censored.add_argument(
+        "--without-users-links",
+        action="store_true",
+        default=False,
+        help="Remove “user links” completely. Remove both url and text "
+        "for a selected list of “social” websites. Slower",
+    )
     censored.add_argument(
         "--without-names",
         action="store_true",
@@ -145,7 +173,7 @@ def main():
 
     advanced.add_argument(
         "--threads",
-        help="Number of threads to use to handle nodes concurrently. "
+        help="Number of threads to use to handle tasks concurrently. "
         "Increase to speed-up I/O operations (disk, network). Default: 1",
         default=1,
         type=int,
@@ -180,11 +208,12 @@ def main():
     )
 
     advanced.add_argument(
-        "--use-redis",
+        "--redis-url",
         help="Redis URL to use as database. "
-        "Uses SQLite if not set. Url must be redis://user?:pass?@host:port/dbnum. "
+        "Must be redis://user?:pass?@host:port/dbnum. "
         "Use file:///path/to/redis.sock?db=dbnum for sockets",
-        dest="use_redis",
+        default="redis://localhost:6379",
+        dest="_redis_url",
     )
 
     advanced.add_argument(
@@ -242,7 +271,10 @@ def main():
             logger.exception(exc)
         raise SystemExit(1)
     finally:
-        scraper.cleanup()
+        try:
+            scraper.cleanup()
+        except UnboundLocalError:
+            pass
 
 
 if __name__ == "__main__":

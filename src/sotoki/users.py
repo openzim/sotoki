@@ -3,10 +3,6 @@
 # vim: ai ts=4 sts=4 et sw=4 nu
 
 
-""" Generate one+ page per Tag in the ZIM.
-
-    Each tag page is a list of all questions related to it"""
-
 from slugify import slugify
 
 from .constants import getLogger
@@ -27,6 +23,9 @@ class UsersWalker(Walker):
              UserId="" Name="" Date="" Class="" TagBased="" /></badges></row>
         </root>"""
 
+    def startDocument(self):
+        self.seen = 0
+
     def startElement(self, name, attrs):
         if name == "row":
             # store xml data until we're through with the <row /> node
@@ -34,19 +33,28 @@ class UsersWalker(Walker):
 
         elif name == "badges":
             # prepare a space to record badges for current user
-            self.user["badges"] = {}
+            self.user["badges"] = {"1": {}, "2": {}, "3": {}}
 
         elif name == "badge":
             # record how many times a single badge was set on this user
-            if attrs.get("name") in self.user["badges"].keys():
-                self.user["badges"][attrs.get("name")] += 1
+            if attrs.get("Name") in self.user["badges"][attrs.get("Class")].keys():
+                self.user["badges"][attrs.get("Class")][attrs.get("Name")] += 1
             else:
-                self.user["badges"][attrs.get("name")] = 1
+                self.user["badges"][attrs.get("Class")][attrs.get("Name")] = 1
 
     def endElement(self, name):
         if name == "row":
-            self.processor(item=self.user)
-            self.recorder(item=self.user)
+            # only if processing wasn't skiped by generated (user accepted)
+            if self.processor(item=self.user) and self.conf.with_user_identicons:
+                profile_url = self.user.get("ProfileImageUrl")
+                if profile_url:
+                    self.imager.defer(
+                        url=profile_url, path=f"images/user/{self.user['Id']}"
+                    )
+
+                self.seen += 1
+                if self.seen % 1000 == 0:
+                    logger.debug(f"Seen {self.seen}")
 
 
 class UserGenerator(Generator):
@@ -56,28 +64,38 @@ class UserGenerator(Generator):
         super().__init__(**kwargs)
         self.fpath = self.conf.build_dir / "users_with_badges.xml"
 
-    def recorder(self, item):
-        self.database.record_user(user=item)
+    def processor_callback(self, item):
+        if not self.database.is_active_user(int(item["Id"])):
+            return
+        super().processor_callback(item=item)
+        return True
 
     def processor(self, item):
         user = item
+        user["Id"] = int(user["Id"])
 
-        # TODO: check better way to handle no user profile
-        # TODO: check whether we need that slug redirect. from in-posts links?
-        # TODO: check whether we need the title on the redirect (save the index)
+        if not self.database.is_active_user(user["Id"]):
+            return
+
+        user["slug"] = slugify(user["DisplayName"])
+        user["deleted"] = False
+        user["Reputation"] = int(user["Reputation"])
+        user["nb_gold"] = sum(user.get("badges", {}).get("1", {}).values())
+        user["nb_silver"] = sum(user.get("badges", {}).get("2", {}).values())
+        user["nb_bronze"] = sum(user.get("badges", {}).get("3", {}).values())
+        self.database.record_user(user=user)
+
         if not self.conf.without_user_profiles:
-            slug = slugify(user["DisplayName"])
-            with self.creator_lock:
+            with self.lock:
                 self.creator.add_redirect(
-                    path=f'user/{user["Id"]}/{slug}',
-                    target_path=f'user/{user["Id"]}',
-                    # title=user["DisplayName"],
+                    path=f'users/{user["Id"]}/{user["slug"]}',
+                    target_path=f'users/{user["Id"]}',
                 )
 
-        with self.creator_lock:
+        with self.lock:
             self.creator.add_item_for(
-                path=f'user/{user["Id"]}',
-                title=user["DisplayName"],
-                content=user.get("AboutMe", "n/a"),
+                path=f'users/{user["Id"]}',
+                title=f'User {user["DisplayName"]}',
+                content=self.renderer.get_user(user),
                 mimetype="text/html",
             )

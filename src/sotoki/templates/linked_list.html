@@ -1,0 +1,13 @@
+{% if list %}
+<div class="module sidebar-linked">
+<h4 id="h-linked">{{ name }}</h4>
+{% for item in list %}
+<div class="linked">
+    <div class="spacer">
+    <a title="Vote score (upvotes - downvotes)"><div class="answer-votes {% if item.Id|has_accepted %}answered-accepted{% endif %} default">{{ item.Id|question_score }}</div></a>
+    <a href="questions/{{ item.Id }}" class="question-hyperlink">{{ item.Name }}</a>
+    </div>
+</div>
+{% endfor %}
+</div>
+{% endif %}

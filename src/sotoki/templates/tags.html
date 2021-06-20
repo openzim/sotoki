@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+        <div id="mainbar-full">
+            <h1 class="fs-headline1 mb16">Tags</h1>
+            <p class="fs-body2 wmx6 mb16">A tag is a keyword or label that categorizes your question with other, similar questions.</p>
+            <div id="tags_list">
+                <div id="tags-browser" class="grid-layout">
+                    {% for tag, nb_questions, excerpt in tags %}
+                    <div class="s-card js-tag-cell grid fd-column">
+                        <div class="grid jc-space-between ai-center mb12">
+                            <div class="grid--cell">
+                                <a href="questions/tagged/{{ tag }}" class="post-tag" title="show questions tagged '{{ tag }}'" rel="tag">{{ tag }}</a>
+                            </div>
+                        </div>
+                        {% if excerpt %}<div class="grid--cell fc-medium mb12 v-truncate4">{{ excerpt }}</div>{% endif %}
+                        <div class="mt-auto grid jc-space-between fs-caption fc-black-400"><div class="grid--cell">{{ nb_questions }} questions</div></div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% with target="tags" %}{% include "pagination.html" %}{% endwith %}
+
+            </div>
+        </div>
+{% endblock %}
