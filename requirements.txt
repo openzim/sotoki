@@ -10,3 +10,4 @@ redis>=3.5.3,<3.6
 beautifulsoup4>=4.9.3,<5.0
 lxml>=4.6.3,<4.7
 jinja2-pluralize>=0.3.0,<0.4
+tld>=0.12.6,<0.13

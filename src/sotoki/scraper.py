@@ -19,6 +19,7 @@ from .utils.s3 import setup_s3_and_check_credentials
 from .utils.sites import get_site
 from .utils.database import get_database
 from .utils.imager import Imager
+from .utils.html import Rewriter
 from .renderer import Renderer
 from .users import UserGenerator
 from .posts import PostGenerator, PostFirstPasser
@@ -182,11 +183,14 @@ class StackExchangeToZim:
                 logger.error(str(exc))
             return 1
 
-        Global.imager = Imager()
+        Global.setup(
+            imager=Imager(),
+            rewriter=Rewriter(),
+            # all operations spread accross an nb_threads executor
+            executor=cf.ThreadPoolExecutor(max_workers=self.conf.nb_threads),
+        )
+        # must follow rewriter's assignemnt as t references it
         Global.renderer = Renderer()
-
-        # all operations spread accross an nb_threads executor
-        Global.executor = cf.ThreadPoolExecutor(max_workers=self.conf.nb_threads)
 
         Global.creator = (
             Creator(

@@ -204,7 +204,10 @@ class PostGenerator(Generator):
                 content=self.renderer.get_question(post),
                 mimetype="text/html",
             )
-            self.creator.add_redirect(
-                path=f'questions/{post["Id"]}/{get_slug_for(post["Title"])}',
-                target_path=f'questions/{post["Id"]}',
-            )
+
+        for answer in post.get("answers", []):
+            with self.lock:
+                self.creator.add_redirect(
+                    path=f'a/{answer["Id"]}',
+                    target_path=f'questions/{post["Id"]}',
+                )

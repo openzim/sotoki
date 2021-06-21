@@ -38,3 +38,7 @@ class GlobalMixin:
     @property
     def renderer(self):
         return Global.renderer
+
+    @property
+    def rewriter(self):
+        return Global.rewriter

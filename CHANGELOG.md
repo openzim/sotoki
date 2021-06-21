@@ -8,9 +8,6 @@
 #### Not-yet implemented:
 
 - --censor-words-list
-- --without-images (only applied to user profile images for now)
-- --without-external-links
-- --without-users-links
 - --without-names
 
 #### Current known bugs/limitations:
@@ -18,9 +15,10 @@
 - Not using new libzim Illustration API (awaiting pylibzim)
 - questions page is not paginated
 - users page should be limited to a number of top ones
-- Imager limited to User profiles for now
 - No Mathjax support
 - No Highlight.js support
+- No WebP polyfill
+- No markdown support
 
 ### 1.3.2.dev0
 

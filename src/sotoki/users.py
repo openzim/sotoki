@@ -49,7 +49,9 @@ class UsersWalker(Walker):
                 profile_url = self.user.get("ProfileImageUrl")
                 if profile_url:
                     self.imager.defer(
-                        url=profile_url, path=f"images/user/{self.user['Id']}"
+                        url=profile_url,
+                        path=f"images/user/{self.user['Id']}",
+                        is_profile=True,
                     )
 
                 self.seen += 1
@@ -85,12 +87,8 @@ class UserGenerator(Generator):
         user["nb_bronze"] = sum(user.get("badges", {}).get("3", {}).values())
         self.database.record_user(user=user)
 
-        if not self.conf.without_user_profiles:
-            with self.lock:
-                self.creator.add_redirect(
-                    path=f'users/{user["Id"]}/{user["slug"]}',
-                    target_path=f'users/{user["Id"]}',
-                )
+        if self.conf.without_user_profiles:
+            return
 
         with self.lock:
             self.creator.add_item_for(
@@ -98,4 +96,10 @@ class UserGenerator(Generator):
                 title=f'User {user["DisplayName"]}',
                 content=self.renderer.get_user(user),
                 mimetype="text/html",
+            )
+
+        with self.lock:
+            self.creator.add_redirect(
+                path=f'users/{user["Id"]}/{user["slug"]}',
+                target_path=f'users/{user["Id"]}',
             )

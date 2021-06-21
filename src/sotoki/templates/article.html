@@ -36,7 +36,7 @@
             </div>
             {% for answer in post.answers %}
             <a name="{{ answer.Id }}"></a>
-            <div id="answer-{{ answer.Id }}" class="answer accepted-answer" data-answerid="34" data-ownerid="56" data-score="47" itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+            <div id="answer-{{ answer.Id }}" class="answer {% if answer.Id == post.AcceptedAnswerId %} accepted-answer{% endif %}" data-answerid="{{ answer.Id }}" data-ownerid="{{ answer.OwnerUserId }}" data-score="{{ answer.Score }}" itemprop="{% if answer.Id == post.AcceptedAnswerId %}acceptedAnswer{% else %}suggestedAnswer{% endif %}" itemscope="" itemtype="https://schema.org/Answer">
                 {% with post_answer=answer %}
                     {% include "post_layout.html" %}
                 {% endwith %}

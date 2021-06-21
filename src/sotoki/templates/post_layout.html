@@ -11,7 +11,7 @@
         </div>
     </div>
     <div class="postcell post-layout-right">
-        <div class="s-prose js-post-body" itemprop="text">{{ post_answer.Body }}</div>
+        <div class="s-prose js-post-body" itemprop="text">{{ post_answer.Body|rewrote }}</div>
         {% if is_question %}
         <div class="mt24 mb12">
             <div class="post-taglist grid gs4 gsy fd-column">
@@ -26,11 +26,26 @@
         <div class="mb0">
             <div class="mt16 grid gs8 gsy fw-wrap jc-end ai-start pt4 mb16">
                 <div class="grid--cell mr16 fl1 w96"></div>
-                {% if post_answer.LastEditDate %}<div class="post-signature grid--cell">
+                {% if post_answer.LastEditDate %}
+                <div class="post-signature grid--cell">
+                    {% if post_answer.LastEditorUserId == post_answer.OwnerUserId %}
+                    {% with user=post_answer.LastEditorUserId|user %}
+                    <div class="user-info ">
+                        <div class="user-action-time">edited <span title="{{ post_answer.LastEditDate }}" class="relativetime">{{ post_answer.LastEditDate|datetime }}</span></div>
+                        <div class="user-gravatar32"></div>
+                        <div class="user-details" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+                            <span class="d-none" itemprop="name">{{ user.name }}</span>
+                            <div class="-flair"></div>
+                        </div>
+                    </div>
+                    {% endwith %}
+                    {% else %}
                         {% with user=post_answer.LastEditorUserId|user, action_time="edited " + post_answer.LastEditDate|datetime, action_from_now=False %}
                         {% include "user_card.html" %}
                         {% endwith %}
-                </div>{% endif %}
+                    {% endif %}
+                </div>
+                {% endif %}
                 <div class="post-signature {% if post_answer.OwnerUserId == post.OwnerUserId %} owner{% endif %} grid--cell">
                     {% if is_question %}
                     {% with user=post_answer.OwnerUserId|user, action_time="asked " + post_answer.CreationDate|datetime, action_from_now=False %}
