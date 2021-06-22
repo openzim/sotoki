@@ -5,6 +5,8 @@
 import re
 
 import bs4
+import mistune
+from mistune.plugins import plugin_strikethrough, plugin_table, plugin_footnotes
 from tld import get_fld
 from slugify import slugify
 
@@ -60,6 +62,10 @@ class Rewriter(GlobalMixin):
         self.aid_re = re.compile(r"^a/(?P<answer_id>[0-9+])/?$")
         self.uid_slug_re = re.compile(r"^users/(?P<user_id>[0-9+])\/.+")
         self.redacted_string = bs4.NavigableString("[redacted]")
+        self.markdown = mistune.create_markdown(
+            escape=False,
+            plugins=[plugin_strikethrough, plugin_table, plugin_footnotes],
+        )
 
     @property
     def domain(self):
@@ -71,7 +77,7 @@ class Rewriter(GlobalMixin):
                 del link[attr]
         link.contents = [self.redacted_string]
 
-    def rewrite(self, content: str):
+    def rewrite(self, content: str, unwrap: bool = False):
         """rewrite a stackexchange HTML markup to comply with ZIM and options
 
         SE's content is usually inputed as Markdown but the SE dumps we use
@@ -84,8 +90,22 @@ class Rewriter(GlobalMixin):
         - No relative `src` for <img />
         - <a /> can have a `title` attr.
 
+        `unwrap` parameter: whether to ~unwrap the tag around the content.
+        Markdown (mistune) considers single line of texts as paragraphs so single-line
+        content are wrapped inside a <p/> node which is not what we want in some
+        cases like Comments.
+
         """
-        soup = bs4.BeautifulSoup(content, "lxml")
+
+        soup = bs4.BeautifulSoup(self.markdown(content), "lxml")
+
+        # remove makrdown wrapping for single-line if requested
+        if unwrap:
+            soup.body.find().unwrap()
+
+        # remove <html><body> wrapping that lxml generated
+        soup.body.unwrap()
+        soup.html.unwrap()
 
         self.rewrite_links(soup)
 

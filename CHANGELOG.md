@@ -16,7 +16,6 @@
 - No Mathjax support
 - No Highlight.js support
 - No WebP polyfill
-- No markdown support
 
 ### 1.3.2.dev0
 
