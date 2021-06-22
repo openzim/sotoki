@@ -87,7 +87,7 @@ class Rewriter(GlobalMixin):
         """
         soup = bs4.BeautifulSoup(content, "lxml")
 
-        self.rewrite_links()
+        self.rewrite_links(soup)
 
         self.rewrite_images(soup)
 

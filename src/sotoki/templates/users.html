@@ -38,7 +38,7 @@
                     </div>
                     {% endfor %}
                 </div>
-                <div class="s-pagination pager fr"></div>
+                {% with target="users" %}{% include "pagination.html" %}{% endwith %}
             </div>
         </div>
 {% endblock %}

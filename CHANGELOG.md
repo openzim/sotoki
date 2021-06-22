@@ -13,8 +13,6 @@
 #### Current known bugs/limitations:
 
 - Not using new libzim Illustration API (awaiting pylibzim)
-- questions page is not paginated
-- users page should be limited to a number of top ones
 - No Mathjax support
 - No Highlight.js support
 - No WebP polyfill

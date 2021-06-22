@@ -6,6 +6,7 @@
 from slugify import slugify
 
 from .constants import getLogger
+from .renderer import SortedSetPaginator
 from .utils.generator import Generator, Walker
 
 logger = getLogger()
@@ -102,4 +103,25 @@ class UserGenerator(Generator):
             self.creator.add_redirect(
                 path=f'users/{user["Id"]}/{user["slug"]}',
                 target_path=f'users/{user["Id"]}',
+            )
+
+    def generate_users_page(self):
+        paginator = SortedSetPaginator(
+            self.database.users_key(), per_page=36, at_most=3600
+        )
+        for page_number in paginator.page_range:
+            page = paginator.get_page(page_number)
+            with self.lock:
+                # we don't index same-title page for all paginated pages
+                # instead we index the redirect to the first page
+                self.creator.add_item_for(
+                    path=f"users_page={page_number}",
+                    content=self.renderer.get_users_for_page(page),
+                    mimetype="text/html",
+                )
+        with self.lock:
+            self.creator.add_redirect(
+                path="users",
+                target_path="users_page=1",
+                title="Users",
             )

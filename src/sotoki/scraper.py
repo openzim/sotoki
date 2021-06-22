@@ -213,10 +213,10 @@ class StackExchangeToZim:
             self.add_illustrations()
             self.add_assets()
 
-            """First, walk through Tags and record tags details in DB
-            Then walk through excerpts and record those in DB
-            Then do the same with descriptions
-            Clear the matching that was required for Excerpt/Desc filtering-in"""
+            # First, walk through Tags and record tags details in DB
+            # Then walk through excerpts and record those in DB
+            # Then do the same with descriptions
+            # Clear the matching that was required for Excerpt/Desc filtering-in
             logger.info("Recording Tag metadata to Database")
             TagFinder().run()
             TagExcerptRecorder().run()
@@ -224,55 +224,43 @@ class StackExchangeToZim:
             Global.database.clear_tags_mapping()
             logger.info(".. done")
 
-            """We walk through all Posts a first time to record question in DB
-            list of users that had interactions
-            list of PostId for all questions
-            list of PostId for all questions of all tags (incr. update)
-            Details for all questions: date, owner, title, excerpt, has_accepted"""
+            # We walk through all Posts a first time to record question in DB
+            # list of users that had interactions
+            # list of PostId for all questions
+            # list of PostId for all questions of all tags (incr. update)
+            # Details for all questions: date, owner, title, excerpt, has_accepted
             logger.info("Recording questions metadata to Database")
             PostFirstPasser().run()
             logger.info(".. done")
 
-            """ We walk through all Users and skip all those without interactions
-            Others store basic details in Database
-            Then we create a page in Zim for each user
-            Eventually, we sort our list of users by Reputation"""
+            # We walk through all Users and skip all those without interactions
+            # Others store basic details in Database
+            # Then we create a page in Zim for each user
+            # Eventually, we sort our list of users by Reputation
             logger.info("Generating individual Users pages")
             UserGenerator().run()
             Global.database.sort_users()
             logger.info(".. done")
 
-            """ We walk again through all Posts, this time to create indiv pages in Zim
-            for each."""
+            # We walk again through all Posts, this time to create indiv pages in Zim
+            # for each.
             logger.info("Generating Questions pages")
             PostGenerator().run()
             logger.info(".. done")
 
-            """ We walk on Tags again, this time creating indiv pages for each Tag.
-            Each tag is actually a number of paginated pages with a list of questions"""
+            # We walk on Tags again, this time creating indiv pages for each Tag.
+            # Each tag is actually a number of paginated pages with a list of questions
             logger.info("Generating Tags pages")
             TagGenerator().run()
             logger.info(".. done")
 
             logger.info("Generating Users page")
-            with Global.lock:
-                Global.creator.add_item_for(
-                    path="users",
-                    title="Users",
-                    content=Global.renderer.get_users(),
-                    mimetype="text/html",
-                )
+            UserGenerator().generate_users_page()
             logger.info(".. done")
 
             # build home page in ZIM using questions list
             logger.info("Generating Questions page (homepage)")
-            with Global.lock:
-                Global.creator.add_item_for(
-                    path="questions",
-                    title="Highest Voted Questions",
-                    content=Global.renderer.get_questions(),
-                    mimetype="text/html",
-                )
+            PostGenerator().generate_questions_page()
             logger.info(".. done")
 
             Global.database.teardown()

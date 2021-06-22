@@ -66,12 +66,16 @@ def get_user_details(user_id):
 
 
 class SortedSetPaginator(Paginator):
-    def __init__(self, set_name: str, per_page: int = 10):
+    def __init__(self, set_name: str, per_page: int = 10, at_most: int = None):
         self.set_name = set_name
+        self.at_most = at_most
         super().__init__(per_page=per_page)
 
     def get_count(self):
-        return Global.database.get_set_count(self.set_name)
+        total = Global.database.get_set_count(self.set_name)
+        if self.at_most:
+            return min([self.at_most, total])
+        return total
 
     def query(self, bottom: int, top: int):
         return Global.database.query_set(
@@ -111,27 +115,6 @@ class Renderer(GlobalMixin):
             "site_css": "" if self.site.get("ParentId") else self.site.get("TagCss"),
         }
 
-    def get_questions(self):
-        """List of most popular questions HTML for ZIM
-
-        - List of the 50 most popular (Score) posts by DESC Score
-        - 10 most popular (used) tags
-        """
-
-        return self.env.get_template("questions.html").render(
-            to_root="",
-            body_class="questions-page",
-            whereis="questions",
-            title="Highest Voted Questions",
-            popular_tags=self.database.query_set(
-                self.database.tags_key(), num=10, scored=False
-            ),
-            questions=extend_questions(
-                self.database.query_set(self.database.questions_key(), num=100)
-            ),
-            **self.global_context,
-        )
-
     def get_question(self, post: dict):
         """Single question HTML for ZIM"""
         return self.env.get_template("article.html").render(
@@ -140,6 +123,22 @@ class Renderer(GlobalMixin):
             post=post,
             to_root="../",
             title=post["Title"],
+            **self.global_context,
+        )
+
+    def get_all_questions_for_page(self, page):
+        """All tags listing HTML for ZIM"""
+        return self.env.get_template("questions.html").render(
+            body_class="questions-page",
+            whereis="questions",
+            title="Highest Voted Questions",
+            popular_tags=self.database.query_set(
+                self.database.tags_key(), num=10, scored=False
+            ),
+            questions=extend_questions(page),
+            to_root="",
+            page_obj=page,
+            total_questions=self.database.get_set_count(self.database.questions_key()),
             **self.global_context,
         )
 
@@ -184,7 +183,7 @@ class Renderer(GlobalMixin):
             **user,
         )
 
-    def get_users(self):
+    def get_users_for_page(self, page):
         """All users listing HTML for ZIM"""
 
         def extend_users(questions):
@@ -194,10 +193,9 @@ class Renderer(GlobalMixin):
         return self.env.get_template("users.html").render(
             body_class="users-page",
             whereis="users",
-            users=extend_users(
-                self.database.query_set(self.database.users_key(), num=100)
-            ),
+            users=extend_users(page),
             to_root="./",
             title="Users",
+            page_obj=page,
             **self.global_context,
         )

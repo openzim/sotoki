@@ -84,7 +84,7 @@ class TagGenerator(Generator):
         for tag_name in self.database.query_set(
             self.database.tags_key(), num=10, scored=False
         ):
-            paginator = SortedSetPaginator(self.database.tag_key(tag_name), 20)
+            paginator = SortedSetPaginator(self.database.tag_key(tag_name), per_page=15)
             for page_number in paginator.page_range:
                 page = paginator.get_page(page_number)
                 with self.lock:
@@ -101,14 +101,16 @@ class TagGenerator(Generator):
                     title=f"Highest Voted '{tag_name}' Questions",
                 )
 
-                # TODO: we need a redirect based on Tag ID
-                # self.creator.add_redirect(
-                #     path=f"questions/tagged/{tag_id}",
-                #     target_path=f"questions/tagged/{tag_name}_page=1",
-                # )
+                # redirect from TagId to TagName
+                # not sure how useful that is…
+                tag_id = self.database.get_tag_detail(tag_name, "id")
+                self.creator.add_redirect(
+                    path=f"questions/tagged/{tag_id}",
+                    target_path=f"questions/tagged/{tag_name}_page=1",
+                )
 
         # create paginated pages for tags
-        paginator = SortedSetPaginator(self.database.tags_key(), 8)
+        paginator = SortedSetPaginator(self.database.tags_key(), per_page=36)
         for page_number in paginator.page_range:
             page = paginator.get_page(page_number)
             with self.lock:
