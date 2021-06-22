@@ -5,13 +5,133 @@
         <base href="{{ to_root }}">
         <title>{% block title %}{{ title }} - {{ site_subtitle }}{% endblock %}</title>
         <link rel="shortcut icon" href="favicon.ico" />
-        <!-- <link rel="apple-touch-icon" href="https://cdn.sstatic.net/Sites/3dprinting/Img/apple-touch-icon.png?v=f1a3f851427f" /> -->
-        <!-- <link rel="image_src" href="https://cdn.sstatic.net/Sites/3dprinting/Img/apple-touch-icon.png?v=f1a3f851427f" /> -->
+        <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+        <link rel="image_src" href="apple-touch-icon.png" />
         <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, minimum-scale=1.0" />
+
+        <script src="static/js/jquery.min.js"></script>
+        <script src="static/js/stub.en.js?v=784a450186a7"></script>
+
         <link rel="stylesheet" type="text/css" href="static/css/stacks.min.css" />
         <link rel="stylesheet" type="text/css" href="static/css/primary.css" />
         <link rel="stylesheet" type="text/css" href="static/css/secondary.css" />
-        <!-- <script type="text/javascript" src="static/js/stacks.min.js"></script> -->
+
+        <script>
+            StackExchange.ready(function () {
+                styleCode();
+            });
+        </script>
+        <script>
+            StackExchange.init(
+            {
+                "locale": "en",
+                "serverTime": 1624360417,
+                "routeName": "Home/Index",
+                "stackAuthUrl": "https://stackauth.com",
+                "networkMetaHostname": "meta.stackexchange.com",
+                "site": {
+                    "name": "Stack Overflow",
+                    "description": "Q&A for professional and enthusiast programmers",
+                    "isNoticesTabEnabled": false,
+                    "enableNewTagCreationWarning": false,
+                    "insertSpaceAfterNameTabCompletion": false,
+                    "id": 1,
+                    "cookieDomain": ".stackoverflow.com",
+                    "childUrl": "https://meta.stackoverflow.com",
+                    "styleCodeWithHighlightjs": true,
+                    "negativeVoteScoreFloor": null,
+                    "enableSocialMediaInSharePopup": false,
+                    "protocol": "https"
+                },
+                "user": {
+                    "fkey": "",
+                    "tid": "",
+                    "rep": 0,
+                    "isAnonymous": true,
+                    "isAnonymousNetworkWide": true
+                },
+                "events": {
+                    "postType": {
+                        "question": 1
+                    },
+                    "postEditionSection": {
+                        "title": 1,
+                        "body": 2,
+                        "tags": 3
+                    }
+                },
+                "story": {
+                    "minCompleteBodyLength": 75,
+                    "likedTagsMaxLength": 300,
+                    "dislikedTagsMaxLength": 300
+                },
+                "jobPreferences": {
+                    "maxNumDeveloperRoles": 2,
+                    "maxNumIndustries": 4
+                },
+                "svgIconPath": "https://cdn.sstatic.net/Img/stacks-icons",
+                "svgIconHash": "5b6352b54769"
+            },
+            {
+                "userProfile": {
+                    "openGraphAPIKey": ""
+                },
+                "userMessaging": {
+                    "showNewFeatureNotice": false
+                },
+                "tags": {},
+                "subscriptions": {
+                    "defaultBasicMaxTrueUpSeats": 250,
+                    "defaultFreemiumMaxTrueUpSeats": 50,
+                    "defaultMaxTrueUpSeats": 1000
+                },
+                "snippets": {
+                    "renderDomain": "stacksnippets.net",
+                    "snippetsEnabled": false
+                },
+                "site": {
+                    "allowImageUploads": false,
+                    "enableImgurHttps": false,
+                    "enableUserHovercards": false,
+                    "forceHttpsImages": false,
+                    "styleCode": true
+                },
+                "questions": {
+                    "enableQuestionTitleLengthLiveWarning": false,
+                    "maxTitleSize": 150,
+                    "questionTitleLengthStartLiveWarningChars": 50
+                },
+                "intercom": {
+                    "appId": "inf0secd",
+                    "hostBaseUrl": "https://stacksnippets.net"
+                },
+                "paths": {},
+                "monitoring": {
+                    "clientTimingsAbsoluteTimeout": 30000,
+                    "clientTimingsDebounceTimeout": 1000
+                },
+                "mentions": {
+                    "maxNumUsersInDropdown": 50
+                },
+                "markdown": {
+                    "enableTables": true
+                },
+                "legal": {
+                    "oneTrustConfigId": ""
+                },
+                "flags": {
+                    "allowRetractingCommentFlags": false,
+                    "allowRetractingFlags": false
+                },
+                "elections": {
+                    "opaVoteResultsBaseUrl": "https://www.opavote.com/results/"
+                },
+                "comments": {},
+                "accounts": {
+                    "currentPasswordRequiredForChangingStackIdPassword": true
+                }
+            });
+        </script>
         <script type="text/javascript" src="static/js/jdenticon.min.js" async></script>
         <script type="text/x-mathjax-config">
                 MathJax.Hub.Config({"HTML-CSS": { preferredFont: "TeX", availableFonts: ["STIX","TeX"], linebreaks: { automatic:true }, EqnChunk: (MathJax.Hub.Browser.isMobile ? 10 : 50) },
@@ -27,6 +147,7 @@
             });
             </script>
             <script src="static/js/MathJax.js?config=TeX-AMS_HTML-full"></script>
+            <script src="static/js/highlightjs-loader.en.js?v=17552072fdc0"></script>
         <script src="static/js/moment.min.js"></script>
         <style type="text/css">
             {{ site_css }}

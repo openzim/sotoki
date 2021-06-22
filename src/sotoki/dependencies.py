@@ -27,7 +27,7 @@ ASSETS = [
         "static/js/stack-icons.js",
         "https://unpkg.com/@stackoverflow/stacks-icons@2.20.0/build/index.js",
     ),
-    ("static/js/stub.en.js", "https://cdn.sstatic.net/Js/stub.en.js"),
+    ("static/js/stub.en.js", "https://cdn.sstatic.net/Js/stub.en.js?v=784a450186a7"),
     (
         "static/js/jquery.min.js",
         "https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js",
@@ -37,6 +37,14 @@ ASSETS = [
         "static/js/jdenticon.min.js",
         "https://raw.githubusercontent.com/dmester/jdenticon/3.1.0"
         "/dist/jdenticon.min.js",
+    ),
+    (
+        "static/js/highlightjs-loader.en.js",
+        "https://cdn.sstatic.net/Js/highlightjs-loader.en.js?v=17552072fdc0",
+    ),
+    (
+        "static/js/full-anon.en.js",
+        "https://cdn.sstatic.net/Js/full-anon.en.js",
     ),
     # MathJax dependencies. SE uses v2.7.5 ATM
     (

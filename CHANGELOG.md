@@ -13,8 +13,6 @@
 #### Current known bugs/limitations:
 
 - Not using new libzim Illustration API (awaiting pylibzim)
-- No Mathjax support
-- No Highlight.js support
 - No WebP polyfill
 
 ### 1.3.2.dev0

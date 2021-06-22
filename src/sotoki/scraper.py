@@ -107,6 +107,11 @@ class StackExchangeToZim:
         handle_user_provided_file(source=Global.site["IconUrl"], dest=favicon_fpath)
         Global.creator.add_item_for("favicon.ico", fpath=favicon_fpath)
 
+        # download apple-touch-icon
+        Global.creator.add_item(
+            URLItem(url=Global.site["BadgeIconUrl"], path="apple-touch-icon.png")
+        )
+
     def add_assets(self):
         assets_root = ROOT_DIR.joinpath("assets")
         with Global.lock:
