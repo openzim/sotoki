@@ -38,6 +38,62 @@ ASSETS = [
         "https://raw.githubusercontent.com/dmester/jdenticon/3.1.0"
         "/dist/jdenticon.min.js",
     ),
+    # MathJax dependencies. SE uses v2.7.5 ATM
+    (
+        "static/js/MathJax.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/"
+        "MathJax.js?config=TeX-AMS_HTML-full",
+    ),
+    (
+        "static/js/config/TeX-AMS_HTML-full.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/"
+        "config/TeX-AMS_HTML-full.js?V=2.7.5",
+    ),
+    (
+        "static/js/extensions/MathMenu.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/"
+        "extensions/MathMenu.js?V=2.7.5",
+    ),
+    (
+        "static/js/extensions/MathZoom.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/"
+        "extensions/MathZoom.js?V=2.7.5",
+    ),
+    (
+        "static/js/extensions/TeX/begingroup.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/"
+        "extensions/TeX/begingroup.js?V=2.7.5",
+    ),
+    (
+        "static/js/jax/output/HTML-CSS/fonts/STIX/fontdata.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/"
+        "jax/output/HTML-CSS/fonts/STIX/fontdata.js?V=2.7.5",
+    ),
+    (
+        "static/js/jax/element/mml/optable/BasicLatin.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/"
+        "jax/element/mml/optable/BasicLatin.js?V=2.7.5",
+    ),
+    (
+        "static/js/jax/output/HTML-CSS/fonts/STIX/General/Italic/MathItalic.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/"
+        "jax/output/HTML-CSS/fonts/STIX/General/Italic/MathItalic.js?V=2.7.5",
+    ),
+    (
+        "static/js/jax/output/HTML-CSS/fonts/STIX/General/Regular/MathItalic.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/"
+        "jax/output/HTML-CSS/fonts/STIX/General/Regular/MathItalic.js?V=2.7.5",
+    ),
+    (
+        "static/js/jax/output/HTML-CSS/fonts/STIX/General/Italic/GreekItalic.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/"
+        "jax/output/HTML-CSS/fonts/STIX/General/Italic/GreekItalic.js?V=2.7.5",
+    ),
+    (
+        "static/js/jax/output/HTML-CSS/fonts/STIX/General/Regular/GreekItalic.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/"
+        "jax/output/HTML-CSS/fonts/STIX/General/Regular/GreekItalic.js?V=2.7.5",
+    ),
     # following assets were manualy extracted from primary.css and secondary.css
     # those seem to be similar in all sites.
     # we may consider parsing those CSS to extract and include exact list should
@@ -131,6 +187,7 @@ def get_all_assets(cache):
 
         if not target.parent.exists():
             target.parent.mkdir(exist_ok=True, parents=True)
+        print(f"Downloading {source} into {target}")
         stream_file(url=source, fpath=target)
 
 
