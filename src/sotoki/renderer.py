@@ -105,6 +105,7 @@ class Renderer(GlobalMixin):
         self.env.filters["question_score"] = self.database.get_question_score
         self.env.filters["has_accepted"] = self.database.question_has_accepted_answer
         self.env.filters["rewrote"] = self.rewriter.rewrite
+        self.env.filters["rewrote_string"] = self.rewriter.rewrite_string
         self.global_context = {
             "site_subtitle": subtitle,
             "site_title": self.site.get("LongName").replace(" Meta", "")

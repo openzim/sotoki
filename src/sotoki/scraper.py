@@ -56,6 +56,13 @@ class StackExchangeToZim:
 
     def sanitize_inputs(self):
         """input & metadata sanitation"""
+
+        if self.conf.censor_words_list:
+            words_list_fpath = self.build_dir.joinpath("words.list")
+            handle_user_provided_file(
+                source=self.conf.censor_words_list, dest=words_list_fpath
+            )
+
         period = datetime.datetime.now().strftime("%Y-%m")
         if self.conf.fname:
             # make sure we were given a filename and not a path

@@ -1,6 +1,6 @@
     <div class="post-layout">
     <div class="votecell post-layout--left">
-        <div class="js-voting-container grid jc-center fd-column ai-stretch gs4 fc-black-200" data-post-id="{{ post_answer.Id }}">
+        <div class="js-voting-container grid jc-center fd-column ai-stretch gs4 fc-black-200 desktop-only" data-post-id="{{ post_answer.Id }}">
             <button class="js-vote-up-btn grid--cell s-btn s-btn__unset c-pointer"><svg aria-hidden="true" class="m0 svg-icon iconArrowUpLg" width="36" height="36" viewBox="0 0 36 36"><path d="M2 26h32L18 10 2 26z"></path></svg></button>
             <div class="js-vote-count grid--cell fc-black-500 fs-title grid fd-column ai-center" itemprop="upvoteCount" data-value="{{ post_answer.Score }}">{{ post_answer.Score }}</div>
             {% if post.AcceptedAnswerId == post_answer.Id %}<div class="js-accepted-answer-indicator grid--cell fc-green-500 py6 mtn8"><div class="ta-center"><svg aria-hidden="true" class="svg-icon iconCheckmarkLg" width="36" height="36" viewBox="0 0 36 36"><path d="m6 14 8 8L30 6v8L14 30l-8-8v-8z"></path></svg></div></div>{% endif %}

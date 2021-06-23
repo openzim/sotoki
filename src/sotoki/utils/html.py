@@ -55,17 +55,31 @@ REDACTED_STRING = "[redacted]"
 
 
 class Rewriter(GlobalMixin):
+    redacted_text = "[redacted]"
+
     def __init__(self):
         self.domain_re = re.compile(rf"http?s://{self.domain}(?P<path>\/.+)")
         self.qid_slug_re = re.compile(r"^q/(?P<post_id>[0-9+])\/.+")
         self.qid_re = re.compile(r"^q/(?P<post_id>[0-9+])/?$")
         self.aid_re = re.compile(r"^a/(?P<answer_id>[0-9+])/?$")
         self.uid_slug_re = re.compile(r"^users/(?P<user_id>[0-9+])\/.+")
-        self.redacted_string = bs4.NavigableString("[redacted]")
+        self.redacted_string = bs4.NavigableString(self.redacted_text)
         self.markdown = mistune.create_markdown(
             escape=False,
             plugins=[plugin_strikethrough, plugin_table, plugin_footnotes],
         )
+        if self.conf.censor_words_list:
+            with open(self.conf.build_dir.joinpath("words.list"), "r") as fh:
+                # this will actually replace occurences of ~strings matching
+                # words in the list but those can be part of actual words or whole.
+                self.words_re = re.compile(
+                    r"\b\b|\b\b".join(
+                        map(re.escape, [line.strip() for line in fh.readlines()])
+                    )
+                )
+                # self.words_as_char_re = re.compile(
+                #     "|".join(map(re.escape,
+                # [line.strip() for line in fh.readlines()])))
 
     @property
     def domain(self):
@@ -111,10 +125,17 @@ class Rewriter(GlobalMixin):
 
         self.rewrite_images(soup)
 
+        # apply censorship rewriting
         if self.conf.censor_words_list:
             self.censor_words(soup)
 
         return str(soup)
+
+    def rewrite_string(self, content: str) -> str:
+        """rewritten single-string using non-markup-related rules"""
+        if self.conf.censor_words_list:
+            return self.words_re.sub(self.redacted_text, content)
+        return content
 
     def rewrite_links(self, soup):
         # rewrite links targets
@@ -204,7 +225,49 @@ class Rewriter(GlobalMixin):
             else:
                 img["src"] = self.imager.defer(img["src"], is_profile=False)
 
+    # def censor_words_as_string(self, soup) -> str:
+    #     if not self.conf.censor_words_list:
+    #         return str(soup)
+
+    #     return self.words_as_char_re.sub(self.redacted_text, str(soup))
+
     def censor_words(self, soup):
-        # strip out censored words
         if not self.conf.censor_words_list:
             return
+
+        # BeautifulSoup doesn't allow editing NavigableString in place. We have to
+        # replace those with new instances.
+        # Additionaly, we can't replace occurences within a loop on the
+        # .descendants generator (breaks the loop[]) so we have to iterate over all
+        # tags using find_all
+
+        def only_bare_strings(tag):
+            # BS returns NavigableString but also its parent if it contains a single NS
+            # make sure we don't apply this to code-related elements
+            # should we apply it to <code/> and <pre /> ?
+            return isinstance(tag, bs4.NavigableString) and tag.parent.name not in (
+                "script",
+                "body",
+                "html",
+                "[document]",
+                "style",
+                "code",
+                "pre",
+            )
+
+        for tag in filter(only_bare_strings, soup.find_all(string=True)):
+            try:
+                tag.replace_with(self.rewrite_string(tag))
+            except Exception as exc:
+                logger.debug(f"Replacement error: {exc} on: {tag}")
+                continue
+
+        # now apply filtering on tag attributes. As per SE rules, users can only
+        # set `alt` and `title` on <img />` and `title` on `<a />`
+        for tag in soup.find_all(
+            lambda x: x.name in ("a", "img")
+            and (x.has_attr("title") or x.has_attr("alt"))
+        ):
+            for attr in ("title", "alt"):
+                if tag.attrs.get(attr):
+                    tag.attrs[attr] = self.rewrite_string(tag.attrs[attr])

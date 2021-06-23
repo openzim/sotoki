@@ -160,7 +160,14 @@ def main():
         default=False,
         help="Replace usernames in posts with generated ones",
     )
-    censored.add_argument("--censor-words-list")
+    censored.add_argument(
+        "--censor-words-list",
+        dest="censor_words_list",
+        help="URL or path to a text file "
+        "containing one word per line. Each of them to be removed from all content. "
+        "Very slow. Sample list: https://raw.githubusercontent.com/RobertJGabriel/"
+        "Google-profanity-words/master/list.txt",
+    )
 
     advanced = parser.add_argument_group("Advanced")
 
