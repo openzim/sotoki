@@ -48,7 +48,6 @@ SOCIAL_DOMAINS = [
     "kuaishou.com",
     "pinterest.com",
     "reddit.com",
-    "oscars.org",
 ]
 
 REDACTED_STRING = "[redacted]"
@@ -173,7 +172,10 @@ class Rewriter(GlobalMixin):
             self.rewrite_external_link(link)
 
     def rewrite_user_link(self, link):
-        if self.conf.without_users_links and get_fld(link["href"]) in SOCIAL_DOMAINS:
+        if self.conf.without_users_links and (
+            link["href"].startswith("mailto:")
+            or get_fld(link["href"]) in SOCIAL_DOMAINS
+        ):
             self.redact_link(link)
             return 1
 
