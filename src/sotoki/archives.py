@@ -7,7 +7,7 @@ import concurrent.futures as cf
 from zimscraperlib.download import stream_file, save_large_file
 
 from .constants import getLogger, Global
-from .utils.system import has_binary
+from .utils.misc import has_binary
 from .utils.sevenzip import extract_7z
 from .utils.preparation import (
     merge_users_with_badges,

@@ -19,6 +19,7 @@ from .utils.s3 import setup_s3_and_check_credentials
 from .utils.sites import get_site
 from .utils.database import get_database
 from .utils.imager import Imager
+from .utils.html import Rewriter
 from .renderer import Renderer
 from .users import UserGenerator
 from .posts import PostGenerator, PostFirstPasser
@@ -55,6 +56,13 @@ class StackExchangeToZim:
 
     def sanitize_inputs(self):
         """input & metadata sanitation"""
+
+        if self.conf.censor_words_list:
+            words_list_fpath = self.build_dir.joinpath("words.list")
+            handle_user_provided_file(
+                source=self.conf.censor_words_list, dest=words_list_fpath
+            )
+
         period = datetime.datetime.now().strftime("%Y-%m")
         if self.conf.fname:
             # make sure we were given a filename and not a path
@@ -106,6 +114,11 @@ class StackExchangeToZim:
         handle_user_provided_file(source=Global.site["IconUrl"], dest=favicon_fpath)
         Global.creator.add_item_for("favicon.ico", fpath=favicon_fpath)
 
+        # download apple-touch-icon
+        Global.creator.add_item(
+            URLItem(url=Global.site["BadgeIconUrl"], path="apple-touch-icon.png")
+        )
+
     def add_assets(self):
         assets_root = ROOT_DIR.joinpath("assets")
         with Global.lock:
@@ -119,7 +132,7 @@ class StackExchangeToZim:
 
         # download primary|secondary.css from target
         assets_base = Global.site["IconUrl"].rsplit("/", 2)[0]
-        for css_fname in ("primary.css", "secondary.css"):
+        for css_fname in ("primary.css", "secondary.css", "mobile.css"):
             logger.debug(f"adding {css_fname}")
             Global.creator.add_item(
                 URLItem(
@@ -182,11 +195,14 @@ class StackExchangeToZim:
                 logger.error(str(exc))
             return 1
 
-        Global.imager = Imager()
+        Global.setup(
+            imager=Imager(),
+            rewriter=Rewriter(),
+            # all operations spread accross an nb_threads executor
+            executor=cf.ThreadPoolExecutor(max_workers=self.conf.nb_threads),
+        )
+        # must follow rewriter's assignemnt as t references it
         Global.renderer = Renderer()
-
-        # all operations spread accross an nb_threads executor
-        Global.executor = cf.ThreadPoolExecutor(max_workers=self.conf.nb_threads)
 
         Global.creator = (
             Creator(
@@ -209,10 +225,10 @@ class StackExchangeToZim:
             self.add_illustrations()
             self.add_assets()
 
-            """First, walk through Tags and record tags details in DB
-            Then walk through excerpts and record those in DB
-            Then do the same with descriptions
-            Clear the matching that was required for Excerpt/Desc filtering-in"""
+            # First, walk through Tags and record tags details in DB
+            # Then walk through excerpts and record those in DB
+            # Then do the same with descriptions
+            # Clear the matching that was required for Excerpt/Desc filtering-in
             logger.info("Recording Tag metadata to Database")
             TagFinder().run()
             TagExcerptRecorder().run()
@@ -220,55 +236,45 @@ class StackExchangeToZim:
             Global.database.clear_tags_mapping()
             logger.info(".. done")
 
-            """We walk through all Posts a first time to record question in DB
-            list of users that had interactions
-            list of PostId for all questions
-            list of PostId for all questions of all tags (incr. update)
-            Details for all questions: date, owner, title, excerpt, has_accepted"""
+            # We walk through all Posts a first time to record question in DB
+            # list of users that had interactions
+            # list of PostId for all questions
+            # list of PostId for all questions of all tags (incr. update)
+            # Details for all questions: date, owner, title, excerpt, has_accepted
             logger.info("Recording questions metadata to Database")
             PostFirstPasser().run()
             logger.info(".. done")
 
-            """ We walk through all Users and skip all those without interactions
-            Others store basic details in Database
-            Then we create a page in Zim for each user
-            Eventually, we sort our list of users by Reputation"""
+            # We walk through all Users and skip all those without interactions
+            # Others store basic details in Database
+            # Then we create a page in Zim for each user
+            # Eventually, we sort our list of users by Reputation
             logger.info("Generating individual Users pages")
             UserGenerator().run()
             Global.database.sort_users()
             logger.info(".. done")
 
-            """ We walk again through all Posts, this time to create indiv pages in Zim
-            for each."""
+            # We walk again through all Posts, this time to create indiv pages in Zim
+            # for each.
             logger.info("Generating Questions pages")
             PostGenerator().run()
             logger.info(".. done")
 
-            """ We walk on Tags again, this time creating indiv pages for each Tag.
-            Each tag is actually a number of paginated pages with a list of questions"""
+            # We walk on Tags again, this time creating indiv pages for each Tag.
+            # Each tag is actually a number of paginated pages with a list of questions
             logger.info("Generating Tags pages")
             TagGenerator().run()
             logger.info(".. done")
 
             logger.info("Generating Users page")
-            with Global.lock:
-                Global.creator.add_item_for(
-                    path="users",
-                    title="Users",
-                    content=Global.renderer.get_users(),
-                    mimetype="text/html",
-                )
+            UserGenerator().generate_users_page()
             logger.info(".. done")
 
             # build home page in ZIM using questions list
             logger.info("Generating Questions page (homepage)")
+            PostGenerator().generate_questions_page()
             with Global.lock:
-                Global.creator.add_item_for(
-                    path="questions",
-                    title="Highest Voted Questions",
-                    content=Global.renderer.get_questions(),
-                    mimetype="text/html",
-                )
+                Global.creator.add_redirect(path="", target_path="questions")
             logger.info(".. done")
 
             Global.database.teardown()

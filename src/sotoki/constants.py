@@ -22,6 +22,7 @@ UTF8 = "utf-8"
 SCRAPER = f"{NAME} {VERSION}"
 DOWNLOAD_ROOT = "https://archive.org/download/stackexchange"
 PROFILE_IMAGE_SIZE = 128
+POSTS_IMAGE_SIZE = 540
 IMAGES_ENCODER_VERSION = 1
 
 
@@ -35,7 +36,13 @@ class Global:
     creator = None  # zim Creator
     imager = None  # image downloader/optimizer/uploader
     renderer = None  # HTML page renderer
+    rewriter = None  # HTML content rewriter
     lock = threading.Lock()  # saves importing threading everywhere
+
+    @staticmethod
+    def setup(**kwargs):
+        for name, value in kwargs.items():
+            setattr(Global, name, value)
 
 
 def setDebug(debug):

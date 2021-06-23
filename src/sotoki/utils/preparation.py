@@ -15,7 +15,7 @@ import subprocess
 from typing import Union
 
 from ..constants import getLogger
-from .system import has_binary
+from .misc import has_binary
 
 UTF8 = "UTF-8"
 logger = getLogger()

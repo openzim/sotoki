@@ -6,7 +6,9 @@
 from slugify import slugify
 
 from .constants import getLogger
+from .renderer import SortedSetPaginator
 from .utils.generator import Generator, Walker
+from .utils.misc import get_short_hash
 
 logger = getLogger()
 
@@ -49,7 +51,9 @@ class UsersWalker(Walker):
                 profile_url = self.user.get("ProfileImageUrl")
                 if profile_url:
                     self.imager.defer(
-                        url=profile_url, path=f"images/user/{self.user['Id']}"
+                        url=profile_url,
+                        path=f"images/user/{self.user['Id']}",
+                        is_profile=True,
                     )
 
                 self.seen += 1
@@ -77,6 +81,9 @@ class UserGenerator(Generator):
         if not self.database.is_active_user(user["Id"]):
             return
 
+        if self.conf.without_names:
+            user["DisplayName"] = get_short_hash(user["DisplayName"])
+
         user["slug"] = slugify(user["DisplayName"])
         user["deleted"] = False
         user["Reputation"] = int(user["Reputation"])
@@ -85,12 +92,8 @@ class UserGenerator(Generator):
         user["nb_bronze"] = sum(user.get("badges", {}).get("3", {}).values())
         self.database.record_user(user=user)
 
-        if not self.conf.without_user_profiles:
-            with self.lock:
-                self.creator.add_redirect(
-                    path=f'users/{user["Id"]}/{user["slug"]}',
-                    target_path=f'users/{user["Id"]}',
-                )
+        if self.conf.without_user_profiles:
+            return
 
         with self.lock:
             self.creator.add_item_for(
@@ -98,4 +101,31 @@ class UserGenerator(Generator):
                 title=f'User {user["DisplayName"]}',
                 content=self.renderer.get_user(user),
                 mimetype="text/html",
+            )
+
+        with self.lock:
+            self.creator.add_redirect(
+                path=f'users/{user["Id"]}/{user["slug"]}',
+                target_path=f'users/{user["Id"]}',
+            )
+
+    def generate_users_page(self):
+        paginator = SortedSetPaginator(
+            self.database.users_key(), per_page=36, at_most=3600
+        )
+        for page_number in paginator.page_range:
+            page = paginator.get_page(page_number)
+            with self.lock:
+                # we don't index same-title page for all paginated pages
+                # instead we index the redirect to the first page
+                self.creator.add_item_for(
+                    path=f"users_page={page_number}",
+                    content=self.renderer.get_users_for_page(page),
+                    mimetype="text/html",
+                )
+        with self.lock:
+            self.creator.add_redirect(
+                path="users",
+                target_path="users_page=1",
+                title="Users",
             )

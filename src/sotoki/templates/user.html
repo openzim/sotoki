@@ -1,7 +1,37 @@
 {% extends "base.html" %}
-{% block content %}
-    <div id="mainbar-full">
+{% block fullwidth %}
+<main class="mobile-only">
+    <div class="subheader _profile">
+        <div class="-top">
+            <a href="users/{{ Id }}/{{ slug }}" class="-avatar">
+                <div class="gravatar-wrapper-48">
+                    <object class="bar-sm" data="images/user/{{ Id }}" type="image/webp" width="48" height="48">
+                        <svg width="48" height="48" data-jdenticon-value="{{ DisplayName }}"></svg>
+                    </object>
+                </div>
+            </a>
+            <div class="-details">
+                <h1 class="grid ai-center gs4 fw-wrap">{{ DisplayName }}</h1>
+                <div class="-stats">
+                    <strong class="reputation-score">{{ Reputation|number }}</strong>
+                    <span class="badge-wrapper _badge2"><span class="badge2">●</span><span class="badgecount">5</span></span>
+                    <span class="badge-wrapper _badge3"><span class="badge3">●</span><span class="badgecount">9</span></span>
+                </div><!-- / stats -->
+            </div><!-- / details -->
+        </div><!-- / top -->
+    </div>
 
+    <div class="user-panel wrapper _inner s-prose js-post-body _card">{{ AboutMe }}</div>
+    {% if Location %}
+    <div class="user-panel wrapper _inner _card">
+        <ul><li><span class="icon-location"></span>
+        {{ Location }}</li></ul>
+    </div>
+    {% endif %}
+</main>
+{% endblock %}
+{% block content %}
+    <div id="mainbar-full desktop-only">
             <div id="user-card" class="user-card">
             <div class="grid gs24">
                 <div class="grid--cell fl-shrink0 ws2 overflow-hidden">

@@ -1,3 +1,4 @@
+{% if page_obj.paginator.num_pages > 1 %}
 <div class="s-pagination pager fr">
     {% if page_obj.has_previous() %}
         <a class="s-pagination--item" href="{{ target }}_page={{ page_obj.previous_page_number() }}" rel="prev" title="Go to page {{ page_obj.previous_page_number() }}">Prev </a>
@@ -17,3 +18,4 @@
         <a class="s-pagination--item" href="{{ target }}_page={{ page_obj.next_page_number() }}" rel="next" title="Go to page {{ page_obj.next_page_number() }}"> Next</a>
     {% endif %}
 </div>
+{% endif %}

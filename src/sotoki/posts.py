@@ -3,8 +3,8 @@
 # vim: ai ts=4 sts=4 et sw=4 nu
 
 from .constants import getLogger
+from .renderer import SortedSetPaginator
 from .utils.generator import Generator, Walker
-from .utils.html import get_slug_for
 
 logger = getLogger()
 
@@ -204,7 +204,31 @@ class PostGenerator(Generator):
                 content=self.renderer.get_question(post),
                 mimetype="text/html",
             )
+
+        for answer in post.get("answers", []):
+            with self.lock:
+                self.creator.add_redirect(
+                    path=f'a/{answer["Id"]}',
+                    target_path=f'questions/{post["Id"]}',
+                )
+
+    def generate_questions_page(self):
+        paginator = SortedSetPaginator(
+            self.database.questions_key(), per_page=15, at_most=1500
+        )
+        for page_number in paginator.page_range:
+            page = paginator.get_page(page_number)
+            with self.lock:
+                # we don't index same-title page for all paginated pages
+                # instead we index the redirect to the first page
+                self.creator.add_item_for(
+                    path=f"questions_page={page_number}",
+                    content=self.renderer.get_all_questions_for_page(page),
+                    mimetype="text/html",
+                )
+        with self.lock:
             self.creator.add_redirect(
-                path=f'questions/{post["Id"]}/{get_slug_for(post["Title"])}',
-                target_path=f'questions/{post["Id"]}',
+                path="questions",
+                target_path="questions_page=1",
+                title="Highest Voted Questions",
             )

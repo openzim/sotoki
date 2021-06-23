@@ -15,7 +15,13 @@ from zimscraperlib.image.optimization import optimize_webp
 from zimscraperlib.image.transformation import resize_image
 from kiwixstorage import KiwixStorage
 
-from ..constants import getLogger, PROFILE_IMAGE_SIZE, IMAGES_ENCODER_VERSION, Global
+from ..constants import (
+    getLogger,
+    PROFILE_IMAGE_SIZE,
+    POSTS_IMAGE_SIZE,
+    IMAGES_ENCODER_VERSION,
+    Global,
+)
 
 logger = getLogger()
 
@@ -58,40 +64,67 @@ def rebuild_uri(
 
 
 class GoogleImageProvider:
-    def matches(self, url):
-        return url.hostname.endswith(".googleusercontent.com")
+    def matches(self, url: str, for_profile: bool) -> bool:
+        return for_profile and url.hostname.endswith(".googleusercontent.com")
 
-    def get_source_url(self, url):
+    def get_source_url(self, url, for_profile: bool) -> str:
+        if not for_profile:
+            return url
         qs = urllib.parse.parse_qs(url.query)
         qs["sz"] = PROFILE_IMAGE_SIZE
         return rebuild_uri(url, query=urllib.parse.urlencode(qs, doseq=True))
 
 
 class GravatarImageProvider:
-    def matches(self, url):
-        return url.hostname == "www.gravatar.com" and "d=identicon" not in url.query
+    def matches(self, url: str, for_profile: bool) -> bool:
+        return (
+            for_profile
+            and url.hostname == "www.gravatar.com"
+            and "d=identicon" not in url.query
+        )
 
-    def get_source_url(self, url):
+    def get_source_url(self, url, for_profile: bool) -> str:
+        if not for_profile:
+            return url
         qs = urllib.parse.parse_qs(url.query)
         qs["s"] = PROFILE_IMAGE_SIZE
         return rebuild_uri(url, query=urllib.parse.urlencode(qs, doseq=True))
 
 
 class GravatarIdenticonProvider:
-    def matches(self, url):
-        return url.hostname == "www.gravatar.com" and "d=identicon" in url.query
+    def matches(self, url: str, for_profile: bool) -> bool:
+        return (
+            for_profile
+            and url.hostname == "www.gravatar.com"
+            and "d=identicon" in url.query
+        )
 
-    def get_source_url(self, url):
+    def get_source_url(self, url, for_profile: bool) -> str:
+        if not for_profile:
+            return url
         qs = urllib.parse.parse_qs(url.query)
         qs["s"] = PROFILE_IMAGE_SIZE
         return rebuild_uri(url, query=urllib.parse.urlencode(qs, doseq=True))
 
 
 class StackImgurProvider:
-    def matches(sexlf, url):
-        return url.hostname == "i.stack.imgur.com"
+    """SE's used i.stack.imgur.com for both profile and post images
 
-    def get_source_url(self, url):
+    For profile, it's an option next to several others.
+    For Posts, it's the upload option and the only alternative is to
+    provide an URL.
+
+    i.stack.imgur.com provides on demand resizing based on ?s= param
+    but this is usable only for profile picture as this does a square thumbnail
+    and would break any non-square image.
+    Also, it only works on powers of 2 sizes, up to the image's width."""
+
+    def matches(self, url: str, for_profile: bool) -> bool:
+        return for_profile and url.hostname == "i.stack.imgur.com"
+
+    def get_source_url(self, url, for_profile: bool) -> str:
+        if not for_profile:
+            return url
         qs = urllib.parse.parse_qs(url.query)
         qs["s"] = PROFILE_IMAGE_SIZE
         return rebuild_uri(url, query=urllib.parse.urlencode(qs, doseq=True))
@@ -110,27 +143,26 @@ class Imager:
             GoogleImageProvider(),
         ]
 
-    def get_source_url(self, url):
+    def get_source_url(self, url: str, for_profile: bool = False) -> str:
         """Actual source URL to use. Might be changed by a Provider"""
         for provider in self.providers:
-            if provider.matches(url):
-                return provider.get_source_url(url)
+            if provider.matches(url, for_profile=for_profile):
+                return provider.get_source_url(url, for_profile=for_profile)
         # no provider
         logger.warning(f"No provider for {url.geturl()}")
         return url
 
-    def get_image_data(self, url: str) -> io.BytesIO:
+    def get_image_data(self, url: str, **resize_args: dict) -> io.BytesIO:
         """Bytes stream of an optimized, resized WebP of the source image"""
         src, webp = io.BytesIO(), io.BytesIO()
         stream_file(url=url, byte_stream=src)
         with Image.open(src) as img:
             img.save(webp, format="WEBP")
         del src
+        resize_args = resize_args or {}
         resize_image(
             src=webp,
-            width=PROFILE_IMAGE_SIZE,
-            height=PROFILE_IMAGE_SIZE,
-            method="thumbnail",
+            **resize_args,
             allow_upscaling=False,
         )
         return optimize_webp(
@@ -169,20 +201,24 @@ class Imager:
         return "-1"
 
     def defer(
-        self, url: str, path: Optional[str] = None, once_done: Optional[callable] = None
+        self,
+        url: str,
+        path: Optional[str] = None,
+        is_profile: bool = False,
+        once_done: Optional[callable] = None,
     ) -> str:
         """request full processing of url, returning in-zim path immediately"""
 
         # find actual URL should it be from a provider
         try:
             url = urllib.parse.urlparse(url)
-            url = self.get_source_url(url)
+            url = self.get_source_url(url, for_profile=is_profile)
         except Exception:
             logger.warning(f"Can't parse image URL `{url}`. Skipping")
             return
 
         if url.scheme not in ("http", "https"):
-            logger.warning(f"Not supporting image URL `{url}`. Skipping")
+            logger.warning(f"Not supporting image URL `{url.geturl()}`. Skipping")
             return
 
         # skip processing if we already processed it or have it in pipe
@@ -200,21 +236,34 @@ class Imager:
         future = Global.executor.submit(self.process_image, url=url, path=path)
         future.add_done_callback(once_done or self.once_done)
 
+        return path
+
     def once_done(self, future):
         """default callback for single image processing"""
         self.nb_done += 1
         logger.debug(f"An image completed… ({self.nb_done}/{len(self.handled)})")
         return
 
-    def process_image(self, url: str, path) -> str:
+    def process_image(self, url: str, path, is_profile: bool = False) -> str:
         """download image from url or S3 and add to Zim at path. Upload if req."""
+
+        # setup resizing based on request
+        resize_args = (
+            {
+                "width": PROFILE_IMAGE_SIZE,
+                "height": PROFILE_IMAGE_SIZE,
+                "method": "thumbnail",
+            }
+            if is_profile
+            else {"width": POSTS_IMAGE_SIZE}
+        )
 
         # just download, optimize and add to ZIM if not using S3
         if not Global.conf.s3_url:
             with Global.lock:
                 Global.creator.add_item_for(
                     path=path,
-                    content=self.get_image_data(url.geturl()).getvalue(),
+                    content=self.get_image_data(url.geturl(), **resize_args).getvalue(),
                     mimetype="image/webp",
                 )
             return path
@@ -248,7 +297,7 @@ class Imager:
                 return path
 
         # we're using S3 but don't have it or failed to download
-        fileobj = self.get_image_data(url.geturl())
+        fileobj = self.get_image_data(url.geturl(), **resize_args)
 
         # only upload it if we didn't have it in cache
         if not download_failed:

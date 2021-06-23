@@ -125,6 +125,7 @@ class TagsDatabaseMixin:
     In addition, we individually keep 2 keys for each tag:
     - T:E:{name}: the excerpt str text for the tag
     - T:D:{name}: the description str text for the tag
+    - T:ID:{name}: the Id of the tag, used to generate redirect to tag page from ID
 
     We also *temporarily* store as a dict inside this object a all PostIds: Tag
     corresponding to the `ExcerptPostId` and `WikiPostId` found in Tags.
@@ -147,11 +148,16 @@ class TagsDatabaseMixin:
     def tag_desc_key(name):
         return f"T:D:{name}"
 
+    @staticmethod
+    def tag_id_key(name):
+        return f"T:ID:{name}"
+
     @classmethod
     def tag_detail_key(cls, name: str, field: str):
         return {
             "excerpt": cls.tag_excerpt_key(name),
             "description": cls.tag_desc_key(name),
+            "id": cls.tag_id_key(name),
         }.get(field)
 
     def record_tag(self, tag: dict):
@@ -166,6 +172,9 @@ class TagsDatabaseMixin:
             self.tags_details_ids[tag["ExcerptPostId"]] = tag["TagName"]
         if tag.get("WikiPostId"):
             self.tags_details_ids[tag["WikiPostId"]] = tag["TagName"]
+
+        # record tag Id
+        self.pipe.set(self.tag_id_key(tag["TagName"]), int(tag["Id"]))
 
         # update our sorted set of tags
         self.pipe.zadd(self.tags_key(), mapping={tag["TagName"]: tag["Count"]}, nx=True)

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
     <div id="question-header" class="grid sm:fd-column">
-        <h1 itemprop="name" class="fs-headline1 ow-break-word mb8 grid--cell fl1"><a href="questions/{{ post.Id }}" class="question-hyperlink">{{ post.Title }}</a></h1>
+        <h1 itemprop="name" class="fs-headline1 ow-break-word mb8 grid--cell fl1"><a href="questions/{{ post.Id }}" class="question-hyperlink">{{ post.Title|rewrote_string }}</a></h1>
     </div>
     <div class="grid fw-wrap pb8 mb16 bb bc-black-075">
         <div class="grid--cell ws-nowrap mr16 mb8" title="2016-01-12 19:07:53Z">
@@ -24,7 +24,6 @@
             {% endwith %}
         </div>
 
-
         <div id="answers">
             <a name="tab-top"></a>
             <div id="answers-header">
@@ -36,7 +35,7 @@
             </div>
             {% for answer in post.answers %}
             <a name="{{ answer.Id }}"></a>
-            <div id="answer-{{ answer.Id }}" class="answer accepted-answer" data-answerid="34" data-ownerid="56" data-score="47" itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+            <div id="answer-{{ answer.Id }}" class="answer {% if answer.Id == post.AcceptedAnswerId %} accepted-answer{% endif %}" data-answerid="{{ answer.Id }}" data-ownerid="{{ answer.OwnerUserId }}" data-score="{{ answer.Score }}" itemprop="{% if answer.Id == post.AcceptedAnswerId %}acceptedAnswer{% else %}suggestedAnswer{% endif %}" itemscope="" itemtype="https://schema.org/Answer">
                 {% with post_answer=answer %}
                     {% include "post_layout.html" %}
                 {% endwith %}

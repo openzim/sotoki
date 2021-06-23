@@ -8,7 +8,7 @@ import subprocess
 
 import py7zr
 
-from .system import has_binary
+from .misc import has_binary
 
 logger = logging.getLogger(__name__)
 has_p7zip = has_binary("7z")
