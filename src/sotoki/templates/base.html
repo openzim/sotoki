@@ -13,125 +13,18 @@
         <script src="static/js/stub.en.js?v=784a450186a7"></script>
 
         <link rel="stylesheet" type="text/css" href="static/css/stacks.min.css" />
-        <link rel="stylesheet" type="text/css" href="static/css/primary.css" />
-        <link rel="stylesheet" type="text/css" href="static/css/secondary.css" />
-
-        <script>
-            StackExchange.ready(function () {
-                styleCode();
-            });
-        </script>
-        <script>
-            StackExchange.init(
-            {
-                "locale": "en",
-                "serverTime": 1624360417,
-                "routeName": "Home/Index",
-                "stackAuthUrl": "https://stackauth.com",
-                "networkMetaHostname": "meta.stackexchange.com",
-                "site": {
-                    "name": "Stack Overflow",
-                    "description": "Q&A for professional and enthusiast programmers",
-                    "isNoticesTabEnabled": false,
-                    "enableNewTagCreationWarning": false,
-                    "insertSpaceAfterNameTabCompletion": false,
-                    "id": 1,
-                    "cookieDomain": ".stackoverflow.com",
-                    "childUrl": "https://meta.stackoverflow.com",
-                    "styleCodeWithHighlightjs": true,
-                    "negativeVoteScoreFloor": null,
-                    "enableSocialMediaInSharePopup": false,
-                    "protocol": "https"
-                },
-                "user": {
-                    "fkey": "",
-                    "tid": "",
-                    "rep": 0,
-                    "isAnonymous": true,
-                    "isAnonymousNetworkWide": true
-                },
-                "events": {
-                    "postType": {
-                        "question": 1
-                    },
-                    "postEditionSection": {
-                        "title": 1,
-                        "body": 2,
-                        "tags": 3
-                    }
-                },
-                "story": {
-                    "minCompleteBodyLength": 75,
-                    "likedTagsMaxLength": 300,
-                    "dislikedTagsMaxLength": 300
-                },
-                "jobPreferences": {
-                    "maxNumDeveloperRoles": 2,
-                    "maxNumIndustries": 4
-                },
-                "svgIconPath": "https://cdn.sstatic.net/Img/stacks-icons",
-                "svgIconHash": "5b6352b54769"
-            },
-            {
-                "userProfile": {
-                    "openGraphAPIKey": ""
-                },
-                "userMessaging": {
-                    "showNewFeatureNotice": false
-                },
-                "tags": {},
-                "subscriptions": {
-                    "defaultBasicMaxTrueUpSeats": 250,
-                    "defaultFreemiumMaxTrueUpSeats": 50,
-                    "defaultMaxTrueUpSeats": 1000
-                },
-                "snippets": {
-                    "renderDomain": "stacksnippets.net",
-                    "snippetsEnabled": false
-                },
-                "site": {
-                    "allowImageUploads": false,
-                    "enableImgurHttps": false,
-                    "enableUserHovercards": false,
-                    "forceHttpsImages": false,
-                    "styleCode": true
-                },
-                "questions": {
-                    "enableQuestionTitleLengthLiveWarning": false,
-                    "maxTitleSize": 150,
-                    "questionTitleLengthStartLiveWarningChars": 50
-                },
-                "intercom": {
-                    "appId": "inf0secd",
-                    "hostBaseUrl": "https://stacksnippets.net"
-                },
-                "paths": {},
-                "monitoring": {
-                    "clientTimingsAbsoluteTimeout": 30000,
-                    "clientTimingsDebounceTimeout": 1000
-                },
-                "mentions": {
-                    "maxNumUsersInDropdown": 50
-                },
-                "markdown": {
-                    "enableTables": true
-                },
-                "legal": {
-                    "oneTrustConfigId": ""
-                },
-                "flags": {
-                    "allowRetractingCommentFlags": false,
-                    "allowRetractingFlags": false
-                },
-                "elections": {
-                    "opaVoteResultsBaseUrl": "https://www.opavote.com/results/"
-                },
-                "comments": {},
-                "accounts": {
-                    "currentPasswordRequiredForChangingStackIdPassword": true
-                }
-            });
-        </script>
+        <link id="primary_css" rel="stylesheet" type="text/css" href="static/css/primary.css" />
+        <link id="secondary_css" rel="stylesheet" type="text/css" href="static/css/secondary.css" />
+        <style type="text/css">
+            {{ site_css }}
+            body { padding-top: 0; } /* we don't include SE's topbar */
+            .mobile-only { display: none; }
+            body.mobile .mobile-only { display: block; }
+            body.mobile .desktop-only { display: none; }
+            body.mobile.user-page .container { display: none; }
+            body.mobile .post-layout--left, body.mobile .post-layout--left.votecell { padding-right: 0; }
+            html.html__responsive:not(.html__unpinned-leftnav) body.mobile #content { padding-left: 8px; padding-right: 8px; }
+        </style>
         <script type="text/javascript" src="static/js/jdenticon.min.js" async></script>
         <script type="text/x-mathjax-config">
                 MathJax.Hub.Config({"HTML-CSS": { preferredFont: "TeX", availableFonts: ["STIX","TeX"], linebreaks: { automatic:true }, EqnChunk: (MathJax.Hub.Browser.isMobile ? 10 : 50) },
@@ -145,21 +38,32 @@
                     styles: { ".MathJax_Display, .MathJax_Preview, .MathJax_Preview > *": { "background": "inherit" } },
                     SEEditor: "mathjaxEditing"
             });
-            </script>
-            <script src="static/js/MathJax.js?config=TeX-AMS_HTML-full"></script>
-            <script src="static/js/highlightjs-loader.en.js?v=17552072fdc0"></script>
+        </script>
+        <script src="static/js/MathJax.js?config=TeX-AMS_HTML-full"></script>
+        <script src="static/js/highlightjs-loader.en.js?v=17552072fdc0"></script>
         <script src="static/js/moment.min.js"></script>
-        <style type="text/css">
-            {{ site_css }}
-            body { padding-top: 0; } /* we don't include SE's topbar */
-        </style>
     </head>
     <body class="{{ body_class}} unified-theme">
-        <header class="site-header">
+        <div class="topbar mobile-only">
+            <div class="network-items">
+                <a class="s-btn s-btn__unset topbar-icon js-site-switcher-button icon-site-switcher-bubble" aria-expanded="false"><span class="hidden">Stack Exchange</span></a>
+                <div class="site-name"><a href="">{{ site_title }}{% if is_meta %}<small class="-subtitle">meta</small>{% endif %}</a></div>
+                <div class="-actions ai-center"></div>
+            </div>
+        </div>
+        <nav class="nav mobile-only">
+            <ul>
+                <li {% if whereis == 'questions' %}class="current"{% endif %}><a href="questions" title="Questions">Questions</a></li>
+                <li {% if whereis == 'tags' %}class="current"{% endif %}><a href="tags" title="Tags">Tags</a></li>
+                <li {% if whereis == 'users' %}class="current"{% endif %}><a href="users" title="Users">Users</a></li>
+            </ul>
+        </nav>
+        <header class="site-header desktop-only">
             <div class="site-header--container">
                 <a class="site-header--link fs-headline1 fw-bold" href="">{{ site_title }}{% if is_meta %}<span class="ml4 o60 fw-normal">Meta</span>{% endif %}</a>
             </div>
         </header>
+        {% block fullwidth %}{% endblock %}
         <div class="container">
             <div id="left-sidebar" data-is-here-when="md lg" class="left-sidebar js-pinned-left-sidebar ps-relative">
                 <div class="left-sidebar--sticky-container js-sticky-leftnav">
@@ -205,6 +109,24 @@
                     time_elements[i].innerHTML = moment(time_elements[i].innerText).fromNow();
                 }
             });
+        </script>
+        <script>
+            StackExchange.ready(function () {
+                // syntax highlighting
+                styleCode();
+                // enable mobile CSS if browser is detected as mobile
+                if (MathJax.Hub.Browser.isMobile) {
+                    $('head').append('<link rel="stylesheet" href="static/css/mobile.css" type="text/css" />');
+                    $('body').addClass('mobile');
+                    // user profile requires removing primary css
+                    {% if body_class == "user-page" %}
+                    $('#primary_css').remove();
+                    {% endif %}
+                }
+            });
+        </script>
+        <script>
+            StackExchange.init({"locale": "en", "serverTime": 1, "routeName": "", "stackAuthUrl": "", "networkMetaHostname": "", "site": {"name": "", "description": "", "isNoticesTabEnabled": false, "enableNewTagCreationWarning": false, "insertSpaceAfterNameTabCompletion": false, "id": 1, "cookieDomain": "", "childUrl": "", "styleCodeWithHighlightjs": true, "negativeVoteScoreFloor": null, "enableSocialMediaInSharePopup": false, "protocol": "https"}, "user": {"fkey": "", "tid": "", "rep": 0, "isAnonymous": true, "isAnonymousNetworkWide": true}, "events": {"postType": {"question": 1}, "postEditionSection": {"title": 1, "body": 2, "tags": 3}}, "story": {"minCompleteBodyLength": 75, "likedTagsMaxLength": 300, "dislikedTagsMaxLength": 300}, "jobPreferences": {"maxNumDeveloperRoles": 2, "maxNumIndustries": 4}, "svgIconPath": "", "svgIconHash": ""}, {"userProfile": {"openGraphAPIKey": ""}, "userMessaging": {"showNewFeatureNotice": false}, "tags": {}, "subscriptions": {"defaultBasicMaxTrueUpSeats": 250, "defaultFreemiumMaxTrueUpSeats": 50, "defaultMaxTrueUpSeats": 1000}, "snippets": {"renderDomain": "stacksnippets.net", "snippetsEnabled": false}, "site": {"allowImageUploads": false, "enableImgurHttps": false, "enableUserHovercards": false, "forceHttpsImages": false, "styleCode": true}, "questions": {"enableQuestionTitleLengthLiveWarning": false, "maxTitleSize": 150, "questionTitleLengthStartLiveWarningChars": 50}, "intercom": {"appId": "", "hostBaseUrl": ""}, "paths": {}, "monitoring": {"clientTimingsAbsoluteTimeout": 30000, "clientTimingsDebounceTimeout": 1000}, "mentions": {"maxNumUsersInDropdown": 50}, "markdown": {"enableTables": true}, "legal": {"oneTrustConfigId": ""}, "flags": {"allowRetractingCommentFlags": false, "allowRetractingFlags": false}, "elections": {"opaVoteResultsBaseUrl": ""}, "comments": {}, "accounts": {"currentPasswordRequiredForChangingStackIdPassword": true}});
         </script>
     </body>
 </html>

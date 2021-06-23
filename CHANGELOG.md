@@ -5,10 +5,6 @@
 - added --preparation-only to only prepare XML files
 - faster XML dumps creation step (x5)
 
-#### Not-yet implemented:
-
-- --censor-words-list
-
 #### Current known bugs/limitations:
 
 - Not using new libzim Illustration API (awaiting pylibzim)

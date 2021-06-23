@@ -132,7 +132,7 @@ class StackExchangeToZim:
 
         # download primary|secondary.css from target
         assets_base = Global.site["IconUrl"].rsplit("/", 2)[0]
-        for css_fname in ("primary.css", "secondary.css"):
+        for css_fname in ("primary.css", "secondary.css", "mobile.css"):
             logger.debug(f"adding {css_fname}")
             Global.creator.add_item(
                 URLItem(
@@ -273,6 +273,8 @@ class StackExchangeToZim:
             # build home page in ZIM using questions list
             logger.info("Generating Questions page (homepage)")
             PostGenerator().generate_questions_page()
+            with Global.lock:
+                Global.creator.add_redirect(path="", target_path="questions")
             logger.info(".. done")
 
             Global.database.teardown()

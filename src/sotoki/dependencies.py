@@ -46,6 +46,10 @@ ASSETS = [
         "static/js/full-anon.en.js",
         "https://cdn.sstatic.net/Js/full-anon.en.js",
     ),
+    (
+        "static/js/mobile.en.js",
+        "https://cdn.sstatic.net/Js/mobile.en.js",
+    ),
     # MathJax dependencies. SE uses v2.7.5 ATM
     (
         "static/js/MathJax.js",
