@@ -8,7 +8,6 @@
 #### Not-yet implemented:
 
 - --censor-words-list
-- --without-names
 
 #### Current known bugs/limitations:
 

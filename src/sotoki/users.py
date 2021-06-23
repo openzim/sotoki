@@ -8,6 +8,7 @@ from slugify import slugify
 from .constants import getLogger
 from .renderer import SortedSetPaginator
 from .utils.generator import Generator, Walker
+from .utils.misc import get_short_hash
 
 logger = getLogger()
 
@@ -79,6 +80,9 @@ class UserGenerator(Generator):
 
         if not self.database.is_active_user(user["Id"]):
             return
+
+        if self.conf.without_names:
+            user["DisplayName"] = get_short_hash(user["DisplayName"])
 
         user["slug"] = slugify(user["DisplayName"])
         user["deleted"] = False
