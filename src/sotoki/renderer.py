@@ -203,16 +203,19 @@ class Renderer(GlobalMixin):
         )
 
     def get_about_page(self):
+        total_questions = self.database.get_set_count(self.database.questions_key())
         stats = self.database.get_questions_stats()
+        percent_answered = stats["nb_answered"] / total_questions
         return self.env.get_template("about.html").render(
             body_class="about-page",
             whereis="about",
             to_root="./",
             title="About",
             dump_date=self.conf.dump_date.strftime("%B %Y"),
-            total_questions=self.database.get_set_count(self.database.questions_key()),
+            total_questions=total_questions,
             nb_answers=stats["nb_answers"],
             nb_answered=stats["nb_answered"],
+            percent_answered=percent_answered * 100,
             total_users=self.database.get_set_count(self.database.users_key()),
             total_tags=self.database.get_set_count(self.database.tags_key()),
             **self.global_context,

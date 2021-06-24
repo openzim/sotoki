@@ -415,9 +415,14 @@ class PostsDatabaseMixin:
 
         self.commit_maybe()
 
-    def record_questions_stats(self, nb_answers: int, nb_answered: int):
+    def record_questions_stats(
+        self, nb_answers: int, nb_answered: int, nb_accepted: int
+    ):
         """store total number of answers through dump"""
-        self.pipe.set(self.questions_stats_key(), json.dumps((nb_answers, nb_answered)))
+        self.pipe.set(
+            self.questions_stats_key(),
+            json.dumps((nb_answers, nb_answered, nb_accepted)),
+        )
         self.commit_maybe()
 
     def get_question_title_desc(self, post_id: int) -> dict:
@@ -461,8 +466,8 @@ class PostsDatabaseMixin:
         try:
             item = json.loads(self.conn.get(self.questions_stats_key()))
         except Exception:
-            item = [0, 0]
-        return {"nb_answers": item[0], "nb_answered": item[1]}
+            item = [0, 0, 0]
+        return {"nb_answers": item[0], "nb_answered": item[1], "nb_accepted": item[2]}
 
 
 class RedisDatabase(

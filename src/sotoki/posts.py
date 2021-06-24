@@ -69,13 +69,16 @@ class PostFirstPasser(Generator):
         super().__init__(**kwargs)
         self.fpath = self.conf.build_dir / "posts_complete.xml"
 
-        self.nb_answered = 0
         self.nb_answers = 0
+        self.nb_answered = 0
+        self.nb_accepted = 0
 
     def run(self):
         super().run()
         self.database.record_questions_stats(
-            nb_answers=self.nb_answers, nb_answered=self.nb_answered
+            nb_answers=self.nb_answers,
+            nb_answered=self.nb_answered,
+            nb_accepted=self.nb_accepted,
         )
 
     def processor(self, item):
@@ -88,6 +91,8 @@ class PostFirstPasser(Generator):
         # update stats
         self.nb_answers += item["nb_answers"]
         if item["has_accepted"]:
+            self.nb_accepted += 1
+        if item["nb_answers"]:
             self.nb_answered += 1
 
         self.database.record_question(post=item)
