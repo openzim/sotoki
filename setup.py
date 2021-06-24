@@ -2,10 +2,17 @@
 # -*- coding: utf-8 -*-
 # vim: ai ts=4 sts=4 et sw=4 nu
 
+import sys
 import pathlib
 from setuptools import setup, find_packages
 
 root_dir = pathlib.Path(__file__).parent
+
+# download assets dependencies before packing
+sys.path = [str(root_dir.joinpath("src").resolve())] + sys.path
+from sotoki.dependencies import main as download_deps
+
+download_deps()
 
 
 def read(*names, **kwargs):
@@ -36,6 +43,7 @@ setup(
     entry_points={
         "console_scripts": [
             "sotoki=sotoki.__main__:main",
+            "sotoki-deps-download=sotoki.dependencies:main",
         ]
     },
     classifiers=[

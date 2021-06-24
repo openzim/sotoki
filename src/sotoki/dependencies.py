@@ -203,5 +203,9 @@ def get_all_assets(cache):
         stream_file(url=source, fpath=target)
 
 
-if __name__ == "__main__":
+def main():
     get_all_assets(pathlib.Path(__file__).parent.joinpath("assets"))
+
+
+if __name__ == "__main__":
+    main()
