@@ -194,6 +194,11 @@ class PostsWalker(Walker):
             self.post["comments"] = self.comments
 
         if name == "post":
+            if self.post.get("answers"):
+                self.post["answers"].sort(
+                    key=lambda item: int(item["Score"]), reverse=True
+                )
+
             # defer processing to workers
             self.processor(item=self.post)
 

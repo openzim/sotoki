@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-        <div id="mainbar">
+        <div id="mainbar" role="main">
             <div class="grid">
                 <div class="grid fl1 mb24"><h1 class="grid--cell fs-headline1 mb0">About</h1></div>
             </div>
-            <div>
+            <div class="pb16">
                 <p>This content is an offline <em>copy</em> of the Stack Exchange website “<em>{{ site_title }}</em>” at {{ site_domain }} as of {{ dump_date }} (date of Stack Exchange Dump file used to produce this).</p>
 
                 <h2>Basic Stack Exchange's knowledge</h2>
@@ -55,7 +55,7 @@
                 {% endif %}
             </div>
         </div>
-        <div id="sidebar" class="show-votes" role="complementary" aria-label="sidebar">
+        <div id="sidebar" role="complementary">
             <div class="s-sidebarwidget mb16">
                 <div class="s-sidebarwidget--header">Basic Stats</div>
                 <table class="s-sidebarwidget--content s-sidebarwidget__items">

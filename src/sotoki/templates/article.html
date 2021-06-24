@@ -6,11 +6,11 @@
     <div class="grid fw-wrap pb8 mb16 bb bc-black-075">
         <div class="grid--cell ws-nowrap mr16 mb8" title="2016-01-12 19:07:53Z">
             <span class="fc-light mr2">Asked</span>
-            <time itemprop="dateCreated" datetime="{{ post.CreationDate }}" class="fromnow">{{ post.CreationDate }}</time>
+            <time itemprop="dateCreated" datetime="{{ post.CreationDate }}" class="fromnow">{{ post.CreationDate|datetime }}</time>
         </div>
         <div class="grid--cell ws-nowrap mr16 mb8">
             <span class="fc-light mr2">Active</span>
-            <time class="fromnow" title="{{ post.LastActivityDate }}">{{ post.LastActivityDate }}</a>
+            <time class="fromnow" title="{{ post.LastActivityDate }}" datetime="{{ post.LastActivityDate }}">{{ post.LastActivityDate|datetime }}</a>
         </div>
         <div class="grid--cell ws-nowrap mb8" title="Viewed {{ post.ViewCount|number }} times">
             <span class="fc-light mr2">Viewed</span> {{ post.ViewCount|number_short }} times

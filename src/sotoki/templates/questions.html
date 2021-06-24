@@ -2,7 +2,7 @@
 {% block content %}
         <div id="mainbar-full">
             <div class="grid">
-                <h1 class="grid--cell fl1 fs-headline1">Highest Voted Questions</h1>
+                <h1 class="grid--cell fl1 fs-headline1">Most Popular</h1>
             </div>
             <div class="grid ai-end mb16 sm:fd-column">
                 <div class="grid--cell fl1 fs-body1 sm:mb16">
@@ -10,6 +10,11 @@
                     <a href="questions/tagged/{{ tag }}" class="post-tag no-tag-menu" title="Show questions relating to {{ tag }}" rel="tag">{{ tag }}</a>
                     {% endfor %}
                     <a class="more-tags" href="tags">more&nbsp;tags</a>
+                </div>
+            </div>
+            <div>
+                <div class="grid ai-center jc-space-between mb12 sm:fd-column sm:ai-stretch">
+                    <div class="fs-body3 grid--cell fl1 mr12 sm:mr0 sm:mb12">{{ page_obj.paginator.count }} questions</div>
                 </div>
             </div>
             <div id="questions" class="flush-left">
