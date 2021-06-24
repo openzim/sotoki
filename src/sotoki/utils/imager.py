@@ -307,7 +307,6 @@ class Imager:
                 with Global.lock:
                     Global.creator.add_item_for(
                         path=path,
-                        title="",
                         content=fileobj.getvalue(),
                         mimetype="image/webp",
                     )
@@ -324,7 +323,6 @@ class Imager:
         with Global.lock:
             Global.creator.add_item_for(
                 path=path,
-                title="",
                 content=fileobj.getvalue(),
                 mimetype="image/webp",
             )

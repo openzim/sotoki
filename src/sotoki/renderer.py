@@ -125,7 +125,7 @@ class Renderer(GlobalMixin):
             whereis="questions",
             post=post,
             to_root="../",
-            title=post["Title"],
+            title=self.rewriter.rewrite_string(post["Title"]),
             **self.global_context,
         )
 

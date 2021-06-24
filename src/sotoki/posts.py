@@ -227,7 +227,7 @@ class PostGenerator(Generator):
         with self.lock:
             self.creator.add_item_for(
                 path=f'questions/{post["Id"]}',
-                title=post.get("Title"),
+                title=self.rewriter.rewrite_string(post.get("Title")),
                 content=self.renderer.get_question(post),
                 mimetype="text/html",
             )
