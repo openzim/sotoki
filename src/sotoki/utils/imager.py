@@ -10,6 +10,7 @@ from typing import Optional
 
 import requests
 from PIL import Image
+from resizeimage.imageexceptions import ImageSizeError
 from zimscraperlib.download import stream_file
 from zimscraperlib.image.optimization import optimize_webp
 from zimscraperlib.image.transformation import resize_image
@@ -160,11 +161,14 @@ class Imager:
             img.save(webp, format="WEBP")
         del src
         resize_args = resize_args or {}
-        resize_image(
-            src=webp,
-            **resize_args,
-            allow_upscaling=False,
-        )
+        try:
+            resize_image(
+                src=webp,
+                **resize_args,
+                allow_upscaling=False,
+            )
+        except ImageSizeError as exc:
+            logger.debug(f"Resize Error for {url}: {exc}")
         return optimize_webp(
             src=webp,
             lossless=False,
@@ -227,13 +231,15 @@ class Imager:
             path = f"images/{digest}"
 
         if digest in self.handled:
-            logger.debug(f"URL `{url}` already processed.")
+            logger.debug(f"URL `{url.geturl()}` already processed.")
             return path
 
         # record that we are processing this one
         self.handled.append(digest)
 
-        future = Global.executor.submit(self.process_image, url=url, path=path)
+        future = Global.executor.submit(
+            self.process_image, url=url, path=path, is_profile=is_profile
+        )
         future.add_done_callback(once_done or self.once_done)
 
         return path
@@ -297,7 +303,12 @@ class Imager:
                 return path
 
         # we're using S3 but don't have it or failed to download
-        fileobj = self.get_image_data(url.geturl(), **resize_args)
+        try:
+            fileobj = self.get_image_data(url.geturl(), **resize_args)
+        except Exception as exc:
+            logger.error(f"Failed to download/convert/optim source  at {url.geturl()}")
+            logger.exception(exc)
+            return path
 
         # only upload it if we didn't have it in cache
         if not download_failed:
