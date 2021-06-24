@@ -4,14 +4,16 @@
             <div class="grid">
                 <div class="grid fl1 mb24"><h1 class="grid--cell fs-headline1 mb0">Questions tagged [{{ name }}]</h1></div>
             </div>
-            <div id="questions" class="flush-left">
+            <div id="questions" class="bc-black-100 mln24 pl24">
                 {% if excerpt or description %}<div class="s-prose js-post-body">
                     {% if excerpt %}<div class="welovestackoverflow" id="wiki-excerpt"><p>{{ excerpt }}</p></div>{% endif %}
                     {% if description %}{{ description }}{% endif %}
                 </div>{% endif %}
 
                 {% for question in questions %}
+                    <div class="mln24">
                     {% include "question_list_item.html" %}
+                    </div>
                 {% endfor %}
 
                 {% with target=["questions", "tagged", name]|join("/") %}{% include "pagination.html" %}{% endwith %}
