@@ -101,6 +101,7 @@ class Renderer(GlobalMixin):
         self.env.filters["number"] = number_format
         self.env.filters["number_short"] = number_format_short
         self.env.filters["datetime"] = date_format
+        self.env.filters["datetime"] = date_format
         self.env.filters["pluralize"] = pluralize_dj
         self.env.filters["question_score"] = self.database.get_question_score
         self.env.filters["has_accepted"] = self.database.question_has_accepted_answer
@@ -114,6 +115,7 @@ class Renderer(GlobalMixin):
             "is_meta": is_meta,
             # meta sites (with a ParentId) don't use custom CSS
             "site_css": "" if self.site.get("ParentId") else self.site.get("TagCss"),
+            "conf": self.conf,
         }
 
     def get_question(self, post: dict):
@@ -139,7 +141,6 @@ class Renderer(GlobalMixin):
             questions=extend_questions(page),
             to_root="",
             page_obj=page,
-            total_questions=self.database.get_set_count(self.database.questions_key()),
             **self.global_context,
         )
 
@@ -198,5 +199,21 @@ class Renderer(GlobalMixin):
             to_root="./",
             title="Users",
             page_obj=page,
+            **self.global_context,
+        )
+
+    def get_about_page(self):
+        stats = self.database.get_questions_stats()
+        return self.env.get_template("about.html").render(
+            body_class="about-page",
+            whereis="about",
+            to_root="./",
+            title="About",
+            dump_date=self.conf.dump_date.strftime("%B %Y"),
+            total_questions=self.database.get_set_count(self.database.questions_key()),
+            nb_answers=stats["nb_answers"],
+            nb_answered=stats["nb_answered"],
+            total_users=self.database.get_set_count(self.database.users_key()),
+            total_tags=self.database.get_set_count(self.database.tags_key()),
             **self.global_context,
         )

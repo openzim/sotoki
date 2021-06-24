@@ -4,6 +4,7 @@
 
 import pathlib
 import logging
+import datetime
 import tempfile
 import threading
 import urllib.parse
@@ -110,6 +111,7 @@ class Sotoconf:
     statsFilename: Optional[str] = None
     #
     build_dir_is_tmp_dir: Optional[bool] = False
+    dump_date: Optional[datetime.date] = datetime.date.today()
 
     @property
     def s3_url(self):
@@ -122,6 +124,21 @@ class Sotoconf:
     @property
     def with_user_identicons(self):
         return not self.without_images and not self.without_user_identicons
+
+    @property
+    def any_restriction(self):
+        return any(
+            (
+                self.without_unanswered,
+                self.without_user_identicons,
+                self.without_external_links,
+                self.without_user_profiles,
+                self.without_images,
+                self.without_names,
+                self.without_users_links,
+                self.censor_words_list,
+            )
+        )
 
     def __post_init__(self):
         self.name = self.domain.replace(".", "_")

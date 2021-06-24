@@ -31,6 +31,7 @@ class FirstPassWalker(Walker):
             self.post["Score"] = int(self.post["Score"])
             self.post["Tags"] = self.post["Tags"][1:-1].split("><")
             self.post["users_ids"] = set()
+            self.post["nb_answers"] = 0
             _user_to_set(self.post["users_ids"], "OwnerUserId")
             _user_to_set(self.post["users_ids"], "LastEditorUserId")
 
@@ -48,6 +49,7 @@ class FirstPassWalker(Walker):
         if name == "answer":  # a answer
             _user_to_set(self.post["users_ids"], "OwnerUserId")
             _user_to_set(self.post["users_ids"], "LastEditorUserId")
+            self.post["nb_answers"] += 1
 
     def endElement(self, name):
 
@@ -67,12 +69,27 @@ class PostFirstPasser(Generator):
         super().__init__(**kwargs)
         self.fpath = self.conf.build_dir / "posts_complete.xml"
 
+        self.nb_answered = 0
+        self.nb_answers = 0
+
+    def run(self):
+        super().run()
+        self.database.record_questions_stats(
+            nb_answers=self.nb_answers, nb_answered=self.nb_answered
+        )
+
     def processor(self, item):
         # skip post without answers ; maybe?
-        if self.conf.without_unanswered and not item["answers"]:
+        if self.conf.without_unanswered and not item["nb_answers"]:
             return
 
         harmonize_post(item)
+
+        # update stats
+        self.nb_answers += item["nb_answers"]
+        if item["has_accepted"]:
+            self.nb_answered += 1
+
         self.database.record_question(post=item)
 
 

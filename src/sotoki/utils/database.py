@@ -367,6 +367,10 @@ class PostsDatabaseMixin:
     def questions_key():
         return "questions"
 
+    @staticmethod
+    def questions_stats_key():
+        return "nb_answers"
+
     def record_question(self, post: dict):
         self.bump_seen()
 
@@ -411,6 +415,11 @@ class PostsDatabaseMixin:
 
         self.commit_maybe()
 
+    def record_questions_stats(self, nb_answers: int, nb_answered: int):
+        """store total number of answers through dump"""
+        self.pipe.set(self.questions_stats_key(), json.dumps((nb_answers, nb_answered)))
+        self.commit_maybe()
+
     def get_question_title_desc(self, post_id: int) -> dict:
         """dict including title and excerpt fo a question by PostId"""
         data = json.loads(self.conn.get(self.question_details_key(post_id)))
@@ -446,6 +455,14 @@ class PostsDatabaseMixin:
         if post_entry:
             return json.loads(post_entry)[2]  # 3rd entry, has accepted
         return False
+
+    def get_questions_stats(self) -> int:
+        """total number of answers in dump (not in DB)"""
+        try:
+            item = json.loads(self.conn.get(self.questions_stats_key()))
+        except Exception:
+            item = [0, 0]
+        return {"nb_answers": item[0], "nb_answered": item[1]}
 
 
 class RedisDatabase(

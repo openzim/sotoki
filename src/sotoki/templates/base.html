@@ -56,6 +56,7 @@
                 <li {% if whereis == 'questions' %}class="current"{% endif %}><a href="questions" title="Questions">Questions</a></li>
                 <li {% if whereis == 'tags' %}class="current"{% endif %}><a href="tags" title="Tags">Tags</a></li>
                 <li {% if whereis == 'users' %}class="current"{% endif %}><a href="users" title="Users">Users</a></li>
+                <li {% if whereis == 'about' %}class="current"{% endif %}><a href="about" title="About">About</a></li>
             </ul>
         </nav>
         <header class="site-header desktop-only">
@@ -81,13 +82,18 @@
                                         </a>
                                     </li>
                                     <li class="{% if whereis == 'tags' %}youarehere{% endif %}">
-                                        <a id="nav-tags" href="tags" class=" js-gps-track nav-links--link" aria-controls="" data-controller="" data-s-popover-placement="right">
+                                        <a id="nav-tags" href="tags" class=" js-gps-track nav-links--link">
                                             <div class="grid ai-center"><div class="grid--cell truncate">Tags</div></div>
                                         </a>
                                     </li>
                                     <li class="{% if whereis == 'users' %}youarehere{% endif %}">
-                                        <a href="users" id="nav-users" class=" js-gps-track nav-links--link" data-gps-track="top_nav.click({is_current:true, location:4, destination:3})" aria-controls="" data-controller="" data-s-popover-placement="right">
+                                        <a href="users" id="nav-users" class=" js-gps-track nav-links--link">
                                             <div class="grid ai-center"><div class="grid--cell truncate">Users</div></div>
+                                        </a>
+                                    </li>
+                                    <li class="{% if whereis == 'about' %}youarehere{% endif %}">
+                                        <a href="about" id="nav-about" class=" js-gps-track nav-links--link">
+                                            <div class="grid ai-center"><div class="grid--cell truncate">About</div></div>
                                         </a>
                                     </li>
                                 </ol>

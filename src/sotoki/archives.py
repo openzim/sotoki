@@ -2,8 +2,11 @@
 # -*- coding: utf-8 -*-
 # vim: ai ts=4 sts=4 et sw=4 nu
 
+import datetime
 import concurrent.futures as cf
 
+import requests
+import dateparser
 from zimscraperlib.download import stream_file, save_large_file
 
 from .constants import getLogger, Global
@@ -58,6 +61,17 @@ class ArchiveManager:
         if self.domain != "stackoverflow.com":
             return [self.build_dir / f"{self.domain}.7z"]
         return [self.build_dir / f"{self.domain}-{part}.7z" for part in self.dump_parts]
+
+    def get_dump_date(self):
+        """date indicating the month and year the dump ark was produced"""
+        resp = requests.head(url=f"{self.mirror}/{self.archives[0].name}")
+        header = resp.headers.get("Last-Modified")
+        if header:
+            try:
+                return dateparser.parse(header)
+            except ValueError:
+                pass
+        return datetime.date.now()  # default to today
 
     def download_and_extract_archives(self):
         logger.info("Downloading archive(s)…")

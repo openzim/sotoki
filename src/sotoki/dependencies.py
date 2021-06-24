@@ -137,6 +137,14 @@ ASSETS = [
     ),
     ("Img/img-upload.png", "https://cdn.sstatic.net/Img/img-upload.png"),
     (
+        "Img/unified/sprites.png",
+        "https://cdn.sstatic.net/Img/unified/sprites.png",
+    ),
+    (
+        "Img/unified/sprites.svg",
+        "https://cdn.sstatic.net/Img/unified/sprites.svg",
+    ),
+    (
         "Img/unifiedmeta/sprites.png",
         "https://cdn.sstatic.net/Img/unifiedmeta/sprites.png",
     ),

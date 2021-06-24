@@ -175,6 +175,7 @@ class StackExchangeToZim:
         logger.info("XML Dumps preparation")
         ark_manager = ArchiveManager()
         ark_manager.check_and_prepare_dumps()
+        self.conf.dump_date = ark_manager.get_dump_date()
         del ark_manager
 
         if self.conf.prepare_only:
@@ -274,6 +275,12 @@ class StackExchangeToZim:
             logger.info("Generating Questions page (homepage)")
             PostGenerator().generate_questions_page()
             with Global.lock:
+                Global.creator.add_item_for(
+                    path="about",
+                    title="About",
+                    content=Global.renderer.get_about_page(),
+                    mimetype="text/html",
+                )
                 Global.creator.add_redirect(path="", target_path="questions")
             logger.info(".. done")
 

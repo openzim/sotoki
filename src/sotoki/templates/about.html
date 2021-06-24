@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+        <div id="mainbar">
+            <div class="grid">
+                <div class="grid fl1 mb24"><h1 class="grid--cell fs-headline1 mb0">About</h1></div>
+            </div>
+            <div>
+                <p>This content is an offline <em>copy</em> of the Stack Exchange website “<em>{{ site_title }}</em>” at {{ site_domain }} as of {{ dump_date }} (date of Stack Exchange Dump file used to produce this).</p>
+
+                <h2>Basic Stack Exchange's knowledge</h2>
+                <p>Stack Exchange's websites are social platforms where anybody can post a question related to the site's topic and anybody can write answers or comments to it. Users can <em>Up-vote</em> or <em>Down-vote</em> answers and comments in order to distinguish those that are most useful.</p>
+                <p>This voting gets computed into a per-question, per-answer, per-comment <em>Score</em> that is displayed thorough the website to help you skim to the most valuable content.</p>
+                <p>When the user who raised a question is satisfied with an answer, he may mark it as <em>Accepted</em>. There is now a green mark <svg data-icon="Checkmark" class="fc-green-500"></svg> next to it to indicate that. The accepted answer can change overtime (in the online platform).</p>
+                <p>Users interacting with the platform (receiving Up-vote for their answer for instance) are attributed “rewards” that gets computed into a <em>Reputation</em> which is a per-user Score.</p>
+                <p>Additionnaly, Users receive badges depending on sub-topic specific actions. Badges are sorted in three levels: <span class="grid--cell badge1"></span> Gold, <span class="grid--cell badge2"></span> Silver and <span class="grid--cell badge3"></span> Bronze.</p>
+
+                <h2>Limits of this copy</h2>
+                <p>As an offline copy, the following limitations apply:</p>
+                <ul>
+                    <li>You can not interact with the content. It's a <em>read-only</em> version and you can not Up-vote or comment for instance.</li>
+                    <li>Content is at least {{ dump_date }} old because it's not being updated.</li>
+                    <li>Views number correspond to number of Views on the online website at the time of the Dump. Yours are not counted.</li>
+                    <li>Only Users with interactions with the platform are included and thus have profile pages.</li>
+                </ul>
+
+                {% if conf.any_restriction %}
+                <h3>Restrictions</h3>
+                <p>Additionnaly, the following restrictions have been applied to this specific copy:</p>
+                <ul>
+                    {% if conf.without_unanswered %}
+                        <li>All questions without answers have been removed.</li>
+                    {% endif %}
+                    {% if conf.without_images %}
+                        <li>All images have been removed from content. User profile pictures have also been replaced with generated ones.</li>
+                    {% endif %}
+                    {% if conf.without_user_profiles %}
+                        <li>All User's profile pages have been removed.</li>
+                    {% endif %}
+                    {% if conf.without_user_identicons and not conf.without_images %}
+                        <li>All User's profile pictures have been removed. You'll see generated ones instead.</li>
+                    {% endif %}
+                    {% if conf.without_external_links %}
+                        <li>All external links have been edited and points nowhere.</li>
+                    {% endif %}
+                    {% if conf.without_users_links %}
+                        <li>All links to social-media websites have been removed and their content replaced with <em>[redacted]</em>.</li>
+                    {% endif %}
+                    {% if conf.without_names %}
+                        <li>All Usernames have been replaced with generated ones.</li>
+                    {% endif %}
+                    {% if conf.censor_words_list %}
+                        <li>A list of unwanted words have been removed from the content. Those have been replaced with <em>[redacted]</em>.</li>
+                    {% endif %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+        <div id="sidebar" class="show-votes" role="complementary" aria-label="sidebar">
+            <div class="s-sidebarwidget mb16">
+                <div class="s-sidebarwidget--header">Basic Stats</div>
+                <table class="s-sidebarwidget--content s-sidebarwidget__items">
+                    <tbody>
+                    <tr class="s-sidebarwidget--item"><td class="tc-black-350">questions</td><td>{{ total_questions|number }}</td></tr>
+                    <tr class="s-sidebarwidget--item"><td class="tc-black-350">answers</td><td>{{ nb_answers|number }}</td></tr>
+                    <tr class="s-sidebarwidget--item"><td class="tc-black-350">answered</td><td>{{ nb_answered|number }}%</td></tr>
+                    <tr class="s-sidebarwidget--item"><td class="tc-black-350">users</td><td>{{ total_users|number }}</td></tr>
+                    <tr class="s-sidebarwidget--item"><td class="tc-black-350">tags</td><td>{{ total_tags|number }}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+{% endblock %}

@@ -12,3 +12,4 @@ lxml>=4.6.3,<4.7
 jinja2-pluralize>=0.3.0,<0.4
 tld>=0.12.6,<0.13
 mistune>=2.0.0rc1,<2.1
+dateparser>=1.0.0,<1.1
