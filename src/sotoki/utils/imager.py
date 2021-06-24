@@ -276,12 +276,23 @@ class Imager:
 
         # we are using S3 cache
         ident = self.get_version_ident_for(url.geturl())
+        if ident is None:
+            logger.error(f"Unable to query {url.geturl()}. Skipping")
+            return path
+
         key = self.get_s3_key_for(url.geturl())
         s3_storage = KiwixStorage(Global.conf.s3_url)
         meta = {"ident": ident, "encoder_version": str(IMAGES_ENCODER_VERSION)}
 
         download_failed = False  # useful to trigger reupload or not
-        if s3_storage.has_object_matching(key, meta=meta):
+        try:
+            is_on_s3 = s3_storage.has_object_matching(key, meta=meta)
+        except Exception as exc:
+            logger.error(f"Failed to query S3 for {key} and {meta} -- {url} -- {exc}")
+            is_on_s3 = False  # trigger manual download
+            download_failed = True  # don't upload this as we might have it already
+
+        if is_on_s3:
             logger.debug(f"Downloading S3::{key} into ZIM::{path}")
             # download file into memory
             fileobj = io.BytesIO()
@@ -309,6 +320,14 @@ class Imager:
             logger.error(f"Failed to download/convert/optim source  at {url.geturl()}")
             logger.exception(exc)
             return path
+
+        with Global.lock:
+            Global.creator.add_item_for(
+                path=path,
+                title="",
+                content=fileobj.getvalue(),
+                mimetype="image/webp",
+            )
 
         # only upload it if we didn't have it in cache
         if not download_failed:
