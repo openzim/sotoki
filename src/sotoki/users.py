@@ -52,7 +52,7 @@ class UsersWalker(Walker):
                 if profile_url:
                     self.imager.defer(
                         url=profile_url,
-                        path=f"images/user/{self.user['Id']}",
+                        path=f"users/profiles/{self.user['Id']}.webp",
                         is_profile=True,
                     )
 

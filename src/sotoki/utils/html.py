@@ -225,6 +225,7 @@ class Rewriter(GlobalMixin):
                 del img["src"]
             # process all images
             else:
+                img["onerror"] = "onImageLoadingError(this);"
                 img["src"] = self.imager.defer(img["src"], is_profile=False)
 
     # def censor_words_as_string(self, soup) -> str:
