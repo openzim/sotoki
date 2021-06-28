@@ -50,6 +50,20 @@ ASSETS = [
         "static/js/mobile.en.js",
         "https://cdn.sstatic.net/Js/mobile.en.js",
     ),
+    # WepP Hero polyfill
+    (
+        "static/js/webp-hero.polyfill.js",
+        "https://unpkg.com/webp-hero@0.0.0-dev.27/dist-cjs/polyfills.js",
+    ),
+    (
+        "static/js/webp-hero.bundle.js",
+        "https://unpkg.com/webp-hero@0.0.0-dev.27/dist-cjs/webp-hero.bundle.js",
+    ),
+    (
+        "static/js/webp-handler.js",
+        "https://gist.githubusercontent.com/rgaudin/60bb9cc6f187add506584258028b8ee1/"
+        "raw/9d575b8e25d67eed2a9c9a91d3e053a0062d2fc7/web-handler.js",
+    ),
     # MathJax dependencies. SE uses v2.7.5 ATM
     (
         "static/js/MathJax.js",
@@ -105,6 +119,11 @@ ASSETS = [
         "static/js/jax/output/HTML-CSS/fonts/STIX/General/Regular/GreekItalic.js",
         "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/"
         "jax/output/HTML-CSS/fonts/STIX/General/Regular/GreekItalic.js?V=2.7.5",
+    ),
+    (
+        "static/js/jax/output/HTML-CSS/fonts/TeX/fontdata.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/"
+        "jax/output/HTML-CSS/fonts/TeX/fontdata.js?V=2.7.5",
     ),
     # following assets were manualy extracted from primary.css and secondary.css
     # those seem to be similar in all sites.

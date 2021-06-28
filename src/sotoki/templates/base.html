@@ -8,10 +8,6 @@
         <link rel="apple-touch-icon" href="apple-touch-icon.png" />
         <link rel="image_src" href="apple-touch-icon.png" />
         <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, minimum-scale=1.0" />
-
-        <script src="static/js/jquery.min.js"></script>
-        <script src="static/js/stub.en.js?v=784a450186a7"></script>
-
         <link rel="stylesheet" type="text/css" href="static/css/stacks.min.css" />
         <link id="primary_css" rel="stylesheet" type="text/css" href="static/css/primary.css" />
         <link id="secondary_css" rel="stylesheet" type="text/css" href="static/css/secondary.css" />
@@ -29,6 +25,52 @@
             .about-text { padding-bottom: 16px; padding-top: 16px; }
         </style>
         <script type="text/javascript" src="static/js/jdenticon.min.js" async></script>
+        <script type="text/javascript" src="static/js/webp-hero.polyfill.js"></script>
+        <script type="text/javascript" src="static/js/webp-hero.bundle.js"></script>
+        <script type="text/javascript" src="static/js/webp-handler.js"></script>
+        <script type="text/javascript">
+            /*
+             * replace an <img/> node with a jdidenticon <svg />
+             * Uses it's parent .innerHTML so img should be wrapped.
+             * @param img: either an HTMLImageElement or an Error event
+             */
+            function replaceWithJdenticon(img) {
+                if (!(img instanceof HTMLImageElement)) {
+                    img = img.srcElement;
+                }
+                if (img.getAttribute('data-jdenticon-value') || img.getAttribute('data-jdenticon-hash')) {
+                    img.parentNode.innerHTML = jdenticon.toSvg(img.getAttribute('data-jdenticon-value') || img.getAttribute('data-jdenticon-hash'), img.width || img.getAttribute("data-jdenticon-width"));
+                }
+            }
+            var webp_handler = new WebPHandler({
+                on_error: replaceWithJdenticon,
+                scripts_urls: ["static/js/webp-hero.polyfill.js", "static/js/webp-hero.bundle.js"],
+            });
+
+            /*
+             * manually set (in-templates) on all <img /> nodes so that any error loading
+             * it by the browser calls it. Used to trigger polyfill and jdenticon fallback
+             * /!\ requires WebPHandler to be ready _before_ the browser attempts to 
+             * load any image in the page. WebP Hero scripts should thus be included
+             * syncrhonously before this */
+            function onImageLoadingError(img) {
+                if (img === undefined)
+                    return;
+
+                // only use polyfill if browser lacks Webp supports and wasn't already polyfied
+                // polyfill replaces url with data URI
+                if (!webp_handler.supports_webp && img.src.length > 0 && img.src.substr(0, 5) != "data:") {
+                    webp_handler.polyfillImage(img);
+                    return;
+                }
+
+                // defaults to rendering as Jdenticon
+                replaceWithJdenticon(img);
+            }
+        </script>
+        <script src="static/js/moment.min.js"></script>
+        <script src="static/js/jquery.min.js"></script>
+        <script src="static/js/stub.en.js?v=784a450186a7"></script>
         <script type="text/x-mathjax-config">
                 MathJax.Hub.Config({"HTML-CSS": { preferredFont: "TeX", availableFonts: ["STIX","TeX"], linebreaks: { automatic:true }, EqnChunk: (MathJax.Hub.Browser.isMobile ? 10 : 50) },
                     tex2jax: { inlineMath: [ ["$", "$"], ["\\\\(","\\\\)"] ], displayMath: [ ["$$","$$"], ["\\[", "\\]"] ], processEscapes: true, ignoreClass: "tex2jax_ignore|dno" },
@@ -44,7 +86,6 @@
         </script>
         <script src="static/js/MathJax.js?config=TeX-AMS_HTML-full"></script>
         <script src="static/js/highlightjs-loader.en.js?v=17552072fdc0"></script>
-        <script src="static/js/moment.min.js"></script>
     </head>
     <body class="{{ body_class}} unified-theme">
         <div class="topbar mobile-only">
@@ -114,6 +155,7 @@
         </div>
         <script src="static/js/stack-icons.js"></script>
         <script>
+            /* replace <time class="fromnow" /> with human delta between `datetime` attr and now */
             document.addEventListener('DOMContentLoaded', function(){
                 var time_elements = document.querySelectorAll("time.fromnow");
                 for (i=0; i<time_elements.length; i++) {

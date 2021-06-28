@@ -12,9 +12,7 @@
                         <div class="user-gravatar48">
                             <a href="users/{{ user.id }}/{{ user.slug }}">
                                 <div class="gravatar-wrapper-48">
-                                    <object class="bar-sm" data="images/user/{{ id }}" type="image/webp" width="48" height="48">
-                                        <svg width="48" height="48" data-jdenticon-value="{{ user.name }}"></svg>
-                                    </object>
+                                    <img class="bar-sm" src="users/profiles/{{ user.id }}.webp" width="48" height="48" data-jdenticon-value="{{ user.name }}" onerror="onImageLoadingError(this);" />
                                 </div>
                             </a>
                         </div>

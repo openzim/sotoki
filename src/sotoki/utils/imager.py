@@ -228,7 +228,7 @@ class Imager:
         # skip processing if we already processed it or have it in pipe
         digest = self.get_digest_for(url.geturl())
         if path is None:
-            path = f"images/{digest}"
+            path = f"images/{digest}.webp"
 
         if digest in self.handled:
             logger.debug(f"URL `{url.geturl()}` already processed.")
