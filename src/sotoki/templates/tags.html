@@ -3,22 +3,102 @@
         <div id="mainbar-full">
             <h1 class="fs-headline1 mb16">Tags</h1>
             <p class="fs-body2 wmx6 mb16">A tag is a keyword or label that categorizes your question with other, similar questions.</p>
+            <div class="grid fw-wrap">
+                <div class="grid--cell ps-relative mb12">
+                    <input id="tagfilter" class="s-input s-input__search h100" autocomplete="off" name="tagfilter" type="text" maxlength="35" placeholder="Filter by tag name" autofocus="">
+                    <svg aria-hidden="true" class="s-input-icon s-input-icon__search svg-icon iconSearch" width="18" height="18" viewBox="0 0 18 18"><path d="m18 16.5-5.14-5.18h-.35a7 7 0 10-1.19 1.19v.35L16.5 18l1.5-1.5zM12 7A5 5 0 112 7a5 5 0 0110 0z"></path></svg>
+                </div>
+            </div>
             <div id="tags_list">
                 <div id="tags-browser" class="grid-layout">
                     {% for tag, nb_questions, excerpt in tags %}
-                    <div class="s-card js-tag-cell grid fd-column">
+                    <div class="s-card js-tag-cell grid fd-column original">
                         <div class="grid jc-space-between ai-center mb12">
                             <div class="grid--cell">
                                 <a href="questions/tagged/{{ tag }}" class="post-tag" title="show questions tagged '{{ tag }}'" rel="tag">{{ tag }}</a>
                             </div>
                         </div>
                         {% if excerpt %}<div class="grid--cell fc-medium mb12 v-truncate4">{{ excerpt }}</div>{% endif %}
-                        <div class="mt-auto grid jc-space-between fs-caption fc-black-400"><div class="grid--cell">{{ nb_questions }} questions</div></div>
+                        <div class="mt-auto grid jc-space-between fs-caption fc-black-400"><div class="grid--cell">{{ nb_questions}} question{{ nb_questions|pluralize }}</div></div>
                     </div>
                     {% endfor %}
                 </div>
                 {% with target="tags" %}{% include "pagination.html" %}{% endwith %}
-
             </div>
         </div>
+{% endblock %}
+{% block bodytail %}
+<script type="text/javascript">
+    // helper for enabling IE 8 event bindings
+    function addEvent(el, type, handler) {
+        if (el.attachEvent) el.attachEvent('on'+type, handler); else el.addEventListener(type, handler);
+    }
+
+    // live binding helper
+    function live(selector, event, callback, context) {
+        addEvent(context || document, event, function(e) {
+            var found, el = e.target || e.srcElement;
+            while (el && !(found = el.id == selector)) el = el.parentElement;
+            if (found) callback.call(el, e);
+        });
+    }
+
+    function createTagCard(tagName, nbQuestions) {
+        let elem = document.createElement("div");
+        elem.className = 's-card js-tag-cell grid fd-column suggested';
+        elem.innerHTML = '<div class="grid jc-space-between ai-center mb12"><div class="grid--cell"><a href="questions/tagged/__TAG__" class="post-tag" title="show questions tagged \'__TAG__\'" rel="tag">__TAG__</a></div></div><div class="mt-auto grid jc-space-between fs-caption fc-black-400"><div class="grid--cell">__NB_QUESTIONS__ question__QUESTIONS_PLURAL__</div></div>'.replaceAll('__TAG__', tagName).replaceAll('__NB_QUESTIONS__', nbQuestions).replaceAll('__QUESTIONS_PLURAL__', (nbQuestions == 1) ? '' : 's');
+        return elem;
+    }
+    var tagfilterEle = document.getElementById("tagfilter");
+    var tagsBrowserEle = document.getElementById("tags-browser");
+    document.addEventListener('DOMContentLoaded', function() {
+        window.tags = [];
+        console.log('Registering tag filter');
+        fetch("api/tags.json")
+            .then(response => {
+                return response.json();
+            }).then(function (data){
+                window.tags = data;
+                live(tagfilterEle.id, 'input', function() {
+                    let search = tagfilterEle.value.trim();
+                    console.log('input changed to', search);
+
+                    // hide static items unless we have no search
+                    if (search.length) {
+                        console.log("search, hiding originals");
+                        document.querySelectorAll("div.original").forEach(function (elem) {
+                            if (elem.className.indexOf('d-none') == -1)
+                                elem.className += ' d-none';
+                        });
+                    } else {
+                        console.log("search cleared, restoring originals");
+                        document.querySelectorAll("div.original").forEach(function (elem) {
+                            elem.className = elem.className.replace(' d-none', '');
+                        });
+                    }
+
+                    if (search.length) {
+                        matchingTags = window.tags.filter(function (item) {
+                            return (~item[0].indexOf(search));
+                        }).slice(0, 36); // max 36 elems
+                    } else {
+                        matchingTags = [];
+                    }
+
+                    // first remove previous results
+                    console.log("removing suggesteds");
+                    document.querySelectorAll("div.suggested").forEach(function (elem) {
+                        elem.parentNode.removeChild(elem);
+                    });
+
+                    if (matchingTags.length) {
+                        console.log("matches, appending results", matchingTags.length);
+                        matchingTags.forEach(function (item) {
+                            tagsBrowserEle.appendChild(createTagCard(item[0], item[1]));
+                        });
+                    }
+                });
+            });
+    });
+</script>
 {% endblock %}

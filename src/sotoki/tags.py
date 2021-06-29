@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # vim: ai ts=4 sts=4 et sw=4 nu
 
+import json
+
 from .constants import getLogger
 from .utils.generator import Generator, Walker
 from .renderer import SortedSetPaginator
@@ -81,10 +83,10 @@ class TagGenerator(Generator):
 
     def run(self):
         # create individual pages for all tags
-        for tag_name in self.database.query_set(
-            self.database.tags_key(), num=10, scored=False
-        ):
-            paginator = SortedSetPaginator(self.database.tag_key(tag_name), per_page=15)
+        for tag_name in self.database.query_set(self.database.tags_key(), scored=False):
+            paginator = SortedSetPaginator(
+                self.database.tag_key(tag_name), per_page=15, at_most=1500
+            )
             for page_number in paginator.page_range:
                 page = paginator.get_page(page_number)
                 with self.lock:
@@ -126,4 +128,11 @@ class TagGenerator(Generator):
                 path="tags",
                 target_path="tags_page=1",
                 title="Tags",
+            )
+
+        with self.lock:
+            self.creator.add_item_for(
+                path="api/tags.json",
+                content=json.dumps(self.database.query_set(self.database.tags_key())),
+                mimetype="application/json",
             )

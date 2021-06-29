@@ -100,8 +100,8 @@ class Database:
 
         kwargs = {
             "name": set_name,
-            "max": '+inf',
-            "min": '-inf',
+            "max": "+inf",
+            "min": "-inf",
             "start": start,
             "num": num,
             "withscores": scored,
