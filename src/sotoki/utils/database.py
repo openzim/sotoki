@@ -403,6 +403,8 @@ class PostsDatabaseMixin:
                     post["CreationDate"],
                     post["OwnerName"],
                     post["has_accepted"],
+                    post["nb_answers"],
+                    post.get("Tags", []),
                 )
             ),
         )
@@ -447,6 +449,8 @@ class PostsDatabaseMixin:
                 item["creation_date"],
                 item["owner_user_id"],
                 item["has_accepted"],
+                item["nb_answers"],
+                item["tags"],
             ) = json.loads(post_entry)
         return item
 

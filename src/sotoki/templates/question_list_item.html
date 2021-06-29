@@ -1,10 +1,15 @@
 <div class="question-summary" id="question-summary-{{ question.id }}">
     <div class="statscontainer">
         <div class="stats">
-            <div class="status {% if question.has_accepted %}answered-accepted{% endif %}">
-                <div class="status">
-                    <strong>{{ question.score }}</strong> vote{{ question.score|pluralize }}
+            <div class="vote">
+                <div class="votes">
+                    <span class="vote-count-post"><strong>{{ question.score }}</strong></span>
+                    <div class="viewcount">vote{{ question.score|pluralize }}</div>
                 </div>
+            </div>
+
+            <div class="status {% if question.has_accepted %}answered-accepted{% endif %}">
+                <strong>{{ question.nb_answers }}</strong> answer{{ question.nb_answers|pluralize }}
             </div>
         </div>
     </div>
