@@ -93,11 +93,6 @@ class Database:
     ) -> Iterator[Union[Tuple[object, int], object]]:
         """Query entries in named sorted set"""
 
-        # query max score by popping it out and adding it back
-        max_item = self.conn.zpopmax(set_name)
-        max_item = max_item[0]
-        self.conn.zadd(set_name, mapping={max_item[0]: max_item[1]}, nx=True)
-
         func = getattr(self.conn, "zrevrangebyscore" if desc else "zrangebyscore")
 
         if num is None:
@@ -105,8 +100,8 @@ class Database:
 
         kwargs = {
             "name": set_name,
-            "max": max_item[1],
-            "min": 0,
+            "max": '+inf',
+            "min": '-inf',
             "start": start,
             "num": num,
             "withscores": scored,
