@@ -180,6 +180,7 @@ class Rewriter(GlobalMixin):
             return 1
 
     def rewrite_external_link(self, link):
+        link["class"] = " ".join(link.get("class", []) + ["external"])
         if self.conf.without_external_links:
             del link["href"]
 

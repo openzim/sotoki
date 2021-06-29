@@ -19,7 +19,7 @@
         </div><!-- / top -->
     </div>
 
-    <div class="user-panel wrapper _inner s-prose js-post-body _card">{{ AboutMe }}</div>
+    {% if AboutMe %}<div class="user-panel wrapper _inner s-prose js-post-body _card">{{ AboutMe|rewrote }}</div>{% endif %}
     {% if Location %}
     <div class="user-panel wrapper _inner _card">
         <ul><li><span class="icon-location"></span>
@@ -88,9 +88,9 @@
                                         <div class="grid--cell fw-bold">{{ DisplayName }}</div>
                                     </h2>
                                 </div>
-                                <div class="grid--cell mt16 s-prose profile-user--bio ">
-                                {{ AboutMe }}
-                                </div>
+                                {% if AboutMe %}<div class="grid--cell mt16 s-prose profile-user--bio ">
+                                {{ AboutMe|rewrote }}
+                                </div>{% endif %}
                             </div>
                         </div>
                         <div class="grid--cell fl-shrink0 pr24 wmx3">
