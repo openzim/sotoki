@@ -97,16 +97,10 @@ class UserGenerator(Generator):
 
         with self.lock:
             self.creator.add_item_for(
-                path=f'users/{user["Id"]}',
+                path=f'users/{user["Id"]}/{user["slug"]}',
                 title=f'User {user["DisplayName"]}',
                 content=self.renderer.get_user(user),
                 mimetype="text/html",
-            )
-
-        with self.lock:
-            self.creator.add_redirect(
-                path=f'users/{user["Id"]}/{user["slug"]}',
-                target_path=f'users/{user["Id"]}',
             )
 
     def generate_users_page(self):

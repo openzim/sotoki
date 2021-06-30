@@ -3,6 +3,7 @@
 # vim: ai ts=4 sts=4 et sw=4 nu
 
 import re
+import urllib.parse
 
 import bs4
 import mistune
@@ -11,6 +12,7 @@ from tld import get_fld
 from slugify import slugify
 
 from . import GlobalMixin
+from .misc import rebuild_uri
 from ..constants import getLogger
 
 
@@ -57,11 +59,13 @@ class Rewriter(GlobalMixin):
     redacted_text = "[redacted]"
 
     def __init__(self):
-        self.domain_re = re.compile(rf"http?s://{self.domain}(?P<path>\/.+)")
-        self.qid_slug_re = re.compile(r"^q/(?P<post_id>[0-9+])\/.+")
-        self.qid_re = re.compile(r"^q/(?P<post_id>[0-9+])/?$")
-        self.aid_re = re.compile(r"^a/(?P<answer_id>[0-9+])/?$")
-        self.uid_slug_re = re.compile(r"^users/(?P<user_id>[0-9+])\/.+")
+        self.domain_re = re.compile(rf"https?://{self.domain}(?P<path>/.+)")
+        self.qid_slug_answer_re = re.compile(
+            r"^(q|questions)/(?P<post_id>[0-9]+)/[^/]+/(?P<answer_id>[0-9]+)"
+        )
+        self.qid_re = re.compile(r"^(q|questions)/(?P<post_id>[0-9]+)/?")
+        self.aid_re = re.compile(r"^a/(?P<answer_id>[0-9]+)/?")
+        self.uid_re = re.compile(r"^users/(?P<user_id>[0-9]+)/?")
         self.redacted_string = bs4.NavigableString(self.redacted_text)
         self.markdown = mistune.create_markdown(
             escape=False,
@@ -180,7 +184,7 @@ class Rewriter(GlobalMixin):
             return 1
 
     def rewrite_external_link(self, link):
-        link["class"] = " ".join(link.get("class", []) + ["external"])
+        link["class"] = " ".join(link.get("class", []) + ["external-link"])
         if self.conf.without_external_links:
             del link["href"]
 
@@ -190,32 +194,69 @@ class Rewriter(GlobalMixin):
             # our <base /> will take care of the rest now
             return
 
-        # link to question (q/{id}/slug)
-        # rewrite to q/id
-        qid_slug_m = self.qid_slug_re.match(link["href"])
-        if qid_slug_m:
-            link["href"] = f'questions/{qid_slug_m.groupdict().get("post_id")}'
+        uri = urllib.parse.urlparse(link["href"])
+
+        # link to question:
+        #  - q/{qid}/slug/{aid}#{aid}
+        #  - q/{qid}/slug/{aid}
+        #  - questions/{qid}/{slug}/{aid}#{aid}
+        #  - questions/{qid}/{slug}/{aid}
+        # rewrite to questions/{id}/{slug}
+        qid_answer_m = self.qid_slug_answer_re.match(uri.path)
+        if qid_answer_m:
+            qid = qid_answer_m.groupdict().get("post_id")
+            aid = qid_answer_m.groupdict().get("answer_id")
+            title = self.database.get_question_title_desc(qid)["title"]
+            link["href"] = rebuild_uri(
+                uri=uri, path=f"questions/{qid}/{get_slug_for(title)}", fragment=aid
+            ).geturl()
             return
 
-        # link to question (q/{id})
-        qid_m = self.qid_re.match(link["href"])
+        # link to question
+        #  - q/{id}
+        #  - q/{id}/
+        #  - q/{id}/{slug}
+        #  - questions/{id}
+        #  - questions/{id}/
+        #  - questions/{id}/{slug}
+        # rewrite to questions/{id}/{slug}
+        qid_m = self.qid_re.match(uri.path)
         if qid_m:
-            link["href"] = f'questions/{qid_m.groupdict().get("post_id")}'
+            qid = qid_m.groupdict().get("post_id")
+            title = self.database.get_question_title_desc(qid)["title"]
+            link["href"] = rebuild_uri(
+                uri=uri, path=f"questions/{qid}/{get_slug_for(title)}"
+            ).geturl()
             return
 
-        # link to answer (a/{aId} and a/{aId}/)
-        aid_m = self.aid_re.match(link["href"])
+        # link to answer:
+        #  - a/{aId}
+        #  - a/{aId}/
+        #  - a/{aId}/{userId}
+        #  - a/{aId}/{userId}/
+        # rewrite to a/{aId}
+        # we have a/{aId} redirect for all answer redirecting to questions/{qid}/{slug}
+        # so eventually this will lead to questions/{qid}/{slug}#{aid}
+        aid_m = self.aid_re.match(uri.path)
         if aid_m:
             aid = aid_m.groupdict().get("answer_id")
-            link["href"] = f"a/{aid}#{aid}"
+            link["href"] = rebuild_uri(uri=uri, path=f"a/{aid}", fragment=aid).geturl()
             return
 
-        # link to (users/uId/slug)
-        # > we have a redirect
-        # uid_slug_m = self.uid_slug_re.match(link["href"])
-        # if uid_slug_m:
-        #     link["href"] = f'users/{uid_slug_m.groupdict().get("user_id")}'
-        #     return
+        # link to user profile:
+        # users/{uId}/slug
+        # users/{uId}/slug/
+        # users/{uId}
+        # users/{uId}/
+        # > rewrite to users/{uId}/{slug}
+        uid_slug_m = self.uid_re.match(uri.path)
+        if uid_slug_m:
+            uid = uid_slug_m.groupdict().get("user_id")
+            name = self.database.get_user_full(uid)["name"]
+            link["href"] = rebuild_uri(
+                uri=uri, path=f"users/{uid}/{get_slug_for(name)}"
+            ).geturl()
+            return
 
     def rewrite_images(self, soup):
         for img in soup.find_all("img", src=True):

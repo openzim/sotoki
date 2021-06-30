@@ -15,7 +15,7 @@
     </div>
     <div class="summary">
         {# should maybe end with /{{ question.title|slug }} #}
-        <h3><a href="questions/{{ question.id }}" class="question-hyperlink">{{ question.title|rewrote_string }}</a></h3>
+        <h3><a href="questions/{{ question.id }}/{{ question.title|slugify }}" class="question-hyperlink">{{ question.title|rewrote_string }}</a></h3>
         <div class="excerpt">{{ question.excerpt }}</div>
         <div class="grid ai-start jc-space-between fw-wrap">
             <div class="grid gs4 fw-wrap tags {% for tag in tags %}t-{{ tag }}{% endfor %}">

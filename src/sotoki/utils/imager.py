@@ -23,45 +23,9 @@ from ..constants import (
     IMAGES_ENCODER_VERSION,
     Global,
 )
+from .misc import rebuild_uri
 
 logger = getLogger()
-
-
-def rebuild_uri(
-    uri,
-    scheme=None,
-    username=None,
-    password=None,
-    hostname=None,
-    port=None,
-    path=None,
-    params=None,
-    query=None,
-    fragment=None,
-):
-    """new named tuple from uri with request part updated"""
-    scheme = scheme or uri.scheme
-    username = username or uri.username
-    password = password or uri.password
-    hostname = hostname or uri.hostname
-    port = port or uri.port
-    path = path or uri.path
-    netloc = ""
-    if username:
-        netloc += username
-    if password:
-        netloc += f":{password}"
-    if username or password:
-        netloc += "@"
-    netloc += hostname
-    if port:
-        netloc += f":{port}"
-    params = params or uri.params
-    query = query or uri.query
-    fragment = fragment or uri.fragment
-    return urllib.parse.urlparse(
-        urllib.parse.urlunparse([scheme, netloc, path, fragment, query, fragment])
-    )
 
 
 class GoogleImageProvider:

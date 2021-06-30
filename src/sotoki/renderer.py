@@ -107,6 +107,7 @@ class Renderer(GlobalMixin):
         self.env.filters["has_accepted"] = self.database.question_has_accepted_answer
         self.env.filters["rewrote"] = self.rewriter.rewrite
         self.env.filters["rewrote_string"] = self.rewriter.rewrite_string
+        self.env.filters["slugify"] = get_slug_for
         self.global_context = {
             "site_subtitle": subtitle,
             "site_title": self.site.get("LongName").replace(" Meta", "")
@@ -120,11 +121,11 @@ class Renderer(GlobalMixin):
 
     def get_question(self, post: dict):
         """Single question HTML for ZIM"""
-        return self.env.get_template("article.html").render(
+        return self.env.get_template("question.html").render(
             body_class="question-page",
             whereis="questions",
             post=post,
-            to_root="../",
+            to_root="../../",
             title=self.rewriter.rewrite_string(post["Title"]),
             **self.global_context,
         )
@@ -179,7 +180,7 @@ class Renderer(GlobalMixin):
         return self.env.get_template("user.html").render(
             body_class="user-page",
             whereis="users",
-            to_root="../",
+            to_root="../../",
             title=f"User {user['DisplayName']}",
             **self.global_context,
             **user,

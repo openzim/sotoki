@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
     <div id="question-header" class="grid sm:fd-column">
-        <h1 itemprop="name" class="fs-headline1 ow-break-word mb8 grid--cell fl1"><a href="questions/{{ post.Id }}" class="question-hyperlink">{{ post.Title|rewrote_string }}</a></h1>
+        <h1 itemprop="name" class="fs-headline1 ow-break-word mb8 grid--cell fl1"><a href="questions/{{ post.Id }}/{{ post.Title|slugify }}" class="question-hyperlink">{{ post.Title|rewrote_string }}</a></h1>
     </div>
     <div class="grid fw-wrap pb8 mb16 bb bc-black-075">
         <div class="grid--cell ws-nowrap mr16 mb8" title="2016-01-12 19:07:53Z">

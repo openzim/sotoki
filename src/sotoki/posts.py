@@ -5,6 +5,7 @@
 from .constants import getLogger
 from .renderer import SortedSetPaginator
 from .utils.generator import Generator, Walker
+from .utils.html import get_slug_for
 
 logger = getLogger()
 
@@ -224,9 +225,10 @@ class PostGenerator(Generator):
             return
         harmonize_post(post)
 
+        path = f'questions/{post["Id"]}/{get_slug_for(post["Title"])}'
         with self.lock:
             self.creator.add_item_for(
-                path=f'questions/{post["Id"]}',
+                path=path,
                 title=self.rewriter.rewrite_string(post.get("Title")),
                 content=self.renderer.get_question(post),
                 mimetype="text/html",
@@ -236,7 +238,7 @@ class PostGenerator(Generator):
             with self.lock:
                 self.creator.add_redirect(
                     path=f'a/{answer["Id"]}',
-                    target_path=f'questions/{post["Id"]}',
+                    target_path=path,
                 )
 
     def generate_questions_page(self):
