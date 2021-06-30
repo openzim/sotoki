@@ -6,6 +6,7 @@ import zlib
 import logging
 import subprocess
 import urllib.parse
+from typing import Union, Iterable
 
 logger = logging.getLogger(__name__)
 
@@ -25,39 +26,42 @@ def get_short_hash(text: str) -> str:
     return "".join([letters[int(x)] for x in str(zlib.adler32(text.encode("UTF-8")))])
 
 
+def first(*args: Iterable[object]) -> object:
+    """first non-None value from *args"""
+    return next(item for item in args if item is not None)
+
+
 def rebuild_uri(
-    uri,
-    scheme=None,
-    username=None,
-    password=None,
-    hostname=None,
-    port=None,
-    path=None,
-    params=None,
-    query=None,
-    fragment=None,
-):
+    uri: urllib.parse.ParseResult,
+    scheme: str = None,
+    username: str = None,
+    password: str = None,
+    hostname: str = None,
+    port: Union[str, int] = None,
+    path: str = None,
+    params: str = None,
+    query: str = None,
+    fragment: str = None,
+) -> urllib.parse.ParseResult:
     """new named tuple from uri with request part updated"""
-    scheme = scheme or uri.scheme
-    username = username or uri.username
-    password = password or uri.password
-    hostname = hostname or uri.hostname
-    port = port or uri.port
-    path = path or uri.path
-    netloc = ""
-    if username:
-        netloc += username
-    if password:
-        netloc += f":{password}"
-    if username or password:
-        netloc += "@"
-    if hostname:
-        netloc += hostname
-    if port:
-        netloc += f":{port}"
-    params = params or uri.params
-    query = query or uri.query
-    fragment = fragment or uri.fragment
+    username = first(username, uri.username, "")
+    password = first(password, uri.password, "")
+    hostname = first(hostname, uri.hostname, "")
+    port = first(port, uri.port, "")
+    netloc = (
+        f"{username}{':' if password else ''}{password}"
+        f"{'@' if username or password else ''}{hostname}"
+        f"{':' if port else ''}{port}"
+    )
     return urllib.parse.urlparse(
-        urllib.parse.urlunparse([scheme, netloc, path, params, query, fragment])
+        urllib.parse.urlunparse(
+            (
+                first(scheme, uri.scheme),
+                netloc,
+                first(path, uri.path),
+                first(params, uri.params),
+                first(query, uri.query),
+                first(fragment, uri.fragment),
+            )
+        )
     )
