@@ -217,6 +217,7 @@ class StackExchangeToZim:
                 publisher=self.conf.publisher,
                 name=self.conf.name,
                 tags=";".join(self.conf.tags),
+                date=datetime.date.today(),
             )
             .config_nbworkers(self.conf.nb_threads)
             .start()
