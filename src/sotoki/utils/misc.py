@@ -27,8 +27,8 @@ def get_short_hash(text: str) -> str:
 
 
 def first(*args: Iterable[object]) -> object:
-    """first non-None value from *args"""
-    return next(item for item in args if item is not None)
+    """first non-None value from *args ; fallback to empty string"""
+    return next((item for item in args if item is not None), "")
 
 
 def rebuild_uri(
