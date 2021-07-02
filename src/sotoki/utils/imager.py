@@ -98,7 +98,9 @@ class StackImgurProvider:
 class Imager:
     def __init__(self):
         # list of source URLs that we've processed and added to ZIM
+        self.aborted = False
         self.handled = []
+        self.nb_requested = 0
         self.nb_done = 0
 
         self.providers = [
@@ -107,6 +109,10 @@ class Imager:
             GravatarImageProvider(),
             GoogleImageProvider(),
         ]
+
+    def abort(self):
+        """request imager to cancel processing of futures"""
+        self.aborted = True
 
     def get_source_url(self, url: str, for_profile: bool = False) -> str:
         """Actual source URL to use. Might be changed by a Provider"""
@@ -201,6 +207,7 @@ class Imager:
         # record that we are processing this one
         self.handled.append(digest)
 
+        self.nb_requested += 1
         future = Global.executor.submit(
             self.process_image, url=url, path=path, is_profile=is_profile
         )
@@ -211,11 +218,14 @@ class Imager:
     def once_done(self, future):
         """default callback for single image processing"""
         self.nb_done += 1
-        logger.debug(f"An image completed… ({self.nb_done}/{len(self.handled)})")
+        logger.debug(f"Imager progress: {self.nb_done}/{self.nb_requested}")
         return
 
     def process_image(self, url: str, path, is_profile: bool = False) -> str:
         """download image from url or S3 and add to Zim at path. Upload if req."""
+
+        if self.aborted:
+            return
 
         # setup resizing based on request
         resize_args = (

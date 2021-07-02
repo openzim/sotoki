@@ -289,16 +289,17 @@ class StackExchangeToZim:
             Global.database.remove()
 
             Global.executor.shutdown()
-
-        except KeyboardInterrupt:
-            Global.creator.can_finish = False
-            logger.error("KeyboardInterrupt, exiting.")
         except Exception as exc:
             # request Creator not to create a ZIM file on finish
             Global.creator.can_finish = False
-            logger.error(f"Interrupting process due to error: {exc}")
-            logger.exception(exc)
-        finally:
+            if isinstance(exc, KeyboardInterrupt):
+                logger.error("KeyboardInterrupt, exiting.")
+            else:
+                logger.error(f"Interrupting process due to error: {exc}")
+                logger.exception(exc)
+            Global.executor.shutdown(wait=False, cancel_futures=True)
+            Global.imager.abort()
+        else:
             logger.info("Finishing ZIM file…")
             # we need to release libzim's resources.
             # currently does nothing but crash if can_finish=False but that's awaiting
