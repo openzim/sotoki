@@ -252,10 +252,17 @@ class Rewriter(GlobalMixin):
         uid_slug_m = self.uid_re.match(uri.path)
         if uid_slug_m:
             uid = uid_slug_m.groupdict().get("user_id")
-            name = self.database.get_user_full(uid)["name"]
-            link["href"] = rebuild_uri(
-                uri=uri, path=f"users/{uid}/{get_slug_for(name)}"
-            ).geturl()
+            try:
+                name = self.database.get_user_full(uid)["name"]
+            except TypeError:
+                # we might not get a response from database for that user_id:
+                # - link to be to an invalid user_id
+                # - user might have been excluded if without interactions
+                del link["href"]
+            else:
+                link["href"] = rebuild_uri(
+                    uri=uri, path=f"users/{uid}/{get_slug_for(name)}"
+                ).geturl()
             return
 
     def rewrite_images(self, soup):
