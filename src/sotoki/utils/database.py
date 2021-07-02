@@ -424,7 +424,13 @@ class PostsDatabaseMixin:
 
     def get_question_title_desc(self, post_id: int) -> dict:
         """dict including title and excerpt fo a question by PostId"""
-        data = json.loads(self.conn.get(self.question_details_key(post_id)))
+        try:
+            data = json.loads(self.conn.get(self.question_details_key(post_id)))
+        except Exception:
+            # we might not have a record for that post_id:
+            # - post_id can be erroneous (from a mistyped link)
+            # - post_id can reference an excluded question (no answer)
+            data = ["n/a", "n/a"]
         return {"title": data[0], "excerpt": data[1]}
 
     def get_question_details(self, post_id, score: int = None):
