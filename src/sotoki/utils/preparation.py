@@ -15,7 +15,7 @@ import subprocess
 from typing import Union
 
 from ..constants import getLogger
-from .misc import has_binary
+from .misc import has_binary, get_available_memory
 
 UTF8 = "UTF-8"
 logger = getLogger()
@@ -100,13 +100,15 @@ def sort_dump_by_id_gnusort(
 ):
     """Sort an header-stripped XML dump by a node ID using GNU sort
 
-    Way faster than naive impl (~x7). Consumes _a lot_ of RAM"""
+    Way faster than naive impl (~x7). Consumes _a lot_ of RAM (90% of avail)"""
 
     args = [
         "/usr/bin/env",
         "sort",
+        "--buffer-size",
+        f"{get_available_memory() * .9}b",
         '--field-separator="',
-        f"--key={field_num + 1},{field_num + 1}n",  # from nth field to nth field, numerical
+        f"--key={field_num + 1},{field_num + 1}n",  # from nth field to nth field, num
         f"--output={dst}",
         str(src),
     ]

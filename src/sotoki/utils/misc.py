@@ -8,6 +8,8 @@ import subprocess
 import urllib.parse
 from typing import Union, Iterable
 
+import psutil
+
 logger = logging.getLogger(__name__)
 
 
@@ -65,3 +67,7 @@ def rebuild_uri(
             )
         )
     )
+
+
+def get_available_memory():
+    return psutil.virtual_memory().available
