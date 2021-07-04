@@ -3,6 +3,7 @@
 # vim: ai ts=4 sts=4 et sw=4 nu
 
 import zlib
+import pathlib
 import logging
 import subprocess
 import urllib.parse
@@ -69,5 +70,31 @@ def rebuild_uri(
     )
 
 
+def is_running_inside_container():
+    """whether currently running from inside a container (Docker most likely)"""
+    fpath = pathlib.Path("/proc/self/cgroup")
+    if not fpath.exists():
+        return False
+    try:
+        with open(fpath, "r") as fh:
+            for line in fh.readlines():
+                if line.strip().rsplit(":", 1)[-1] != "/":
+                    return True
+    finally:
+        pass
+    return False
+
+
+is_inside_container = is_running_inside_container()
+
+
 def get_available_memory():
+    """Available RAM in system (container if inside one) in bytes"""
+    if is_inside_container:
+        with open("/sys/fs/cgroup/memory/memory.limit_in_bytes", "r") as fp:
+            mem_total = int(fp.read().strip())
+        with open("/sys/fs/cgroup/memory/memory.usage_in_bytes", "r") as fp:
+            mem_used = int(fp.read().strip())
+        return mem_total - mem_used
+
     return psutil.virtual_memory().available

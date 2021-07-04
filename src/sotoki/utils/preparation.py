@@ -106,7 +106,7 @@ def sort_dump_by_id_gnusort(
         "/usr/bin/env",
         "sort",
         "--buffer-size",
-        f"{get_available_memory() * .9}b",
+        f"{int(get_available_memory() * .9)}b",
         '--field-separator="',
         f"--key={field_num + 1},{field_num + 1}n",  # from nth field to nth field, num
         f"--output={dst}",
