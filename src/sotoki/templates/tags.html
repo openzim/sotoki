@@ -60,7 +60,7 @@
             }).then(function (data){
                 window.tags = data;
                 live(tagfilterEle.id, 'input', function() {
-                    let search = tagfilterEle.value.trim();
+                    let search = tagfilterEle.value.toLowerCase().trim();
                     console.log('input changed to', search);
 
                     // hide static items unless we have no search
