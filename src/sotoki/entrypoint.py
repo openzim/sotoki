@@ -218,7 +218,7 @@ def main():
         "--redis-url",
         help="Redis URL to use as database. "
         "Must be redis://user?:pass?@host:port/dbnum. "
-        "Use file:///path/to/redis.sock?db=dbnum for sockets",
+        "Use unix:///path/to/redis.sock?db=dbnum for sockets",
         default="redis://localhost:6379",
         dest="_redis_url",
     )

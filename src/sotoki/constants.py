@@ -155,8 +155,8 @@ class Sotoconf:
             )
 
         self.redis_url = urllib.parse.urlparse(self._redis_url)
-        if self.redis_url and self.redis_url.scheme not in ("file", "redis"):
+        if self.redis_url and self.redis_url.scheme not in ("unix", "redis"):
             raise ValueError(
                 f"Unknown scheme `{self.redis_url.scheme}` for redis. "
-                "Use redis:// or file://"
+                "Use redis:// or unix://"
             )

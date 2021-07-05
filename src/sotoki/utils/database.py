@@ -10,6 +10,7 @@
 
 import json
 import pathlib
+import threading
 import urllib.parse
 from typing import Union, Iterator, Tuple
 
@@ -35,7 +36,7 @@ class Database:
       - Might require some post-usage cleanup: teardown()
       - Should be able to remove data (it's TEMP only)"""
 
-    COMMIT_EVERY = 20000
+    commit_every = 10000
     record_on_main_thread = False
 
     def __init__(self):
@@ -53,8 +54,8 @@ class Database:
     def should_commit(self) -> bool:
         """whether to commit now
 
-        This impl. compares `self.nb_seen` with `COMMIT_EVERY` constant"""
-        return self.nb_seen % self.COMMIT_EVERY == 0
+        This impl. compares `self.nb_seen` with `commit_every` constant"""
+        return self.nb_seen % self.commit_every == 0
 
     def commit_maybe(self):
         """commit() should should_commit allows it"""
@@ -160,7 +161,7 @@ class TagsDatabaseMixin:
 
         Also updates the tag_details_ids with Excerpt/Desc Ids for later use"""
 
-        self.bump_seen()
+        self.bump_seen(4)
 
         # record excerpt and wiki content post IDs in mapping
         if tag.get("ExcerptPostId"):
@@ -479,39 +480,52 @@ class RedisDatabase(
     Database, TagsDatabaseMixin, UsersDatabaseMixin, PostsDatabaseMixin
 ):
     def __init__(self, initialize: bool = False):
+        self.connections = {}
+        self.pipes = {}
+        self.nb_seens = {}
+
         super().__init__()
 
-        kwargs = {"charset": "utf-8", "decode_responses": True}
-        if Global.conf.redis_url.scheme == "file":
-            kwargs.update({"unix_socket_path": Global.conf.redis_url.path})
-            if Global.conf.redis_url.query:
-                db = (
-                    urllib.parse.parse_qs(Global.conf.redis_url.query)
-                    .get("db", [])
-                    .pop()
-                )
-                if db is not None:
-                    kwargs.update({"db": db})
-        elif Global.conf.redis_url.scheme == "redis":
-            kwargs.update(
-                {
-                    "host": Global.conf.redis_url.hostname,
-                    "port": Global.conf.redis_url.port,
-                    "db": Global.conf.redis_url.path[1:]
-                    if len(Global.conf.redis_url.path) > 1
-                    else None,
-                    "username": Global.conf.redis_url.username,
-                    "password": Global.conf.redis_url.password,
-                }
-            )
-        self.conn = redis.StrictRedis(**kwargs)
-        self.pipe = self.conn.pipeline()
+        self.commit_every = int(self.commit_every / Global.conf.nb_threads)
 
         self.users_are_sorted = False
         self.tags_details_ids = {}
 
         if initialize:
             self.initialize()
+
+    @property
+    def conn(self):
+        """thread-specific Redis connection"""
+        try:
+            return self.connections[threading.get_ident()]
+        except KeyError:
+            self.connections[threading.get_ident()] = redis.StrictRedis.from_url(
+                Global.conf.redis_url.geturl(), charset="utf-8", decode_responses=True
+            )
+            return self.connections[threading.get_ident()]
+
+    @property
+    def pipe(self):
+        """thread-specific Pipeline for this thread-specific connection"""
+        try:
+            return self.pipes[threading.get_ident()]
+        except KeyError:
+            self.pipes[threading.get_ident()] = self.conn.pipeline()
+            return self.pipes[threading.get_ident()]
+
+    @property
+    def nb_seen(self):
+        """thread-specific number of items seen"""
+        try:
+            return self.nb_seens[threading.get_ident()]
+        except KeyError:
+            self.nb_seens[threading.get_ident()] = 0
+            return self.nb_seens[threading.get_ident()]
+
+    @nb_seen.setter
+    def nb_seen(self, value):
+        self.nb_seens[threading.get_ident()] = value
 
     def initialize(self):
         # test connection
@@ -525,6 +539,11 @@ class RedisDatabase(
 
     def commit(self, done=False):
         self.pipe.execute()
+
+        # make sure we've commited pipes on all thread-specific pipelines
+        if done:
+            for pipe in self.pipes.values():
+                pipe.execute()
 
     def teardown(self):
         self.pipe.execute()
