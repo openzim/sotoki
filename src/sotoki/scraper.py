@@ -297,7 +297,7 @@ class StackExchangeToZim:
             else:
                 logger.error(f"Interrupting process due to error: {exc}")
                 logger.exception(exc)
-            Global.executor.shutdown(wait=False, cancel_futures=True)
+            Global.executor.shutdown(wait=False)
             Global.imager.abort()
         else:
             logger.info("Finishing ZIM file…")
