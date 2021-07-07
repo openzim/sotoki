@@ -93,16 +93,20 @@ class TagGenerator(Generator):
                 page = paginator.get_page(page_number)
                 with self.lock:
                     self.creator.add_item_for(
-                        path=f"questions/tagged/{tag_name}_page={page_number}",
+                        path=f"questions/tagged/{tag_name}"
+                        if page_number == 1
+                        else f"questions/tagged/{tag_name}_page={page_number}",
                         content=self.renderer.get_tag_for_page(tag_name, page),
                         mimetype="text/html",
+                        title=f"Highest Voted '{tag_name}' Questions"
+                        if page_number == 1
+                        else None,
                     )
 
             with self.lock:
                 self.creator.add_redirect(
-                    path=f"questions/tagged/{tag_name}",
-                    target_path=f"questions/tagged/{tag_name}_page=1",
-                    title=f"Highest Voted '{tag_name}' Questions",
+                    path=f"questions/tagged/{tag_name}_page=1",
+                    target_path=f"questions/tagged/{tag_name}",
                 )
 
                 # redirect from TagId to TagName
@@ -110,7 +114,7 @@ class TagGenerator(Generator):
                 tag_id = self.database.get_tag_detail(tag_name, "id")
                 self.creator.add_redirect(
                     path=f"questions/tagged/{tag_id}",
-                    target_path=f"questions/tagged/{tag_name}_page=1",
+                    target_path=f"questions/tagged/{tag_name}",
                 )
             self.progresser.update(incr=True)
 
@@ -122,15 +126,15 @@ class TagGenerator(Generator):
                 # we don't index same-title page for all paginated pages
                 # instead we index the redirect to the first page
                 self.creator.add_item_for(
-                    path=f"tags_page={page_number}",
+                    path="tags" if page_number == 1 else f"tags_page={page_number}",
                     content=self.renderer.get_all_tags_for_page(page),
                     mimetype="text/html",
+                    title="Tags" if page_number == 1 else None,
                 )
         with self.lock:
             self.creator.add_redirect(
-                path="tags",
-                target_path="tags_page=1",
-                title="Tags",
+                path="tags_page=1",
+                target_path="tags",
             )
 
         with self.lock:

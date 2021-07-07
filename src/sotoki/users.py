@@ -115,13 +115,13 @@ class UserGenerator(Generator):
                 # we don't index same-title page for all paginated pages
                 # instead we index the redirect to the first page
                 self.creator.add_item_for(
-                    path=f"users_page={page_number}",
+                    path="users" if page_number == 1 else f"users_page={page_number}",
                     content=self.renderer.get_users_for_page(page),
                     mimetype="text/html",
+                    title="Users" if page_number == 1 else None,
                 )
         with self.lock:
             self.creator.add_redirect(
-                path="users",
-                target_path="users_page=1",
-                title="Users",
+                path="users_page=1",
+                target_path="users",
             )

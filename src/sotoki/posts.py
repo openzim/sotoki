@@ -255,13 +255,15 @@ class PostGenerator(Generator):
                 # we don't index same-title page for all paginated pages
                 # instead we index the redirect to the first page
                 self.creator.add_item_for(
-                    path=f"questions_page={page_number}",
+                    path="questions"
+                    if page_number == 1
+                    else f"questions_page={page_number}",
                     content=self.renderer.get_all_questions_for_page(page),
                     mimetype="text/html",
+                    title="Highest Voted Questions" if page_number == 1 else None,
                 )
         with self.lock:
             self.creator.add_redirect(
-                path="questions",
-                target_path="questions_page=1",
-                title="Highest Voted Questions",
+                path="questions_page=1",
+                target_path="questions",
             )
