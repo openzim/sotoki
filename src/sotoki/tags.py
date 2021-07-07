@@ -41,6 +41,7 @@ class TagFinder(Generator):
 
         tag["Count"] = int(tag["Count"])
         self.database.record_tag(tag)
+        self.progresser.update(incr=True)
 
 
 class TagsExcerptWalker(Walker):
@@ -64,6 +65,7 @@ class TagExcerptDescriptionRecorder(Generator):
             self.database.record_tag_detail(
                 name=tag_name, field=self.field, content=item.get("Body")
             )
+        self.progresser.update(incr=True)
 
 
 class TagExcerptRecorder(TagExcerptDescriptionRecorder):
@@ -110,6 +112,7 @@ class TagGenerator(Generator):
                     path=f"questions/tagged/{tag_id}",
                     target_path=f"questions/tagged/{tag_name}_page=1",
                 )
+            self.progresser.update(incr=True)
 
         # create paginated pages for tags
         paginator = SortedSetPaginator(self.database.tags_key(), per_page=36)

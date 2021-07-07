@@ -20,6 +20,7 @@ from .utils.sites import get_site
 from .utils.database import get_database
 from .utils.imager import Imager
 from .utils.html import Rewriter
+from .utils.progress import Progresser
 from .renderer import Renderer
 from .users import UserGenerator
 from .posts import PostGenerator, PostFirstPasser
@@ -161,6 +162,8 @@ class StackExchangeToZim:
             f"{s3_msg}"
         )
 
+        Global.progresser = Progresser()
+
         logger.debug("Fetching site details…")
         Global.site = get_site(self.domain)
         if not Global.site:
@@ -182,6 +185,7 @@ class StackExchangeToZim:
             logger.info("Requested preparation only; exiting")
             return
 
+        Global.progresser.print()
         self.start()
 
     def start(self):
@@ -227,63 +231,17 @@ class StackExchangeToZim:
             self.add_illustrations()
             self.add_assets()
 
-            # First, walk through Tags and record tags details in DB
-            # Then walk through excerpts and record those in DB
-            # Then do the same with descriptions
-            # Clear the matching that was required for Excerpt/Desc filtering-in
-            logger.info("Recording Tag metadata to Database")
-            TagFinder().run()
-            TagExcerptRecorder().run()
-            TagDescriptionRecorder().run()
-            Global.database.clear_tags_mapping()
-            logger.info(".. done")
+            self.process_tags_metadata()
 
-            # We walk through all Posts a first time to record question in DB
-            # list of users that had interactions
-            # list of PostId for all questions
-            # list of PostId for all questions of all tags (incr. update)
-            # Details for all questions: date, owner, title, excerpt, has_accepted
-            logger.info("Recording questions metadata to Database")
-            PostFirstPasser().run()
-            logger.info(".. done")
+            self.process_questions_metadata()
 
-            # We walk through all Users and skip all those without interactions
-            # Others store basic details in Database
-            # Then we create a page in Zim for each user
-            # Eventually, we sort our list of users by Reputation
-            logger.info("Generating individual Users pages")
-            UserGenerator().run()
-            Global.database.sort_users()
-            logger.info(".. done")
+            self.process_indiv_users_pages()
 
-            # We walk again through all Posts, this time to create indiv pages in Zim
-            # for each.
-            logger.info("Generating Questions pages")
-            PostGenerator().run()
-            logger.info(".. done")
+            self.process_questions()
 
-            # We walk on Tags again, this time creating indiv pages for each Tag.
-            # Each tag is actually a number of paginated pages with a list of questions
-            logger.info("Generating Tags pages")
-            TagGenerator().run()
-            logger.info(".. done")
+            self.process_tags()
 
-            logger.info("Generating Users page")
-            UserGenerator().generate_users_page()
-            logger.info(".. done")
-
-            # build home page in ZIM using questions list
-            logger.info("Generating Questions page (homepage)")
-            PostGenerator().generate_questions_page()
-            with Global.lock:
-                Global.creator.add_item_for(
-                    path="about",
-                    title="About",
-                    content=Global.renderer.get_about_page(),
-                    mimetype="text/html",
-                )
-                Global.creator.add_redirect(path="", target_path="questions")
-            logger.info(".. done")
+            self.process_pages_lists()
 
             Global.database.teardown()
             Global.database.remove()
@@ -307,3 +265,90 @@ class StackExchangeToZim:
             with Global.lock:
                 Global.creator.finish()
             logger.info("Zim finished")
+        finally:
+            Global.progresser.print()
+
+    def process_tags_metadata(self):
+        # First, walk through Tags and record tags details in DB
+        # Then walk through excerpts and record those in DB
+        # Then do the same with descriptions
+        # Clear the matching that was required for Excerpt/Desc filtering-in
+        logger.info("Recording Tag metadata to Database")
+        Global.progresser.start(
+            Global.progresser.TAGS_METADATA_STEP,
+            nb_total=int(Global.site["TotalTags"]) * 3,
+        )
+        TagFinder().run()
+        TagExcerptRecorder().run()
+        TagDescriptionRecorder().run()
+        Global.database.clear_tags_mapping()
+
+    def process_questions_metadata(self):
+        # We walk through all Posts a first time to record question in DB
+        # list of users that had interactions
+        # list of PostId for all questions
+        # list of PostId for all questions of all tags (incr. update)
+        # Details for all questions: date, owner, title, excerpt, has_accepted
+        logger.info("Recording questions metadata to Database")
+        Global.progresser.start(
+            Global.progresser.QUESTIONS_METADATA_STEP,
+            nb_total=int(Global.site["TotalQuestions"]),
+        )
+        PostFirstPasser().run()
+
+    def process_indiv_users_pages(self):
+        # We walk through all Users and skip all those without interactions
+        # Others store basic details in Database
+        # Then we create a page in Zim for each user
+        # Eventually, we sort our list of users by Reputation
+        logger.info("Generating individual Users pages")
+        Global.progresser.start(
+            Global.progresser.USERS_STEP,
+            nb_total=int(Global.site["TotalUsers"]),
+        )
+        UserGenerator().run()
+        Global.database.sort_users()
+
+    def process_questions(self):
+        # We walk again through all Posts, this time to create indiv pages in Zim
+        # for each.
+        logger.info("Generating Questions pages")
+        Global.progresser.start(
+            Global.progresser.QUESTIONS_STEP,
+            nb_total=int(Global.site["TotalQuestions"]),
+        )
+        PostGenerator().run()
+
+    def process_tags(self):
+        # We walk on Tags again, this time creating indiv pages for each Tag.
+        # Each tag is actually a number of paginated pages with a list of questions
+        logger.info("Generating Tags pages")
+        Global.progresser.start(
+            Global.progresser.TAGS_STEP, nb_total=int(Global.site["TotalTags"])
+        )
+        TagGenerator().run()
+
+    def process_pages_lists(self):
+        Global.progresser.start(Global.progresser.LISTS_STEP, nb_total=2)
+        logger.info("Generating Users page")
+        UserGenerator().generate_users_page()
+        Global.progresser.update(incr=True)
+        logger.info(".. done")
+
+        Global.progresser.print()
+
+        # build home page in ZIM using questions list
+        logger.info("Generating Questions page (homepage)")
+        PostGenerator().generate_questions_page()
+        with Global.lock:
+            Global.creator.add_item_for(
+                path="about",
+                title="About",
+                content=Global.renderer.get_about_page(),
+                mimetype="text/html",
+            )
+            Global.creator.add_redirect(path="", target_path="questions")
+        Global.progresser.update(incr=True)
+        logger.info(".. done")
+
+        Global.progresser.print()

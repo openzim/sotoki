@@ -42,3 +42,7 @@ class GlobalMixin:
     @property
     def rewriter(self):
         return Global.rewriter
+
+    @property
+    def progresser(self):
+        return Global.progresser

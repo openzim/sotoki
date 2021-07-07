@@ -9,9 +9,9 @@
 """
 
 import json
+import time
 import pathlib
 import threading
-import urllib.parse
 from typing import Union, Iterator, Tuple
 
 import redis
@@ -299,7 +299,6 @@ class UsersDatabaseMixin:
         id, name, rep, nb_gold, nb_silver, nb_bronze"""
         user = self.conn.get(self.user_key(user_id))
         if not user:
-            logger.warning(f"get_user_full('{user_id}') is None")
             return None
         user = json.loads(user)
         return {
@@ -389,8 +388,8 @@ class PostsDatabaseMixin:
 
         # TODO: just storing name instead of id is not safe. a deleted user could
         # have a name such as "3200" and that would be rendered as User#3200
-        if not post.get("OwnerUserId"):
-            logger.debug(f"No OwnerUserId for {post['Id']}")
+        # if not post.get("OwnerUserId"):
+
         # store question details
         self.pipe.setnx(
             self.question_key(post["Id"]),
@@ -542,6 +541,7 @@ class RedisDatabase(
 
         # make sure we've commited pipes on all thread-specific pipelines
         if done:
+            time.sleep(2)  # prevent last-thread created while we iterate on mini domain
             for pipe in self.pipes.values():
                 pipe.execute()
 
