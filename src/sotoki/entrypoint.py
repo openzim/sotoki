@@ -227,7 +227,11 @@ def main():
         "--debug", help="Enable verbose output", action="store_true", default=False
     )
 
-    advanced.add_argument("--statsFilename")
+    advanced.add_argument(
+        "--stats-filename",
+        help="Path to store the progress JSON file to.",
+        dest="stats_filename",
+    )
 
     advanced.add_argument("--prepare-only", action="store_true", dest="prepare_only")
 

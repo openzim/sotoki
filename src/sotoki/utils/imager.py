@@ -120,7 +120,6 @@ class Imager:
             if provider.matches(url, for_profile=for_profile):
                 return provider.get_source_url(url, for_profile=for_profile)
         # no provider
-        logger.warning(f"No provider for {url.geturl()}")
         return url
 
     def get_image_data(self, url: str, **resize_args: dict) -> io.BytesIO:
@@ -218,8 +217,7 @@ class Imager:
     def once_done(self, future):
         """default callback for single image processing"""
         self.nb_done += 1
-        logger.debug(f"Imager progress: {self.nb_done}/{self.nb_requested}")
-        return
+        Global.progresser.update()
 
     def process_image(self, url: str, path, is_profile: bool = False) -> str:
         """download image from url or S3 and add to Zim at path. Upload if req."""

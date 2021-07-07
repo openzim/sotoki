@@ -103,6 +103,8 @@ class UserGenerator(Generator):
                 mimetype="text/html",
             )
 
+        self.progresser.update(incr=True)
+
     def generate_users_page(self):
         paginator = SortedSetPaginator(
             self.database.users_key(), per_page=36, at_most=3600

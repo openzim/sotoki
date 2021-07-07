@@ -98,6 +98,8 @@ class PostFirstPasser(Generator):
 
         self.database.record_question(post=item)
 
+        self.progresser.update(incr=True)
+
 
 class PostsWalker(Walker):
     """posts_complete SAX parser
@@ -240,6 +242,8 @@ class PostGenerator(Generator):
                     path=f'a/{answer["Id"]}',
                     target_path=path,
                 )
+
+        self.progresser.update(incr=True)
 
     def generate_questions_page(self):
         paginator = SortedSetPaginator(

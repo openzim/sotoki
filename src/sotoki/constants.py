@@ -108,7 +108,7 @@ class Sotoconf:
     debug: Optional[bool] = False
     prepare_only: Optional[bool] = False
     keep_intermediate_files: Optional[bool] = False
-    statsFilename: Optional[str] = None
+    stats_filename: Optional[str] = None
     #
     build_dir_is_tmp_dir: Optional[bool] = False
     dump_date: Optional[datetime.date] = datetime.date.today()
@@ -153,6 +153,9 @@ class Sotoconf:
             self.build_dir = pathlib.Path(
                 tempfile.mkdtemp(prefix=f"{self.domain}_", dir=self.tmp_dir)
             )
+        if self.stats_filename:
+            self.stats_filename = pathlib.Path(self.stats_filename).expanduser()
+        self.stats_filename.parent.mkdir(parents=True, exist_ok=True)
 
         self.redis_url = urllib.parse.urlparse(self._redis_url)
         if self.redis_url and self.redis_url.scheme not in ("unix", "redis"):

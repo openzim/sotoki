@@ -71,7 +71,7 @@ class ArchiveManager:
                 return dateparser.parse(header)
             except ValueError:
                 pass
-        return datetime.date.now()  # default to today
+        return datetime.datetime.now()  # default to today
 
     def download_and_extract_archives(self):
         logger.info("Downloading archive(s)…")
@@ -82,11 +82,15 @@ class ArchiveManager:
         def _run(url, fpath):
             if not fpath.exists():
                 download(url, fpath)
+            Global.progresser.update(incr=1)
+
             extract_7z(fpath, self.build_dir, delete_src=self.delete_src)
+            Global.progresser.update(incr=1)
+
             # remove other files from ark that we won't need
-            for fpath in self.build_dir.iterdir():
-                if fpath.suffix == ".xml" and fpath.stem not in self.dump_parts:
-                    fpath.unlink()
+            for fp in self.build_dir.iterdir():
+                if fp.suffix == ".xml" and fp.stem not in self.dump_parts:
+                    fp.unlink()
 
         futures = {}
         executor = cf.ThreadPoolExecutor(max_workers=len(self.archives))
@@ -120,6 +124,16 @@ class ArchiveManager:
             raise Exception("Unable to complete download and extraction")
 
     def check_and_prepare_dumps(self):
+
+        # Dumps preparation progress:
+        # 1pt for each archive to download
+        # 1pt for 7z extraction
+        # 3pt for users XML computation
+        # 5pt for posts XML computation
+        Global.progresser.start(
+            Global.progresser.PREPARATION_STEP, nb_total=len(self.archives) * 2 + 3 + 5
+        )
+
         tags = self.build_dir / "Tags.xml"
         users = self.build_dir / "users_with_badges.xml"
         posts = self.build_dir / "posts_complete.xml"
@@ -137,6 +151,7 @@ class ArchiveManager:
                 logger.info("Extracted parts present; reusing")
         else:
             logger.info("Prepared dumps already present; reusing.")
+            Global.progresser.update(nb_done=1, nb_total=1)
             return
 
         if not tags.exists():
@@ -145,11 +160,13 @@ class ArchiveManager:
         merge_users_with_badges(workdir=self.build_dir, delete_src=self.delete_src)
         if not users.exists():
             raise IOError(f"Missing {users.name} while we should not.")
+        Global.progresser.update(incr=3)
 
         merge_posts_with_answers_comments(
             workdir=self.build_dir, delete_src=self.delete_src
         )
         if not posts.exists():
             raise IOError(f"Missing {posts.name} while we should not.")
+        Global.progresser.update(incr=5)
 
         logger.info("Prepared dumps completed.")
