@@ -106,9 +106,10 @@ class StackExchangeToZim:
         convert_image(src_illus_fpath, illus_fpath)
 
         # resize to appropriate size (ZIM uses 48x48 so we double for retina)
-        resize_image(illus_fpath, width=96, height=96, method="thumbnail")
-
-        Global.creator.add_item_for("illustration", fpath=illus_fpath)
+        for size in (96, 48):
+            resize_image(illus_fpath, width=size, height=size, method="thumbnail")
+            with open(illus_fpath, "rb") as fh:
+                Global.creator.add_illustration(size, fh.read())
 
         # download and add actual favicon (ICO file)
         favicon_fpath = self.build_dir / "favicon.ico"

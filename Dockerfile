@@ -26,9 +26,9 @@ ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
 # TEMP: install pylibzim and scraperlib through built wheels (until release)
-RUN wget --progress=dot:giga http://tmp.kiwix.org/wheels/libzim-1.0.0.dev0-cp38-cp38-manylinux1_x86_64.whl \
+RUN wget --progress=dot:giga http://tmp.kiwix.org/wheels/libzim-1.0.0.dev1-cp38-cp38-manylinux1_x86_64.whl \
     && wget --progress=dot:giga http://tmp.kiwix.org/wheels/zimscraperlib-1.4.0.dev1-py3-none-any.whl \
-    && pip install --no-cache-dir ./*.whl
+    && pip install --no-cache-dir ./*.whl && rm -f *.whl
 
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -U pip && pip install --no-cache-dir -r /tmp/requirements.txt
