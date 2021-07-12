@@ -5,7 +5,6 @@
 import shutil
 import pathlib
 import datetime
-import concurrent.futures as cf
 
 from zimscraperlib.zim.creator import Creator
 from zimscraperlib.zim.items import URLItem
@@ -13,7 +12,13 @@ from zimscraperlib.inputs import handle_user_provided_file
 from zimscraperlib.image.convertion import convert_image
 from zimscraperlib.image.transformation import resize_image
 
-from .constants import getLogger, Sotoconf, ROOT_DIR, Global
+from .constants import (
+    getLogger,
+    Sotoconf,
+    ROOT_DIR,
+    Global,
+    NB_PAGINATED_QUESTIONS_PER_TAG,
+)
 from .archives import ArchiveManager
 from .utils.s3 import setup_s3_and_check_credentials
 from .utils.sites import get_site
@@ -21,6 +26,7 @@ from .utils.database import get_database
 from .utils.imager import Imager
 from .utils.html import Rewriter
 from .utils.progress import Progresser
+from .utils.misc import BoundedThreadPoolExecutor
 from .renderer import Renderer
 from .users import UserGenerator
 from .posts import PostGenerator, PostFirstPasser
@@ -205,28 +211,26 @@ class StackExchangeToZim:
             imager=Imager(),
             rewriter=Rewriter(),
             # all operations spread accross an nb_threads executor
-            executor=cf.ThreadPoolExecutor(max_workers=self.conf.nb_threads),
+            executor=BoundedThreadPoolExecutor(
+                queue_size=self.conf.nb_threads * 10, max_workers=self.conf.nb_threads
+            ),
         )
         # must follow rewriter's assignemnt as t references it
         Global.renderer = Renderer()
 
-        Global.creator = (
-            Creator(
-                filename=self.conf.output_dir.joinpath(self.conf.fname),
-                main_path="questions",
-                favicon_path="illustration",
-                language="eng",
-                title=self.conf.title,
-                description=self.conf.description,
-                creator=self.conf.author,
-                publisher=self.conf.publisher,
-                name=self.conf.name,
-                tags=";".join(self.conf.tags),
-                date=datetime.date.today(),
-            )
-            .config_nbworkers(self.conf.nb_threads)
-            .start()
-        )
+        Global.creator = Creator(
+            filename=self.conf.output_dir.joinpath(self.conf.fname),
+            main_path="questions",
+            favicon_path="illustration",
+            language="eng",
+            title=self.conf.title,
+            description=self.conf.description,
+            creator=self.conf.author,
+            publisher=self.conf.publisher,
+            name=self.conf.name,
+            tags=";".join(self.conf.tags),
+            date=datetime.date.today(),
+        ).start()
 
         try:
             self.add_illustrations()
@@ -296,6 +300,7 @@ class StackExchangeToZim:
             nb_total=int(Global.site["TotalQuestions"]),
         )
         PostFirstPasser().run()
+        Global.database.clear_extra_tags_questions_list(NB_PAGINATED_QUESTIONS_PER_TAG)
 
     def process_indiv_users_pages(self):
         # We walk through all Users and skip all those without interactions

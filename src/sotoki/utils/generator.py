@@ -28,6 +28,7 @@ class Generator(GlobalMixin):
         parser = xml.sax.make_parser()  # nosec
         parser.setContentHandler(self.walker(processor=self.processor_callback))
         parser.parse(self.fpath)
+        parser.setContentHandler(None)
         logger.debug("Done parsing, collecting workers…")
 
         # await offloaded processing
@@ -52,9 +53,7 @@ class Generator(GlobalMixin):
             raise Exception("Unable to complete download and extraction")
 
     def processor_callback(self, item):
-        future = self.executor.submit(self.processor, item=item)
-        if item:
-            self.futures.update({future: item.get("Id")})
+        self.executor.submit(self.processor, item=item)
 
     def processor(self, item):
         """to override: process item"""
