@@ -14,3 +14,4 @@ tld>=0.12.6,<0.13
 mistune>=2.0.0rc1,<2.1
 dateparser>=1.0.0,<1.1
 psutil>=5.8.0,<5.9
+python-snappy>=0.6.0,<1.0

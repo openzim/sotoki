@@ -3,6 +3,7 @@
 # vim: ai ts=4 sts=4 et sw=4 nu
 
 import datetime
+from typing import Union
 
 from jinja2 import Environment, PackageLoader
 from jinja2_pluralize import pluralize_dj
@@ -42,12 +43,15 @@ def number_format_short(number: int):
     return number_format(number, short=True)
 
 
-def date_format(adate: str):
+def date_format(adate: Union[datetime.datetime, str]):
     if adate:
         try:
-            return datetime.datetime.fromisoformat(adate).strftime("%b %m '%y at %H:%M")
+            if not isinstance(adate, datetime.datetime):
+                adate = datetime.datetime.fromisoformat(adate)
         except ValueError:
             pass
+        else:
+            return adate.strftime("%b %m '%y at %H:%M")
     return adate
 
 

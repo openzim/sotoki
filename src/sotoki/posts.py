@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # vim: ai ts=4 sts=4 et sw=4 nu
+import datetime
 
 from .constants import getLogger
 from .renderer import SortedSetPaginator
@@ -13,6 +14,9 @@ logger = getLogger()
 def harmonize_post(post: dict):
     post["has_accepted"] = "AcceptedAnswerId" in post
     post["OwnerName"] = post.get("OwnerUserId", post.get("OwnerDisplayName"))
+    post["CreationTimestamp"] = int(
+        datetime.datetime.fromisoformat(post["CreationDate"]).strftime("%s")
+    )
 
 
 class FirstPassWalker(Walker):

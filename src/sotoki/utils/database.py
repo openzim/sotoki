@@ -15,6 +15,7 @@ import threading
 from typing import Union, Iterator, Tuple
 
 import redis
+import snappy
 
 from ..constants import getLogger, Global
 from ..utils.html import get_text
@@ -89,6 +90,13 @@ class Database:
     ) -> Iterator[Union[Tuple[object, int], object]]:
         """Query entries in named sorted set"""
 
+        def decode_results(results):
+            for result in results:
+                if scored:
+                    yield (result[0].decode("UTF-8"), result[1])
+                else:
+                    yield result.decode("UTF-8")
+
         func = getattr(self.conn, "zrevrangebyscore" if desc else "zrangebyscore")
 
         if num is None:
@@ -103,7 +111,7 @@ class Database:
             "withscores": scored,
             "score_cast_func": int,
         }
-        return func(**kwargs)
+        return decode_results(func(**kwargs))
 
 
 class TagsDatabaseMixin:
@@ -248,21 +256,23 @@ class UsersDatabaseMixin:
 
         Name, Reputation, NbGoldBages, NbSilverBadges, NbBronzeBadges"""
 
-        self.bump_seen()
-
         # record profile details into individual key
         self.pipe.set(
             self.user_key(user["Id"]),
-            json.dumps(
-                (
-                    user["DisplayName"],
-                    user["Reputation"],
-                    user["nb_gold"],
-                    user["nb_silver"],
-                    user["nb_bronze"],
+            snappy.compress(
+                json.dumps(
+                    (
+                        user["DisplayName"],
+                        user["Reputation"],
+                        user["nb_gold"],
+                        user["nb_silver"],
+                        user["nb_bronze"],
+                    )
                 )
             ),
         )
+
+        self.bump_seen()
         self.commit_maybe()
 
     def sort_users(self):
@@ -295,7 +305,7 @@ class UsersDatabaseMixin:
         user = self.conn.get(self.user_key(user_id))
         if not user:
             return None
-        user = json.loads(user)
+        user = json.loads(snappy.decompress(user))
         return {
             "id": user_id,
             "name": user[0],
@@ -317,7 +327,7 @@ class UsersDatabaseMixin:
         user = self.conn.get(self.user_key(user_id))
         if not user:
             return 0
-        return json.loads(user)[1]
+        return json.loads(snappy.decompress(user))[1]
 
 
 class PostsDatabaseMixin:
@@ -362,7 +372,6 @@ class PostsDatabaseMixin:
         return "nb_answers"
 
     def record_question(self, post: dict):
-        self.bump_seen()
 
         # update set of users_ids (users with activity)
         if post.get("users_ids"):
@@ -383,18 +392,23 @@ class PostsDatabaseMixin:
 
         # TODO: just storing name instead of id is not safe. a deleted user could
         # have a name such as "3200" and that would be rendered as User#3200
-        # if not post.get("OwnerUserId"):
+
+        # store int for user Ids (most use) to save some space in redis
+        if post.get("OwnerUserId"):
+            post["OwnerName"] = int(post["OwnerUserId"])
 
         # store question details
         self.pipe.setnx(
             self.question_key(post["Id"]),
-            json.dumps(
-                (
-                    post["CreationDate"],
-                    post["OwnerName"],
-                    post["has_accepted"],
-                    post["nb_answers"],
-                    post.get("Tags", []),
+            snappy.compress(
+                json.dumps(
+                    (
+                        post["CreationTimestamp"],
+                        post["OwnerName"],
+                        post["has_accepted"],
+                        post["nb_answers"],
+                        [self.get_tag_id(tag) for tag in post.get("Tags", [])],
+                    )
                 )
             ),
         )
@@ -402,9 +416,12 @@ class PostsDatabaseMixin:
         # record question's meta: ID: title, excerpt for use in home and tag pages
         self.pipe.set(
             self.question_details_key(post["Id"]),
-            json.dumps((post["Title"], get_text(post["Body"], strip_at=250))),
+            snappy.compress(
+                json.dumps((post["Title"], get_text(post["Body"], strip_at=250)))
+            ),
         )
 
+        self.bump_seen(4 + len(post.get("Tags", [])))
         self.commit_maybe()
 
     def record_questions_stats(
@@ -415,12 +432,16 @@ class PostsDatabaseMixin:
             self.questions_stats_key(),
             json.dumps((nb_answers, nb_answered, nb_accepted)),
         )
+
+        self.bump_seen()
         self.commit_maybe()
 
     def get_question_title_desc(self, post_id: int) -> dict:
         """dict including title and excerpt fo a question by PostId"""
         try:
-            data = json.loads(self.conn.get(self.question_details_key(post_id)))
+            data = json.loads(
+                snappy.decompress(self.conn.get(self.question_details_key(post_id)))
+            )
         except Exception:
             # we might not have a record for that post_id:
             # - post_id can be erroneous (from a mistyped link)
@@ -447,7 +468,11 @@ class PostsDatabaseMixin:
                 item["has_accepted"],
                 item["nb_answers"],
                 item["tags"],
-            ) = json.loads(post_entry)
+            ) = json.loads(snappy.decompress(post_entry))
+            item["creation_date"] = datetime.datetime.fromtimestamp(
+                item["creation_date"]
+            )
+            item["tags"] = [self.get_tag_name_for(t) for t in item["tags"]]
         return item
 
     def get_question_score(self, post_id: int) -> int:
@@ -458,7 +483,7 @@ class PostsDatabaseMixin:
         """Whether the question has an accepted answer or not"""
         post_entry = self.conn.get(self.question_key(post_id))
         if post_entry:
-            return json.loads(post_entry)[2]  # 3rd entry, has accepted
+            return json.loads(snappy.decompress(post_entry))[2]  # 3rd entry, accepted
         return False
 
     def get_questions_stats(self) -> int:
@@ -495,7 +520,7 @@ class RedisDatabase(
             return self.connections[threading.get_ident()]
         except KeyError:
             self.connections[threading.get_ident()] = redis.StrictRedis.from_url(
-                Global.conf.redis_url.geturl(), charset="utf-8", decode_responses=True
+                Global.conf.redis_url.geturl(), charset="utf-8", decode_responses=False
             )
             return self.connections[threading.get_ident()]
 

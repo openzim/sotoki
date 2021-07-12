@@ -140,6 +140,8 @@ class TagGenerator(Generator):
         with self.lock:
             self.creator.add_item_for(
                 path="api/tags.json",
-                content=json.dumps(self.database.query_set(self.database.tags_key())),
+                content=json.dumps(
+                    list(self.database.query_set(self.database.tags_key()))
+                ),
                 mimetype="application/json",
             )
