@@ -212,23 +212,19 @@ class StackExchangeToZim:
         # must follow rewriter's assignemnt as t references it
         Global.renderer = Renderer()
 
-        Global.creator = (
-            Creator(
-                filename=self.conf.output_dir.joinpath(self.conf.fname),
-                main_path="questions",
-                favicon_path="illustration",
-                language="eng",
-                title=self.conf.title,
-                description=self.conf.description,
-                creator=self.conf.author,
-                publisher=self.conf.publisher,
-                name=self.conf.name,
-                tags=";".join(self.conf.tags),
-                date=datetime.date.today(),
-            )
-            .config_nbworkers(self.conf.nb_threads)
-            .start()
-        )
+        Global.creator = Creator(
+            filename=self.conf.output_dir.joinpath(self.conf.fname),
+            main_path="questions",
+            favicon_path="illustration",
+            language="eng",
+            title=self.conf.title,
+            description=self.conf.description,
+            creator=self.conf.author,
+            publisher=self.conf.publisher,
+            name=self.conf.name,
+            tags=";".join(self.conf.tags),
+            date=datetime.date.today(),
+        ).start()
 
         try:
             self.add_illustrations()
