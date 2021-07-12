@@ -3,10 +3,12 @@
 # vim: ai ts=4 sts=4 et sw=4 nu
 
 import zlib
+import queue
 import pathlib
 import logging
 import subprocess
 import urllib.parse
+import concurrent.futures as cf
 from typing import Union, Iterable
 
 import psutil
@@ -98,3 +100,29 @@ def get_available_memory():
         return mem_total - mem_used
 
     return psutil.virtual_memory().available
+
+
+class BoundedThreadPoolExecutor(cf.ThreadPoolExecutor):
+    """Regular ThreadPoolExecutor with SimpleQueue replaced by bounded FIFO one
+
+    TPE uses an unbounded FIFO queue to stack jobs until those are fetched by workers.
+    As we usually parse XML files very fast and submit jobs directly, we end up
+    with an incredibly large queue that keeps growing to millions of entries, increasing
+    the gap between submitted and processed job.
+
+    Using a bounded queue, submit() is blocked until a new slot is available so the
+    workers are always at most queue-size jobs behind submitted ones.
+
+    This keeps parsing and processing progress in sync and caps memory usage"""
+
+    def __init__(
+        self,
+        queue_size,
+        max_workers=None,
+        thread_name_prefix="",
+        initializer=None,
+        initargs=(),
+    ):
+
+        super().__init__(max_workers, thread_name_prefix, initializer, initargs)
+        self._work_queue = queue.Queue(maxsize=queue_size)

@@ -5,7 +5,6 @@
 import shutil
 import pathlib
 import datetime
-import concurrent.futures as cf
 
 from zimscraperlib.zim.creator import Creator
 from zimscraperlib.zim.items import URLItem
@@ -21,6 +20,7 @@ from .utils.database import get_database
 from .utils.imager import Imager
 from .utils.html import Rewriter
 from .utils.progress import Progresser
+from .utils.misc import BoundedThreadPoolExecutor
 from .renderer import Renderer
 from .users import UserGenerator
 from .posts import PostGenerator, PostFirstPasser
@@ -205,7 +205,9 @@ class StackExchangeToZim:
             imager=Imager(),
             rewriter=Rewriter(),
             # all operations spread accross an nb_threads executor
-            executor=cf.ThreadPoolExecutor(max_workers=self.conf.nb_threads),
+            executor=BoundedThreadPoolExecutor(
+                queue_size=self.conf.nb_threads * 10, max_workers=self.conf.nb_threads
+            ),
         )
         # must follow rewriter's assignemnt as t references it
         Global.renderer = Renderer()
