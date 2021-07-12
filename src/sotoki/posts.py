@@ -3,7 +3,7 @@
 # vim: ai ts=4 sts=4 et sw=4 nu
 import datetime
 
-from .constants import getLogger
+from .constants import getLogger, NB_QUESTIONS_PER_PAGE, NB_PAGINATED_QUESTIONS
 from .renderer import SortedSetPaginator
 from .utils.generator import Generator, Walker
 from .utils.html import get_slug_for
@@ -251,7 +251,9 @@ class PostGenerator(Generator):
 
     def generate_questions_page(self):
         paginator = SortedSetPaginator(
-            self.database.questions_key(), per_page=15, at_most=1500
+            self.database.questions_key(),
+            per_page=NB_QUESTIONS_PER_PAGE,
+            at_most=NB_PAGINATED_QUESTIONS,
         )
         for page_number in paginator.page_range:
             page = paginator.get_page(page_number)

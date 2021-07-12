@@ -175,6 +175,7 @@ class Renderer(GlobalMixin):
             title=f"Highest Voted '{tag}' Questions",
             questions=extend_questions(page),
             page_obj=page,
+            nb_questions=self.database.get_numquestions_for_tag(tag),
             **self.global_context,
             **self.database.get_tag_full(tag),
         )

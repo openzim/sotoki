@@ -4,7 +4,11 @@
 
 import json
 
-from .constants import getLogger
+from .constants import (
+    getLogger,
+    NB_PAGINATED_QUESTIONS_PER_TAG,
+    NB_QUESTIONS_PER_TAG_PAGE,
+)
 from .utils.generator import Generator, Walker
 from .renderer import SortedSetPaginator
 
@@ -85,9 +89,11 @@ class TagGenerator(Generator):
 
     def run(self):
         # create individual pages for all tags
-        for tag_name in self.database.query_set(self.database.tags_key(), scored=False):
+        for tag_name in self.database.tags_ids.inverse.keys():
             paginator = SortedSetPaginator(
-                self.database.tag_key(tag_name), per_page=15, at_most=1500
+                self.database.tag_key(tag_name),
+                per_page=NB_QUESTIONS_PER_TAG_PAGE,
+                at_most=NB_PAGINATED_QUESTIONS_PER_TAG,
             )
             for page_number in paginator.page_range:
                 page = paginator.get_page(page_number)
@@ -111,7 +117,7 @@ class TagGenerator(Generator):
 
                 # redirect from TagId to TagName
                 # not sure how useful that is…
-                tag_id = self.database.get_tag_detail(tag_name, "id")
+                tag_id = self.database.get_tag_id(tag_name)
                 self.creator.add_redirect(
                     path=f"questions/tagged/{tag_id}",
                     target_path=f"questions/tagged/{tag_name}",

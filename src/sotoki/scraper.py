@@ -12,7 +12,13 @@ from zimscraperlib.inputs import handle_user_provided_file
 from zimscraperlib.image.convertion import convert_image
 from zimscraperlib.image.transformation import resize_image
 
-from .constants import getLogger, Sotoconf, ROOT_DIR, Global
+from .constants import (
+    getLogger,
+    Sotoconf,
+    ROOT_DIR,
+    Global,
+    NB_PAGINATED_QUESTIONS_PER_TAG,
+)
 from .archives import ArchiveManager
 from .utils.s3 import setup_s3_and_check_credentials
 from .utils.sites import get_site
@@ -294,6 +300,7 @@ class StackExchangeToZim:
             nb_total=int(Global.site["TotalQuestions"]),
         )
         PostFirstPasser().run()
+        Global.database.clear_extra_tags_questions_list(NB_PAGINATED_QUESTIONS_PER_TAG)
 
     def process_indiv_users_pages(self):
         # We walk through all Users and skip all those without interactions
