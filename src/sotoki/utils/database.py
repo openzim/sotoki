@@ -10,7 +10,7 @@
 
 import json
 import time
-import pathlib
+import datetime
 import threading
 from typing import Union, Iterator, Tuple
 
@@ -36,16 +36,11 @@ class Database:
       - Might require some post-usage cleanup: teardown()
       - Should be able to remove data (it's TEMP only)"""
 
-    commit_every = 10000
+    commit_every = 1000
     record_on_main_thread = False
 
     def __init__(self):
         self.nb_seen = 0
-
-    @property
-    def build_dir(self) -> pathlib.Path:
-        # file:// URI requires a full path
-        return Global.conf.build_dir.resolve()
 
     def initialize(self):
         """to override: initialize database"""
