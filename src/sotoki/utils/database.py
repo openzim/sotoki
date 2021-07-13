@@ -18,7 +18,7 @@ import redis
 import bidict
 import snappy
 
-from ..constants import getLogger, Global
+from ..constants import getLogger, Global, UTF8
 from ..utils.html import get_text
 
 logger = getLogger()
@@ -94,9 +94,9 @@ class Database:
         def decode_results(results):
             for result in results:
                 if scored:
-                    yield (result[0].decode("UTF-8"), result[1])
+                    yield (result[0].decode(UTF8), result[1])
                 else:
-                    yield result.decode("UTF-8")
+                    yield result.decode(UTF8)
 
         func = getattr(self.conn, "zrevrangebyscore" if desc else "zrangebyscore")
 
@@ -198,7 +198,6 @@ class TagsDatabaseMixin:
     def get_tag_id(self, name: str) -> int:
         """Tag ID for its name"""
         return self.tags_ids.inverse[name]
-        # return int(self.conn.get(self.tag_id_key(name)))
 
     def get_tag_name_for(self, tag_id: int) -> str:
         return self.tags_ids[tag_id]
@@ -211,7 +210,8 @@ class TagsDatabaseMixin:
 
     def get_tag_detail(self, name: str, field: str) -> str:
         """single detail (excerpt or description) for a tag"""
-        return self.conn.get(self.tag_detail_key(name, field))
+        detail = self.conn.get(self.tag_detail_key(name, field))
+        return detail.decode(UTF8) if detail is not None else None
 
     def get_tag_details(self, name) -> dict:
         """dict of all the recorded known details for tag"""
@@ -541,7 +541,7 @@ class RedisDatabase(
             return self.connections[threading.get_ident()]
         except KeyError:
             self.connections[threading.get_ident()] = redis.StrictRedis.from_url(
-                Global.conf.redis_url.geturl(), charset="utf-8", decode_responses=False
+                Global.conf.redis_url.geturl(), charset=UTF8, decode_responses=False
             )
             return self.connections[threading.get_ident()]
 
