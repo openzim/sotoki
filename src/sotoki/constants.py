@@ -59,7 +59,11 @@ def setDebug(debug):
 
 def getLogger():
     """configured logger respecting DEBUG flag"""
-    return lib_getLogger(NAME, level=logging.DEBUG if Global.debug else logging.INFO)
+    return lib_getLogger(
+        NAME,
+        level=logging.DEBUG if Global.debug else logging.INFO,
+        log_format="[%(threadName)s::%(asctime)s] %(levelname)s:%(message)s",
+    )
 
 
 @dataclass
