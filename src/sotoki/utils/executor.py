@@ -132,7 +132,7 @@ class SotokiExecutor(queue.Queue):
             logger.debug(f"joining thread {t.name}")
             t.join()
             logger.debug(f"joined thread {t.name}")
-        logger.debug("all threads joined for {self.prefix}")
+        logger.debug(f"all threads joined for {self.prefix}")
 
     def release_halt(self):
         """release the `no_more` flag preventing workers from taking up tasks"""

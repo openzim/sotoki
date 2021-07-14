@@ -109,6 +109,8 @@ class Imager:
             GoogleImageProvider(),
         ]
 
+        Global.img_executor.start()
+
     def abort(self):
         """request imager to cancel processing of futures"""
         self.aborted = True
@@ -182,6 +184,7 @@ class Imager:
         """request full processing of url, returning in-zim path immediately"""
 
         # find actual URL should it be from a provider
+        logger.debug(f"deferring {url=} {path=} {is_profile=}")
         try:
             url = urllib.parse.urlparse(url)
             url = self.get_source_url(url, for_profile=is_profile)
@@ -206,14 +209,18 @@ class Imager:
         self.handled.append(digest)
 
         self.nb_requested += 1
-        future = Global.executor.submit(
-            self.process_image, url=url, path=path, is_profile=is_profile
+
+        Global.img_executor.submit(
+            self.process_image,
+            url=url,
+            path=path,
+            is_profile=is_profile,
+            callback=once_done or self.once_done,
         )
-        future.add_done_callback(once_done or self.once_done)
 
         return path
 
-    def once_done(self, future):
+    def once_done(self):
         """default callback for single image processing"""
         self.nb_done += 1
         Global.progresser.update()

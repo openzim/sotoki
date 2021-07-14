@@ -20,6 +20,7 @@ class Generator(GlobalMixin):
 
     def run(self):
         Global.database.begin()
+        Global.executor.start()
 
         # parse XML file. not using defusedxml for performances reasons.
         # although containing user-generated content, we trust Stack Exchange dump
@@ -27,31 +28,20 @@ class Generator(GlobalMixin):
         parser.setContentHandler(self.walker(processor=self.processor_callback))
         parser.parse(self.fpath)
         parser.setContentHandler(None)
-        logger.debug("Done parsing, collecting workers…")
+        logger.debug(f"Done parsing {type(self).__name__}, collecting workers…")
 
         # await offloaded processing
-        result = cf.wait(self.futures.keys(), return_when=cf.FIRST_EXCEPTION)
+        Global.executor.join()
+        logger.debug(f"{type(self).__name__} Workers collected.")
+
         # ensure we commited tail of data
         Global.database.commit(done=True)
 
-        # check whether any of the jobs failed
-        for future in result.done:
-            exc = future.exception()
-            if exc:
-                item = self.futures.get(future)
-                logger.error(f"Error processing {item}: {exc}")
-                logger.exception(exc)
-                raise exc
-
-        if result.not_done:
-            logger.error(
-                "Some not_done futrues: \n - "
-                + "\n - ".join([self.futures.get(future) for future in result.not_done])
-            )
-            raise Exception("Unable to complete download and extraction")
+        if Global.executor.exception:
+            raise Global.executor.exception
 
     def processor_callback(self, item):
-        self.executor.submit(self.processor, item=item)
+        Global.executor.submit(self.processor, item=item, raises=True)
 
     def processor(self, item):
         """to override: process item"""
