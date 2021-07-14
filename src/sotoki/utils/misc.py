@@ -3,12 +3,10 @@
 # vim: ai ts=4 sts=4 et sw=4 nu
 
 import zlib
-import queue
 import pathlib
 import logging
 import subprocess
 import urllib.parse
-import concurrent.futures as cf
 from typing import Union, Iterable
 
 import psutil
