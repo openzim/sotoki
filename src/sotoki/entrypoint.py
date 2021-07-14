@@ -8,8 +8,9 @@ import argparse
 
 from cli_formatter.table_builder import TableBuilderClassic
 
-from .constants import NAME, SCRAPER, getLogger, setDebug
+from .constants import NAME, SCRAPER
 from .utils.sites import get_all_sites
+from .utils.shared import Global, logger
 
 
 class ListAllAction(argparse.Action):
@@ -268,8 +269,7 @@ def main():
     )
 
     args = parser.parse_args()
-    setDebug(args.debug)
-    logger = getLogger()
+    Global.set_debug(args.debug)
 
     from .scraper import StackExchangeToZim
 

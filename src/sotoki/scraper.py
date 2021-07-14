@@ -6,33 +6,23 @@ import shutil
 import pathlib
 import datetime
 
-from zimscraperlib.zim.creator import Creator
 from zimscraperlib.zim.items import URLItem
 from zimscraperlib.inputs import handle_user_provided_file
 from zimscraperlib.image.convertion import convert_image
 from zimscraperlib.image.transformation import resize_image
 
 from .constants import (
-    getLogger,
     Sotoconf,
     ROOT_DIR,
-    Global,
     NB_PAGINATED_QUESTIONS_PER_TAG,
 )
 from .archives import ArchiveManager
 from .utils.s3 import setup_s3_and_check_credentials
 from .utils.sites import get_site
-from .utils.database import get_database
-from .utils.imager import Imager
-from .utils.html import Rewriter
-from .utils.progress import Progresser
-from .utils.misc import BoundedThreadPoolExecutor
-from .renderer import Renderer
+from .utils.shared import Global, logger
 from .users import UserGenerator
 from .posts import PostGenerator, PostFirstPasser
 from .tags import TagGenerator, TagFinder, TagExcerptRecorder, TagDescriptionRecorder
-
-logger = getLogger()
 
 
 class StackExchangeToZim:
@@ -169,10 +159,8 @@ class StackExchangeToZim:
             f"{s3_msg}"
         )
 
-        Global.progresser = Progresser()
-
         logger.debug("Fetching site details…")
-        Global.site = get_site(self.domain)
+        Global.init(get_site(self.domain))
         if not Global.site:
             logger.critical(
                 f"Couldn't fetch detail for {self.domain}. Please check "
@@ -198,39 +186,17 @@ class StackExchangeToZim:
     def start(self):
 
         try:
-            Global.database = get_database()
+            Global.setup()
         except Exception as exc:
-            logger.critical("Unable to initialize database. Check --redis-url")
+            if isinstance(exc, Global.DatabaseException):
+                logger.critical("Unable to initialize database. Check --redis-url")
             if Global.debug:
                 logger.exception(exc)
             else:
                 logger.error(str(exc))
             return 1
 
-        Global.setup(
-            imager=Imager(),
-            rewriter=Rewriter(),
-            # all operations spread accross an nb_threads executor
-            executor=BoundedThreadPoolExecutor(
-                queue_size=self.conf.nb_threads * 10, max_workers=self.conf.nb_threads
-            ),
-        )
-        # must follow rewriter's assignemnt as t references it
-        Global.renderer = Renderer()
-
-        Global.creator = Creator(
-            filename=self.conf.output_dir.joinpath(self.conf.fname),
-            main_path="questions",
-            favicon_path="illustration",
-            language="eng",
-            title=self.conf.title,
-            description=self.conf.description,
-            creator=self.conf.author,
-            publisher=self.conf.publisher,
-            name=self.conf.name,
-            tags=";".join(self.conf.tags),
-            date=datetime.date.today(),
-        ).start()
+        Global.creator.start()
 
         try:
             self.add_illustrations()
@@ -248,10 +214,11 @@ class StackExchangeToZim:
 
             self.process_pages_lists()
 
+            Global.executor.shutdown()
+            Global.img_executor.shutdown()
+
             Global.database.teardown()
             Global.database.remove()
-
-            Global.executor.shutdown()
         except Exception as exc:
             # request Creator not to create a ZIM file on finish
             Global.creator.can_finish = False
@@ -260,8 +227,9 @@ class StackExchangeToZim:
             else:
                 logger.error(f"Interrupting process due to error: {exc}")
                 logger.exception(exc)
-            Global.executor.shutdown(wait=False)
             Global.imager.abort()
+            Global.executor.shutdown(wait=False)
+            Global.img_executor.shutdown(wait=False)
         else:
             logger.info("Finishing ZIM file…")
             # we need to release libzim's resources.
@@ -269,7 +237,10 @@ class StackExchangeToZim:
             # impl. at libkiwix level
             with Global.lock:
                 Global.creator.finish()
-            logger.info("Zim finished")
+            logger.info(
+                f"Finished Zim {Global.creator.filename.name} "
+                f"in {Global.creator.filename.parent}"
+            )
         finally:
             Global.progresser.print()
 

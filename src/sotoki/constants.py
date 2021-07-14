@@ -3,15 +3,11 @@
 # vim: ai ts=4 sts=4 et sw=4 nu
 
 import pathlib
-import logging
 import datetime
 import tempfile
-import threading
 import urllib.parse
 from typing import Optional, List
 from dataclasses import dataclass, field
-
-from zimscraperlib.logging import getLogger as lib_getLogger
 
 ROOT_DIR = pathlib.Path(__file__).parent
 NAME = ROOT_DIR.name
@@ -31,35 +27,6 @@ NB_PAGINATED_QUESTIONS_PER_TAG = NB_QUESTIONS_PER_TAG_PAGE * NB_PAGES_PER_TAG
 NB_QUESTIONS_PER_PAGE = 15
 NB_QUESTIONS_PAGES = 100
 NB_PAGINATED_QUESTIONS = NB_QUESTIONS_PER_PAGE * NB_QUESTIONS_PAGES
-
-
-class Global:
-    """Shared context accross all scraper components"""
-
-    debug = False
-    conf = None  # main scraper configuration
-    site = None
-    database = None
-    creator = None  # zim Creator
-    imager = None  # image downloader/optimizer/uploader
-    renderer = None  # HTML page renderer
-    rewriter = None  # HTML content rewriter
-    lock = threading.Lock()  # saves importing threading everywhere
-
-    @staticmethod
-    def setup(**kwargs):
-        for name, value in kwargs.items():
-            setattr(Global, name, value)
-
-
-def setDebug(debug):
-    """toggle constants global DEBUG flag (used by getLogger)"""
-    Global.debug = bool(debug)
-
-
-def getLogger():
-    """configured logger respecting DEBUG flag"""
-    return lib_getLogger(NAME, level=logging.DEBUG if Global.debug else logging.INFO)
 
 
 @dataclass
@@ -161,7 +128,7 @@ class Sotoconf:
             )
         if self.stats_filename:
             self.stats_filename = pathlib.Path(self.stats_filename).expanduser()
-        self.stats_filename.parent.mkdir(parents=True, exist_ok=True)
+            self.stats_filename.parent.mkdir(parents=True, exist_ok=True)
 
         self.redis_url = urllib.parse.urlparse(self._redis_url)
         if self.redis_url and self.redis_url.scheme not in ("unix", "redis"):

@@ -18,10 +18,9 @@ import redis
 import bidict
 import snappy
 
-from ..constants import getLogger, Global, UTF8
-from ..utils.html import get_text
-
-logger = getLogger()
+from .shared import Global, logger
+from .html import get_text
+from ..constants import UTF8
 
 
 class Database:
@@ -191,13 +190,18 @@ class TagsDatabaseMixin:
         Those T:{post_id} ordered sets are used to build per-tag list of questions
         and those are paginated up to some arbitrary value so it makes no sense
         to keep more than this number"""
+
+        # don't use pipeline as those commands are RAM-hungry on redis side and
+        # we don't want to stack them up
         for tag in self.tags_ids.inverse.keys():
-            self.pipe.zremrangebyrank(self.tag_key(tag), 0, -(at_most + 1))
-        self.commit()
+            self.conn.zremrangebyrank(self.tag_key(tag), 0, -(at_most + 1))
 
     def get_tag_id(self, name: str) -> int:
         """Tag ID for its name"""
-        return self.tags_ids.inverse[name]
+        try:
+            return self.tags_ids.inverse[name]
+        except KeyError:
+            return None
 
     def get_tag_name_for(self, tag_id: int) -> str:
         return self.tags_ids[tag_id]
@@ -428,7 +432,15 @@ class PostsDatabaseMixin:
                         post["OwnerName"],
                         post["has_accepted"],
                         post["nb_answers"],
-                        [self.get_tag_id(tag) for tag in post.get("Tags", [])],
+                        # Tag ID can be None in the event a Tag existed and was not used
+                        # but got used first during the dumping process, after the Tags
+                        # were dumped but before questions we fully dumped.
+                        # SO Tag `imac` in 2021-06 dumps for instance
+                        [
+                            self.get_tag_id(tag)
+                            for tag in post.get("Tags", [])
+                            if self.get_tag_id(tag)
+                        ],
                     )
                 )
             ),

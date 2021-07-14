@@ -5,9 +5,7 @@
 from pif import get_public_ip
 from kiwixstorage import KiwixStorage
 
-from ..constants import getLogger
-
-logger = getLogger()
+from .shared import logger
 
 
 def setup_s3_and_check_credentials(s3_url_with_credentials):

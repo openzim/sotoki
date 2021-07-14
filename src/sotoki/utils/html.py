@@ -11,12 +11,8 @@ from mistune.plugins import plugin_strikethrough, plugin_table, plugin_footnotes
 from tld import get_fld
 from slugify import slugify
 
-from . import GlobalMixin
+from .shared import logger, GlobalMixin
 from .misc import rebuild_uri
-from ..constants import getLogger
-
-
-logger = getLogger()
 
 
 def get_text(content: str, strip_at: int = -1):
@@ -66,6 +62,27 @@ class Rewriter(GlobalMixin):
         self.qid_re = re.compile(r"^(q|questions)/(?P<post_id>[0-9]+)/?")
         self.aid_re = re.compile(r"^a/(?P<answer_id>[0-9]+)/?")
         self.uid_re = re.compile(r"^users/(?P<user_id>[0-9]+)/?")
+        self.tid_re = re.compile(r"^questions/tagged/(?P<tag_id>[0-9]+)/?$")
+
+        # supported internal paths (what we provide)
+        # used to rule-out in-SE internal links we don't support
+        self.supported_res = (
+            re.compile(r"questions/tagged/.+"),
+            re.compile(r"users/[0-9]+/.+"),
+            re.compile(r"questions/[0-9]+/.+"),
+            re.compile(r"a/[0-9]+/?$"),
+            re.compile(r"users/profiles/[0-9]+.webp$"),
+            re.compile(r"questions/?$"),
+            re.compile(r"questions_page=[0-9]+$"),
+            re.compile(r"users/?$"),
+            re.compile(r"users_page=[0-9]+$"),
+            re.compile(r"tags$"),
+            re.compile(r"tags_page=[0-9]+$"),
+            re.compile(r"api/tags.json$"),
+            re.compile(r"about$"),
+            re.compile(r"images/[0-9]+.webp$"),
+        )
+
         self.redacted_string = bs4.NavigableString(self.redacted_text)
         self.markdown = mistune.create_markdown(
             escape=False,
@@ -114,7 +131,11 @@ class Rewriter(GlobalMixin):
 
         """
 
-        soup = bs4.BeautifulSoup(self.markdown(content), "lxml")
+        soup = bs4.BeautifulSoup(self.markdown(content.strip()), "lxml")
+
+        # Content might be empty
+        if not soup or not soup.body or not soup.html:
+            return ""
 
         # remove makrdown wrapping for single-line if requested
         if unwrap:
@@ -165,8 +186,10 @@ class Rewriter(GlobalMixin):
 
             # rewrite relative links to match our in-zim URIs
             if is_relative:
-                self.rewrite_relative_link(link)
-                continue
+                # might be a relative link for which we don't offer an offline
+                # version. ex: /help/*
+                if not self.rewrite_relative_link(link):
+                    continue
 
             # remove link completly if to an identified social-network domain
             if self.rewrite_user_link(link):
@@ -264,6 +287,26 @@ class Rewriter(GlobalMixin):
                     uri=uri, path=f"users/{uid}/{get_slug_for(name)}"
                 ).geturl()
             return
+
+        # link to tag by ID
+        # questions/tagged/{tId}
+        # questions/tagged/{tId}/
+        # > rewrite to questions/tagged/{tName}
+        tid_m = self.tid_re.match(uri.path)
+        if tid_m:
+            tag = self.database.get_tag_name_for(int(tid_m.groupdict().get("tag_id")))
+            link["href"] = rebuild_uri(uri=uri, path=f"questions/tagged/{tag}").geturl()
+            return
+
+        # we did not rewrite this link. could be because it was already OK.
+        # must check whether it has to be considered non-internal (not offlined)
+        # ie: if it points to a path that is not being offlined
+        if not any(filter(lambda reg: reg.match(uri.path), self.supported_res)):
+            # doesn't match support route, rewrite to fqdn and report to caller
+            link["href"] = rebuild_uri(
+                uri=uri, scheme="http", hostname=self.conf.domain
+            ).geturl()
+            return True
 
     def rewrite_images(self, soup):
         for img in soup.find_all("img", src=True):

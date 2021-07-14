@@ -5,14 +5,12 @@
 import json
 
 from .constants import (
-    getLogger,
     NB_PAGINATED_QUESTIONS_PER_TAG,
     NB_QUESTIONS_PER_TAG_PAGE,
 )
 from .utils.generator import Generator, Walker
+from .utils.shared import logger
 from .renderer import SortedSetPaginator
-
-logger = getLogger()
 
 
 class TagsWalker(Walker):
@@ -112,14 +110,6 @@ class TagGenerator(Generator):
             with self.lock:
                 self.creator.add_redirect(
                     path=f"questions/tagged/{tag_name}_page=1",
-                    target_path=f"questions/tagged/{tag_name}",
-                )
-
-                # redirect from TagId to TagName
-                # not sure how useful that is…
-                tag_id = self.database.get_tag_id(tag_name)
-                self.creator.add_redirect(
-                    path=f"questions/tagged/{tag_id}",
                     target_path=f"questions/tagged/{tag_name}",
                 )
             self.progresser.update(incr=True)

@@ -5,12 +5,10 @@
 
 from slugify import slugify
 
-from .constants import getLogger
+from .utils.shared import logger
 from .renderer import SortedSetPaginator
 from .utils.generator import Generator, Walker
 from .utils.misc import get_short_hash
-
-logger = getLogger()
 
 
 class UsersWalker(Walker):
