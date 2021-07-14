@@ -165,7 +165,7 @@ class Sotoconf:
             )
         if self.stats_filename:
             self.stats_filename = pathlib.Path(self.stats_filename).expanduser()
-        self.stats_filename.parent.mkdir(parents=True, exist_ok=True)
+            self.stats_filename.parent.mkdir(parents=True, exist_ok=True)
 
         self.redis_url = urllib.parse.urlparse(self._redis_url)
         if self.redis_url and self.redis_url.scheme not in ("unix", "redis"):
