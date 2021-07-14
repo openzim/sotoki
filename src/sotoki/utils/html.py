@@ -66,6 +66,7 @@ class Rewriter(GlobalMixin):
         self.qid_re = re.compile(r"^(q|questions)/(?P<post_id>[0-9]+)/?")
         self.aid_re = re.compile(r"^a/(?P<answer_id>[0-9]+)/?")
         self.uid_re = re.compile(r"^users/(?P<user_id>[0-9]+)/?")
+        self.tid_re = re.compile(r"^questions/tagged/(?P<tag_id>[0-9]+)/?$")
         self.redacted_string = bs4.NavigableString(self.redacted_text)
         self.markdown = mistune.create_markdown(
             escape=False,
@@ -263,6 +264,16 @@ class Rewriter(GlobalMixin):
                 link["href"] = rebuild_uri(
                     uri=uri, path=f"users/{uid}/{get_slug_for(name)}"
                 ).geturl()
+            return
+
+        # link to tag by ID
+        # questions/tagged/{tId}
+        # questions/tagged/{tId}/
+        # > rewrite to questions/tagged/{tName}
+        tid_m = self.tid_re.match(uri.path)
+        if tid_m:
+            tag = self.database.get_tag_name_for(int(tid_m.groupdict().get("tag_id")))
+            link["href"] = rebuild_uri(uri=uri, path=f"questions/tagged/{tag}").geturl()
             return
 
     def rewrite_images(self, soup):

@@ -114,14 +114,6 @@ class TagGenerator(Generator):
                     path=f"questions/tagged/{tag_name}_page=1",
                     target_path=f"questions/tagged/{tag_name}",
                 )
-
-                # redirect from TagId to TagName
-                # not sure how useful that is…
-                tag_id = self.database.get_tag_id(tag_name)
-                self.creator.add_redirect(
-                    path=f"questions/tagged/{tag_id}",
-                    target_path=f"questions/tagged/{tag_name}",
-                )
             self.progresser.update(incr=True)
 
         # create paginated pages for tags

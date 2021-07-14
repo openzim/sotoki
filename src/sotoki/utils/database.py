@@ -197,7 +197,10 @@ class TagsDatabaseMixin:
 
     def get_tag_id(self, name: str) -> int:
         """Tag ID for its name"""
-        return self.tags_ids.inverse[name]
+        try:
+            return self.tags_ids.inverse[name]
+        except KeyError:
+            return None
 
     def get_tag_name_for(self, tag_id: int) -> str:
         return self.tags_ids[tag_id]
@@ -428,7 +431,15 @@ class PostsDatabaseMixin:
                         post["OwnerName"],
                         post["has_accepted"],
                         post["nb_answers"],
-                        [self.get_tag_id(tag) for tag in post.get("Tags", [])],
+                        # Tag ID can be None in the event a Tag existed and was not used
+                        # but got used first during the dumping process, after the Tags
+                        # were dumped but before questions we fully dumped.
+                        # SO Tag `imac` in 2021-06 dumps for instance
+                        [
+                            self.get_tag_id(tag)
+                            for tag in post.get("Tags", [])
+                            if self.get_tag_id(tag)
+                        ],
                     )
                 )
             ),
