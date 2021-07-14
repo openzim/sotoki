@@ -18,10 +18,9 @@ import redis
 import bidict
 import snappy
 
-from ..constants import getLogger, Global, UTF8
-from ..utils.html import get_text
-
-logger = getLogger()
+from .shared import Global, logger
+from .html import get_text
+from ..constants import UTF8
 
 
 class Database:

@@ -7,10 +7,7 @@ import datetime
 from typing import Union
 from collections import OrderedDict
 
-from ..constants import getLogger
-from ..utils import GlobalMixin
-
-logger = getLogger()
+from .shared import logger, GlobalMixin
 
 
 class Progresser(GlobalMixin):

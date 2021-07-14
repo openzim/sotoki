@@ -3,12 +3,10 @@
 # vim: ai ts=4 sts=4 et sw=4 nu
 
 import xml.sax
-import concurrent.futures as cf
 
-from ..constants import getLogger, Global
-from ..utils import GlobalMixin
+from ..utils.shared import Global, GlobalMixin
 
-logger = getLogger()
+logger = Global.logger
 
 
 class Generator(GlobalMixin):

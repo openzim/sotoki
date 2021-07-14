@@ -3,12 +3,11 @@
 # vim: ai ts=4 sts=4 et sw=4 nu
 import datetime
 
-from .constants import getLogger, NB_QUESTIONS_PER_PAGE, NB_PAGINATED_QUESTIONS
+from .utils.shared import logger
+from .constants import NB_QUESTIONS_PER_PAGE, NB_PAGINATED_QUESTIONS
 from .renderer import SortedSetPaginator
 from .utils.generator import Generator, Walker
 from .utils.html import get_slug_for
-
-logger = getLogger()
 
 
 def harmonize_post(post: dict):

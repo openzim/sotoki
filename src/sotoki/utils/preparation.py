@@ -14,11 +14,10 @@ import xml.sax
 import subprocess
 from typing import Union
 
-from ..constants import getLogger
+from .shared import logger
 from .misc import has_binary, get_available_memory
+from ..constants import UTF8
 
-UTF8 = "UTF-8"
-logger = getLogger()
 has_gnusort = has_binary("sort")
 
 

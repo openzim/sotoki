@@ -17,15 +17,14 @@ from zimscraperlib.image.transformation import resize_image
 from kiwixstorage import KiwixStorage
 
 from ..constants import (
-    getLogger,
     PROFILE_IMAGE_SIZE,
     POSTS_IMAGE_SIZE,
     IMAGES_ENCODER_VERSION,
-    Global,
 )
 from .misc import rebuild_uri
+from .shared import Global
 
-logger = getLogger()
+logger = Global.logger
 
 
 class GoogleImageProvider:

@@ -8,12 +8,9 @@ from typing import Union
 from jinja2 import Environment, PackageLoader
 from jinja2_pluralize import pluralize_dj
 
-from .constants import getLogger, Global
-from .utils import GlobalMixin
+from .utils.shared import Global, GlobalMixin
 from .utils.html import get_slug_for
 from .utils.paginator import Paginator
-
-logger = getLogger()
 
 
 def number_format(number: int, short: bool = False):

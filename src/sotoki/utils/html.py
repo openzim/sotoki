@@ -11,12 +11,8 @@ from mistune.plugins import plugin_strikethrough, plugin_table, plugin_footnotes
 from tld import get_fld
 from slugify import slugify
 
-from . import GlobalMixin
+from .shared import logger, GlobalMixin
 from .misc import rebuild_uri
-from ..constants import getLogger
-
-
-logger = getLogger()
 
 
 def get_text(content: str, strip_at: int = -1):

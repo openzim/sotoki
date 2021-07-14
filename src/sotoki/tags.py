@@ -5,14 +5,12 @@
 import json
 
 from .constants import (
-    getLogger,
     NB_PAGINATED_QUESTIONS_PER_TAG,
     NB_QUESTIONS_PER_TAG_PAGE,
 )
 from .utils.generator import Generator, Walker
+from .utils.shared import logger
 from .renderer import SortedSetPaginator
-
-logger = getLogger()
 
 
 class TagsWalker(Walker):
