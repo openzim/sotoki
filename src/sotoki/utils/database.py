@@ -190,9 +190,11 @@ class TagsDatabaseMixin:
         Those T:{post_id} ordered sets are used to build per-tag list of questions
         and those are paginated up to some arbitrary value so it makes no sense
         to keep more than this number"""
+
+        # don't use pipeline as those commands are RAM-hungry on redis side and
+        # we don't want to stack them up
         for tag in self.tags_ids.inverse.keys():
-            self.pipe.zremrangebyrank(self.tag_key(tag), 0, -(at_most + 1))
-        self.commit()
+            self.conn.zremrangebyrank(self.tag_key(tag), 0, -(at_most + 1))
 
     def get_tag_id(self, name: str) -> int:
         """Tag ID for its name"""
