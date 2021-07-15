@@ -31,7 +31,7 @@ RUN wget --progress=dot:giga http://tmp.kiwix.org/wheels/libzim-1.0.0.dev1-cp38-
     && pip install --no-cache-dir ./*.whl && rm -f *.whl
 
 COPY requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -U pip && pip install --no-cache-dir -r /tmp/requirements.txt
+RUN pip install --no-cache-dir -U pip ipython==7.25.0 && pip install --no-cache-dir -r /tmp/requirements.txt
 COPY . /app/
 RUN cd /app && python setup.py install && cd - && rm -rf /app
 

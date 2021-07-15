@@ -196,6 +196,26 @@ class StackExchangeToZim:
                 logger.error(str(exc))
             return 1
 
+        # debug/devel mode to open a shell with the inited context
+        if Global.conf.open_shell:
+            try:
+                from IPython import start_ipython
+            except ImportError:
+                logger.critical("You need ipython to use --shell")
+                raise
+
+            logger.debug(
+                "Dropping into an ipython shell.\n"
+                "Import `Global` var to retrieve context: "
+                "from sotoki.utils.shared import Global\n"
+                "Global.creator is ready but not started.\n"
+                "Scraper execution will be halted once you exit the shell.\n"
+            )
+
+            start_ipython(argv=[])
+
+            raise RuntimeError("End of debug shell session")
+
         Global.creator.start()
 
         try:
@@ -284,6 +304,7 @@ class StackExchangeToZim:
             nb_total=int(Global.site["TotalUsers"]),
         )
         UserGenerator().run()
+        logger.debug("Sorting users list")
         Global.database.sort_users()
 
     def process_questions(self):

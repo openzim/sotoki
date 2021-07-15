@@ -85,6 +85,7 @@ class Sotoconf:
     #
     build_dir_is_tmp_dir: Optional[bool] = False
     dump_date: Optional[datetime.date] = datetime.date.today()
+    open_shell: Optional[bool] = False
 
     @property
     def s3_url(self):
@@ -136,3 +137,7 @@ class Sotoconf:
                 f"Unknown scheme `{self.redis_url.scheme}` for redis. "
                 "Use redis:// or unix://"
             )
+
+        # shell implies debug
+        if self.open_shell:
+            self.debug = True

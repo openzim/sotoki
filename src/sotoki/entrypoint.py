@@ -261,6 +261,14 @@ def main():
         dest="build_dir_is_tmp_dir",
     )
 
+    advanced.add_argument(
+        "--shell",
+        help="Initialize context then open a shell (developers only). Requires ipython",
+        default=False,
+        action="store_true",
+        dest="open_shell",
+    )
+
     parser.add_argument(
         "--version",
         help="Display scraper version and exit",
