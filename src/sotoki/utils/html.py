@@ -130,20 +130,28 @@ class Rewriter(GlobalMixin):
         cases like Comments.
 
         """
-
-        soup = bs4.BeautifulSoup(self.markdown(content.strip()), "lxml")
-
         # Content might be empty
-        if not soup or not soup.body or not soup.html:
+        content = content.strip()
+        if not content:
+            return ""
+
+        soup = bs4.BeautifulSoup(self.markdown(content), "lxml")
+        if not soup:
             return ""
 
         # remove makrdown wrapping for single-line if requested
         if unwrap:
-            soup.body.find().unwrap()
+            try:
+                soup.body.find().unwrap()
+            except AttributeError:
+                pass
 
         # remove <html><body> wrapping that lxml generated
-        soup.body.unwrap()
-        soup.html.unwrap()
+        for wrapper in ("body", "html"):
+            try:
+                getattr(soup, wrapper).unwrap()
+            except AttributeError:
+                pass
 
         self.rewrite_links(soup)
 
