@@ -304,10 +304,10 @@ class UsersDatabaseMixin:
         """convert our unsorted users ids set into a sorted one
         now that we have individual scores for each"""
 
-        nb_items = 100  # batch number to pop/insert together
+        nb_items = 500  # batch number to pop/insert together
         user_ids = self.conn.spop(self.unsorted_users_key(), nb_items)
         while user_ids:
-            self.pipe.zadd(
+            self.conn.zadd(
                 self.users_key(),
                 mapping={
                     uid: self.get_reputation_for(uid)
@@ -316,11 +316,7 @@ class UsersDatabaseMixin:
                 },
                 nx=True,
             )
-
-            self.bump_seen(nb_items)
-            self.commit_maybe()
-
-            user_ids = self.conn.spop(nb_items)
+            user_ids = self.conn.spop(self.unsorted_users_key(), nb_items)
         self.users_are_sorted = True
 
     def get_user_full(self, user_id: int) -> str:
@@ -584,7 +580,8 @@ class RedisDatabase(
         self.conn.get("NOOP")
 
         # clean up potentially existing DB
-        self.conn.flushdb()
+        if not Global.conf.open_shell:
+            self.conn.flushdb()
 
     def make_dummy_query(self):
         self.pipe.get("")
