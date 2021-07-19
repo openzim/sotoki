@@ -25,7 +25,17 @@ def get_text(content: str, strip_at: int = -1):
 
 def get_slug_for(title: str):
     """stackexchange-similar slug for a title"""
-    return slugify(title)[:78]
+    return slugify(str(title))[:78]
+
+
+def is_in_code(elem):
+    """whether this node is inside a <code /> one
+
+    <code/> blocks are used to share code and are thus usually not rewritten"""
+    for parent in elem.parents:
+        if parent.name == "code":
+            return True
+    return False
 
 
 SOCIAL_DOMAINS = [
@@ -135,7 +145,12 @@ class Rewriter(GlobalMixin):
         if not content:
             return ""
 
-        soup = bs4.BeautifulSoup(self.markdown(content), "lxml")
+        try:
+            soup = bs4.BeautifulSoup(self.markdown(content), "lxml")
+        except Exception as exc:
+            logger.error(f"Unable to init soup or markdown for {content}: {exc}")
+            return content
+
         if not soup:
             return ""
 
@@ -180,13 +195,20 @@ class Rewriter(GlobalMixin):
                 del link["href"]
                 continue
 
+            # skip links inside <code /> nodes
+            if is_in_code(link):
+                continue
+
             link["href"] = link["href"].strip()
 
             # relative links (/xxx or ./ or ../)
+            # we could have relative links starting with about anything else but
+            # it's unlikely those are valid links inside questions as it would
+            # only point to paths inside current path where users have no control
             is_relative = link["href"][0] in ("/", ".")
 
             if not is_relative:
-                match = self.domain_re.match(link["href"].strip())
+                match = self.domain_re.match(link["href"])
                 if match:
                     is_relative = True
                     # make the link relative and remove / so it's Zim compat
@@ -225,7 +247,16 @@ class Rewriter(GlobalMixin):
             # our <base /> will take care of the rest now
             return
 
-        uri = urllib.parse.urlparse(link["href"])
+        try:
+            uri = urllib.parse.urlparse(link["href"])
+            # normalize path as if from root.
+            # any folder-walking link is considered to be targetting root
+            uri_path = re.sub(r"^(\.\.?/)+", "", uri.path)
+            uri_path = re.sub(r"^/", "", uri_path)
+        except Exception as exc:
+            logger.error(f"Failed to parse link target {link['href']}: {exc}")
+            # consider this external
+            return True
 
         # link to question:
         #  - q/{qid}/slug/{aid}#{aid}
@@ -233,14 +264,20 @@ class Rewriter(GlobalMixin):
         #  - questions/{qid}/{slug}/{aid}#{aid}
         #  - questions/{qid}/{slug}/{aid}
         # rewrite to questions/{id}/{slug}
-        qid_answer_m = self.qid_slug_answer_re.match(uri.path)
+        qid_answer_m = self.qid_slug_answer_re.match(uri_path)
         if qid_answer_m:
             qid = qid_answer_m.groupdict().get("post_id")
             aid = qid_answer_m.groupdict().get("answer_id")
             title = self.database.get_question_title_desc(qid)["title"]
-            link["href"] = rebuild_uri(
-                uri=uri, path=f"questions/{qid}/{get_slug_for(title)}", fragment=aid
-            ).geturl()
+            if not title:
+                del link["href"]
+            else:
+                link["href"] = rebuild_uri(
+                    uri=uri,
+                    path=f"questions/{qid}/{get_slug_for(title)}",
+                    fragment=aid,
+                    failsafe=True,
+                ).geturl()
             return
 
         # link to question
@@ -251,13 +288,18 @@ class Rewriter(GlobalMixin):
         #  - questions/{id}/
         #  - questions/{id}/{slug}
         # rewrite to questions/{id}/{slug}
-        qid_m = self.qid_re.match(uri.path)
+        qid_m = self.qid_re.match(uri_path)
         if qid_m:
             qid = qid_m.groupdict().get("post_id")
             title = self.database.get_question_title_desc(qid)["title"]
-            link["href"] = rebuild_uri(
-                uri=uri, path=f"questions/{qid}/{get_slug_for(title)}"
-            ).geturl()
+            if not title:
+                del link["href"]
+            else:
+                link["href"] = rebuild_uri(
+                    uri=uri,
+                    path=f"questions/{qid}/{get_slug_for(title)}",
+                    failsafe=True,
+                ).geturl()
             return
 
         # link to answer:
@@ -268,10 +310,15 @@ class Rewriter(GlobalMixin):
         # rewrite to a/{aId}
         # we have a/{aId} redirect for all answer redirecting to questions/{qid}/{slug}
         # so eventually this will lead to questions/{qid}/{slug}#{aid}
-        aid_m = self.aid_re.match(uri.path)
+        aid_m = self.aid_re.match(uri_path)
         if aid_m:
             aid = aid_m.groupdict().get("answer_id")
-            link["href"] = rebuild_uri(uri=uri, path=f"a/{aid}", fragment=aid).geturl()
+            link["href"] = rebuild_uri(
+                uri=uri,
+                path=f"a/{aid}",
+                fragment=aid,
+                failsafe=True,
+            ).geturl()
             return
 
         # link to user profile:
@@ -280,7 +327,7 @@ class Rewriter(GlobalMixin):
         # users/{uId}
         # users/{uId}/
         # > rewrite to users/{uId}/{slug}
-        uid_slug_m = self.uid_re.match(uri.path)
+        uid_slug_m = self.uid_re.match(uri_path)
         if uid_slug_m:
             uid = uid_slug_m.groupdict().get("user_id")
             try:
@@ -292,7 +339,9 @@ class Rewriter(GlobalMixin):
                 del link["href"]
             else:
                 link["href"] = rebuild_uri(
-                    uri=uri, path=f"users/{uid}/{get_slug_for(name)}"
+                    uri=uri,
+                    path=f"users/{uid}/{get_slug_for(name)}",
+                    failsafe=True,
                 ).geturl()
             return
 
@@ -300,19 +349,32 @@ class Rewriter(GlobalMixin):
         # questions/tagged/{tId}
         # questions/tagged/{tId}/
         # > rewrite to questions/tagged/{tName}
-        tid_m = self.tid_re.match(uri.path)
+        tid_m = self.tid_re.match(uri_path)
         if tid_m:
-            tag = self.database.get_tag_name_for(int(tid_m.groupdict().get("tag_id")))
-            link["href"] = rebuild_uri(uri=uri, path=f"questions/tagged/{tag}").geturl()
+            try:
+                tag = self.database.get_tag_name_for(
+                    int(tid_m.groupdict().get("tag_id"))
+                )
+            except KeyError:
+                del link["href"]
+            else:
+                link["href"] = rebuild_uri(
+                    uri=uri,
+                    path=f"questions/tagged/{tag}",
+                    failsafe=True,
+                ).geturl()
             return
 
         # we did not rewrite this link. could be because it was already OK.
         # must check whether it has to be considered non-internal (not offlined)
         # ie: if it points to a path that is not being offlined
-        if not any(filter(lambda reg: reg.match(uri.path), self.supported_res)):
+        if not any(filter(lambda reg: reg.match(uri_path), self.supported_res)):
             # doesn't match support route, rewrite to fqdn and report to caller
             link["href"] = rebuild_uri(
-                uri=uri, scheme="http", hostname=self.conf.domain
+                uri=uri,
+                scheme="http",
+                hostname=self.conf.domain,
+                failsafe=True,
             ).geturl()
             return True
 
@@ -320,11 +382,17 @@ class Rewriter(GlobalMixin):
         for img in soup.find_all("img", src=True):
             if not img.get("src"):
                 continue
+
             # remove all images
             if self.conf.without_images:
                 del img["src"]
             # process all images
             else:
+
+                # skip links inside <code /> nodes
+                if is_in_code(img):
+                    continue
+
                 img["onerror"] = "onImageLoadingError(this);"
                 img["src"] = self.imager.defer(img["src"], is_profile=False)
 
