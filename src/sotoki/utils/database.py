@@ -475,7 +475,7 @@ class PostsDatabaseMixin:
             # we might not have a record for that post_id:
             # - post_id can be erroneous (from a mistyped link)
             # - post_id can reference an excluded question (no answer)
-            data = ["n/a", "n/a"]
+            data = [None, None]
         return {"title": data[0], "excerpt": data[1]}
 
     def get_question_details(self, post_id, score: int = None):
