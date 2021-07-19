@@ -45,29 +45,40 @@ def rebuild_uri(
     params: str = None,
     query: str = None,
     fragment: str = None,
+    failsafe: bool = False,
 ) -> urllib.parse.ParseResult:
     """new named tuple from uri with request part updated"""
-    username = first(username, uri.username, "")
-    password = first(password, uri.password, "")
-    hostname = first(hostname, uri.hostname, "")
-    port = first(port, uri.port, "")
-    netloc = (
-        f"{username}{':' if password else ''}{password}"
-        f"{'@' if username or password else ''}{hostname}"
-        f"{':' if port else ''}{port}"
-    )
-    return urllib.parse.urlparse(
-        urllib.parse.urlunparse(
-            (
-                first(scheme, uri.scheme),
-                netloc,
-                first(path, uri.path),
-                first(params, uri.params),
-                first(query, uri.query),
-                first(fragment, uri.fragment),
+    try:
+        username = first(username, uri.username, "")
+        password = first(password, uri.password, "")
+        hostname = first(hostname, uri.hostname, "")
+        port = first(port, uri.port, "")
+        netloc = (
+            f"{username}{':' if password else ''}{password}"
+            f"{'@' if username or password else ''}{hostname}"
+            f"{':' if port else ''}{port}"
+        )
+        return urllib.parse.urlparse(
+            urllib.parse.urlunparse(
+                (
+                    first(scheme, uri.scheme),
+                    netloc,
+                    first(path, uri.path),
+                    first(params, uri.params),
+                    first(query, uri.query),
+                    first(fragment, uri.fragment),
+                )
             )
         )
-    )
+    except Exception as exc:
+        if failsafe:
+            logger.error(
+                f"Failed to rebuild URI {uri} with {scheme=} {username=} {password=} "
+                f"{hostname=} {port=} {path=} "
+                f"{params=} {query=} {fragment=} - {exc}"
+            )
+            return uri
+        raise exc
 
 
 def is_running_inside_container():
