@@ -11,13 +11,13 @@
         </div>
     </div>
     <div class="postcell post-layout-right">
-        <div class="s-prose js-post-body" itemprop="text">{{ post_answer.Body|rewrote }}</div>
+        <div class="s-prose js-post-body" itemprop="text">{{ post_answer.Body|rewrote(to_root) }}</div>
         {% if is_question %}
         <div class="mt24 mb12">
             <div class="post-taglist grid gs4 gsy fd-column">
                 <div class="grid ps-relative">
                     {% for tag in post_answer.Tags %}
-                    <a href="questions/tagged/{{ tag }}" class="post-tag js-gps-track" title="show questions tagged '{{ tag }}'" rel="tag">{{ tag }}</a>
+                    <a href="{{ to_root }}questions/tagged/{{ tag }}" class="post-tag js-gps-track" title="show questions tagged '{{ tag }}'" rel="tag">{{ tag }}</a>
                     {% endfor %}
                 </div>
             </div>

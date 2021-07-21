@@ -7,9 +7,9 @@
             <div class="grid ai-end mb16 sm:fd-column">
                 <div class="grid--cell fl1 fs-body1 sm:mb16">
                     {% for tag in popular_tags %}
-                    <a href="questions/tagged/{{ tag }}" class="post-tag no-tag-menu" title="Show questions relating to {{ tag }}" rel="tag">{{ tag }}</a>
+                    <a href="{{ to_root }}questions/tagged/{{ tag }}" class="post-tag no-tag-menu" title="Show questions relating to {{ tag }}" rel="tag">{{ tag }}</a>
                     {% endfor %}
-                    <a class="more-tags" href="tags">more&nbsp;tags</a>
+                    <a class="more-tags" href="{{ to_root }}tags">more&nbsp;tags</a>
                 </div>
             </div>
             <div>

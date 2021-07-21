@@ -15,7 +15,7 @@
                     <div class="s-card js-tag-cell grid fd-column original">
                         <div class="grid jc-space-between ai-center mb12">
                             <div class="grid--cell">
-                                <a href="questions/tagged/{{ tag }}" class="post-tag" title="show questions tagged '{{ tag }}'" rel="tag">{{ tag }}</a>
+                                <a href="{{ to_root }}questions/tagged/{{ tag }}" class="post-tag" title="show questions tagged '{{ tag }}'" rel="tag">{{ tag }}</a>
                             </div>
                         </div>
                         {% if excerpt %}<div class="grid--cell fc-medium mb12 v-truncate4">{{ excerpt }}</div>{% endif %}
@@ -46,7 +46,7 @@
     function createTagCard(tagName, nbQuestions) {
         let elem = document.createElement("div");
         elem.className = 's-card js-tag-cell grid fd-column suggested';
-        elem.innerHTML = '<div class="grid jc-space-between ai-center mb12"><div class="grid--cell"><a href="questions/tagged/__TAG__" class="post-tag" title="show questions tagged \'__TAG__\'" rel="tag">__TAG__</a></div></div><div class="mt-auto grid jc-space-between fs-caption fc-black-400"><div class="grid--cell">__NB_QUESTIONS__ question__QUESTIONS_PLURAL__</div></div>'.replaceAll('__TAG__', tagName).replaceAll('__NB_QUESTIONS__', nbQuestions).replaceAll('__QUESTIONS_PLURAL__', (nbQuestions == 1) ? '' : 's');
+        elem.innerHTML = '<div class="grid jc-space-between ai-center mb12"><div class="grid--cell"><a href="{{ to_root }}questions/tagged/__TAG__" class="post-tag" title="show questions tagged \'__TAG__\'" rel="tag">__TAG__</a></div></div><div class="mt-auto grid jc-space-between fs-caption fc-black-400"><div class="grid--cell">__NB_QUESTIONS__ question__QUESTIONS_PLURAL__</div></div>'.replaceAll('__TAG__', tagName).replaceAll('__NB_QUESTIONS__', nbQuestions).replaceAll('__QUESTIONS_PLURAL__', (nbQuestions == 1) ? '' : 's');
         return elem;
     }
     var tagfilterEle = document.getElementById("tagfilter");

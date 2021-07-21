@@ -5,7 +5,7 @@
 <div class="linked">
     <div class="spacer">
     <a title="Vote score (upvotes - downvotes)"><div class="answer-votes {% if item.Id|has_accepted %}answered-accepted{% endif %} default">{{ item.Id|question_score }}</div></a>
-    <a href="questions/{{ item.Id }}/{{ item.Name|slugify }}" class="question-hyperlink">{{ item.Name }}</a>
+    <a href="{{ to_root }}questions/{{ item.Id }}/{{ item.Name|slugify }}" class="question-hyperlink">{{ item.Name }}</a>
     </div>
 </div>
 {% endfor %}

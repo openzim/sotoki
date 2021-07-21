@@ -2,15 +2,14 @@
 <html class="html__responsive  html__fixed-top-bar">
     <head>
         <meta charset="utf-8">
-        <base href="{{ to_root }}">
         <title>{% block title %}{{ title }} - {{ site_subtitle }}{% endblock %}</title>
-        <link rel="shortcut icon" href="favicon.ico" />
-        <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-        <link rel="image_src" href="apple-touch-icon.png" />
+        <link rel="shortcut icon" href="{{ to_root }}favicon.ico" />
+        <link rel="apple-touch-icon" href="{{ to_root }}apple-touch-icon.png" />
+        <link rel="image_src" href="{{ to_root }}apple-touch-icon.png" />
         <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, minimum-scale=1.0" />
-        <link rel="stylesheet" type="text/css" href="static/css/stacks.min.css" />
-        <link id="primary_css" rel="stylesheet" type="text/css" href="static/css/primary.css" />
-        <link id="secondary_css" rel="stylesheet" type="text/css" href="static/css/secondary.css" />
+        <link rel="stylesheet" type="text/css" href="{{ to_root }}static/css/stacks.min.css" />
+        <link id="primary_css" rel="stylesheet" type="text/css" href="{{ to_root }}static/css/primary.css" />
+        <link id="secondary_css" rel="stylesheet" type="text/css" href="{{ to_root }}static/css/secondary.css" />
         <style type="text/css">
             {{ site_css }}
             body { padding-top: 0; } /* we don't include SE's topbar */
@@ -24,7 +23,7 @@
             body.mobile.tagged-questions-page #questions.pl24 .mln24 { margin-left: 0 !important; }
             .about-text { padding-bottom: 16px; padding-top: 16px; }
             a.external-link {
-                background-image: url(static/img/external-link-ltr-icon.svg);
+                background-image: url({{ to_root }}static/img/external-link-ltr-icon.svg);
                 background-position: center right;
                 background-repeat: no-repeat;
                 padding-right: 13px;
@@ -32,10 +31,10 @@
             .kiwix_searchform input.ui-autocomplete-input { margin-top: 0; margin-bottom: 0; }
             .kiwix_searchform { font-size: 14px; }
         </style>
-        <script type="text/javascript" src="static/js/jdenticon.min.js" async></script>
-        <script type="text/javascript" src="static/js/webp-hero.polyfill.js"></script>
-        <script type="text/javascript" src="static/js/webp-hero.bundle.js"></script>
-        <script type="text/javascript" src="static/js/webp-handler.js"></script>
+        <script type="text/javascript" src="{{ to_root }}static/js/jdenticon.min.js" async></script>
+        <script type="text/javascript" src="{{ to_root }}static/js/webp-hero.polyfill.js"></script>
+        <script type="text/javascript" src="{{ to_root }}static/js/webp-hero.bundle.js"></script>
+        <script type="text/javascript" src="{{ to_root }}static/js/webp-handler.js"></script>
         <script type="text/javascript">
             /*
              * replace an <img/> node with a jdidenticon <svg />
@@ -76,9 +75,9 @@
                 replaceWithJdenticon(img);
             }
         </script>
-        <script src="static/js/moment.min.js"></script>
-        <script src="static/js/jquery.min.js"></script>
-        <script src="static/js/stub.en.js?v=784a450186a7"></script>
+        <script src="{{ to_root }}static/js/moment.min.js"></script>
+        <script src="{{ to_root }}static/js/jquery.min.js"></script>
+        <script src="{{ to_root }}static/js/stub.en.js?v=784a450186a7"></script>
         <script type="text/x-mathjax-config">
                 MathJax.Hub.Config({"HTML-CSS": { preferredFont: "TeX", availableFonts: ["STIX","TeX"], linebreaks: { automatic:true }, EqnChunk: (MathJax.Hub.Browser.isMobile ? 10 : 50) },
                     tex2jax: { inlineMath: [ ["$", "$"], ["\\\\(","\\\\)"] ], displayMath: [ ["$$","$$"], ["\\[", "\\]"] ], processEscapes: true, ignoreClass: "tex2jax_ignore|dno" },
@@ -92,28 +91,28 @@
                     SEEditor: "mathjaxEditing"
             });
         </script>
-        <script src="static/js/MathJax.js?config=TeX-AMS_HTML-full"></script>
-        <script src="static/js/highlightjs-loader.en.js?v=17552072fdc0"></script>
+        <script src="{{ to_root }}static/js/MathJax.js?config=TeX-AMS_HTML-full"></script>
+        <script src="{{ to_root }}static/js/highlightjs-loader.en.js?v=17552072fdc0"></script>
     </head>
     <body class="{{ body_class}} unified-theme">
         <div class="topbar mobile-only">
             <div class="network-items">
                 <a class="s-btn s-btn__unset topbar-icon js-site-switcher-button icon-site-switcher-bubble" aria-expanded="false"><span class="hidden">Stack Exchange</span></a>
-                <div class="site-name"><a href="">{{ site_title }}{% if is_meta %}<small class="-subtitle">meta</small>{% endif %}</a></div>
+                <div class="site-name"><a href="{{ to_root }}">{{ site_title }}{% if is_meta %}<small class="-subtitle">meta</small>{% endif %}</a></div>
                 <div class="-actions ai-center"></div>
             </div>
         </div>
         <nav class="nav mobile-only">
             <ul>
-                <li {% if whereis == 'questions' %}class="current"{% endif %}><a href="questions" title="Questions">Questions</a></li>
-                <li {% if whereis == 'tags' %}class="current"{% endif %}><a href="tags" title="Tags">Tags</a></li>
-                {% if not conf.without_user_profiles %}<li {% if whereis == 'users' %}class="current"{% endif %}><a href="users" title="Users">Users</a></li>{% endif %}
-                <li {% if whereis == 'about' %}class="current"{% endif %}><a href="about" title="About">About</a></li>
+                <li {% if whereis == 'questions' %}class="current"{% endif %}><a href="{{ to_root }}questions" title="Questions">Questions</a></li>
+                <li {% if whereis == 'tags' %}class="current"{% endif %}><a href="{{ to_root }}tags" title="Tags">Tags</a></li>
+                {% if not conf.without_user_profiles %}<li {% if whereis == 'users' %}class="current"{% endif %}><a href="{{ to_root }}users" title="Users">Users</a></li>{% endif %}
+                <li {% if whereis == 'about' %}class="current"{% endif %}><a href="{{ to_root }}about" title="About">About</a></li>
             </ul>
         </nav>
         <header class="site-header desktop-only">
             <div class="site-header--container">
-                <a class="site-header--link fs-headline1 fw-bold" href="">{{ site_title }}{% if is_meta %}<span class="ml4 o60 fw-normal">Meta</span>{% endif %}</a>
+                <a class="site-header--link fs-headline1 fw-bold" href="{{ to_root }}">{{ site_title }}{% if is_meta %}<span class="ml4 o60 fw-normal">Meta</span>{% endif %}</a>
             </div>
         </header>
         {% block fullwidth %}{% endblock %}
@@ -126,7 +125,7 @@
                                 <ol class="nav-links">
                                     <li class="fs-fine tt-uppercase ml8 mt16 mb4 fc-light d-none">Public</li>
                                     <li class="{% if whereis == 'questions' %}youarehere{% endif %}">
-                                        <a id="nav-questions" href="questions" class="pl8 js-gps-track nav-links--link -link__with-icon" data-gps-track="top_nav.click({is_current:true, location:2, destination:1})" aria-controls="" data-controller="" data-s-popover-placement="right">
+                                        <a id="nav-questions" href="{{ to_root }}questions" class="pl8 js-gps-track nav-links--link -link__with-icon" data-gps-track="top_nav.click({is_current:true, location:2, destination:1})" aria-controls="" data-controller="" data-s-popover-placement="right">
                                             <svg aria-hidden="true" class="svg-icon iconGlobe" width="18" height="18" viewBox="0 0 18 18">
                                                 <path d="M9 1C4.64 1 1 4.64 1 9c0 4.36 3.64 8 8 8 4.36 0 8-3.64 8-8 0-4.36-3.64-8-8-8zM8 15.32a6.46 6.46 0 01-4.3-2.74 6.46 6.46 0 0 1-.93-5.01L7 11.68v.8c0 .88.12 1.32 1 1.32v1.52zm5.72-2c-.2-.66-1-1.32-1.72-1.32h-1v-2c0-.44-.56-1-1-1H6V7h1c.44 0 1-.56 1-1V5h2c.88 0 1.4-.72 1.4-1.6v-.33a6.45 6.45 0 013.83 4.51 6.45 6.45 0 0 1-1.51 5.73v.01z"></path>
                                             </svg>
@@ -134,19 +133,19 @@
                                         </a>
                                     </li>
                                     <li class="{% if whereis == 'tags' %}youarehere{% endif %}">
-                                        <a id="nav-tags" href="tags" class=" js-gps-track nav-links--link">
+                                        <a id="nav-tags" href="{{ to_root }}tags" class=" js-gps-track nav-links--link">
                                             <div class="grid ai-center"><div class="grid--cell truncate">Tags</div></div>
                                         </a>
                                     </li>
                                     {% if not conf.without_user_profiles %}
                                     <li class="{% if whereis == 'users' %}youarehere{% endif %}">
-                                        <a href="users" id="nav-users" class=" js-gps-track nav-links--link">
+                                        <a href="{{ to_root }}users" id="nav-users" class=" js-gps-track nav-links--link">
                                             <div class="grid ai-center"><div class="grid--cell truncate">Users</div></div>
                                         </a>
                                     </li>
                                     {% endif %}
                                     <li class="{% if whereis == 'about' %}youarehere{% endif %}">
-                                        <a href="about" id="nav-about" class=" js-gps-track nav-links--link">
+                                        <a href="{{ to_root }}about" id="nav-about" class=" js-gps-track nav-links--link">
                                             <div class="grid ai-center"><div class="grid--cell truncate">About</div></div>
                                         </a>
                                     </li>
@@ -161,7 +160,7 @@
             {% endblock %}
             </div>
         </div>
-        <script src="static/js/stack-icons.js"></script>
+        <script src="{{ to_root }}static/js/stack-icons.js"></script>
         <script>
             /* replace <time class="fromnow" /> with human delta between `datetime` attr and now */
             document.addEventListener('DOMContentLoaded', function(){
@@ -177,7 +176,7 @@
                 styleCode();
                 // enable mobile CSS if browser is detected as mobile
                 if (MathJax.Hub.Browser.isMobile) {
-                    $('head').append('<link rel="stylesheet" href="static/css/mobile.css" type="text/css" />');
+                    $('head').append('<link rel="stylesheet" href="{{ to_root }}static/css/mobile.css" type="text/css" />');
                     $('body').addClass('mobile');
                     // user profile requires removing primary css
                     {% if body_class == "user-page" %}

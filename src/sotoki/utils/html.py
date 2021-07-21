@@ -121,7 +121,7 @@ class Rewriter(GlobalMixin):
                 del link[attr]
         link.contents = [self.redacted_string]
 
-    def rewrite(self, content: str, unwrap: bool = False):
+    def rewrite(self, content: str, to_root: str = "", unwrap: bool = False):
         """rewrite a stackexchange HTML markup to comply with ZIM and options
 
         SE's content is usually inputed as Markdown but the SE dumps we use
@@ -168,9 +168,9 @@ class Rewriter(GlobalMixin):
             except AttributeError:
                 pass
 
-        self.rewrite_links(soup)
+        self.rewrite_links(soup, to_root)
 
-        self.rewrite_images(soup)
+        self.rewrite_images(soup, to_root)
 
         # apply censorship rewriting
         if self.conf.censor_words_list:
@@ -184,7 +184,7 @@ class Rewriter(GlobalMixin):
             return self.words_re.sub(self.redacted_text, content)
         return content
 
-    def rewrite_links(self, soup):
+    def rewrite_links(self, soup, to_root):
         # rewrite links targets
         for link in soup.find_all("a", href=True):
 
@@ -218,7 +218,7 @@ class Rewriter(GlobalMixin):
             if is_relative:
                 # might be a relative link for which we don't offer an offline
                 # version. ex: /help/*
-                if not self.rewrite_relative_link(link):
+                if not self.rewrite_relative_link(link, to_root):
                     continue
 
             # remove link completly if to an identified social-network domain
@@ -241,7 +241,7 @@ class Rewriter(GlobalMixin):
         if self.conf.without_external_links:
             del link["href"]
 
-    def rewrite_relative_link(self, link):
+    def rewrite_relative_link(self, link, to_root):
         # link to root (/)
         if link["href"] == "":
             # our <base /> will take care of the rest now
@@ -274,7 +274,7 @@ class Rewriter(GlobalMixin):
             else:
                 link["href"] = rebuild_uri(
                     uri=uri,
-                    path=f"questions/{qid}/{get_slug_for(title)}",
+                    path=f"{to_root}questions/{qid}/{get_slug_for(title)}",
                     fragment=aid,
                     failsafe=True,
                 ).geturl()
@@ -297,7 +297,7 @@ class Rewriter(GlobalMixin):
             else:
                 link["href"] = rebuild_uri(
                     uri=uri,
-                    path=f"questions/{qid}/{get_slug_for(title)}",
+                    path=f"{to_root}questions/{qid}/{get_slug_for(title)}",
                     failsafe=True,
                 ).geturl()
             return
@@ -315,7 +315,7 @@ class Rewriter(GlobalMixin):
             aid = aid_m.groupdict().get("answer_id")
             link["href"] = rebuild_uri(
                 uri=uri,
-                path=f"a/{aid}",
+                path=f"{to_root}a/{aid}",
                 fragment=aid,
                 failsafe=True,
             ).geturl()
@@ -340,7 +340,7 @@ class Rewriter(GlobalMixin):
             else:
                 link["href"] = rebuild_uri(
                     uri=uri,
-                    path=f"users/{uid}/{get_slug_for(name)}",
+                    path=f"{to_root}users/{uid}/{get_slug_for(name)}",
                     failsafe=True,
                 ).geturl()
             return
@@ -360,7 +360,7 @@ class Rewriter(GlobalMixin):
             else:
                 link["href"] = rebuild_uri(
                     uri=uri,
-                    path=f"questions/tagged/{tag}",
+                    path=f"{to_root}questions/tagged/{tag}",
                     failsafe=True,
                 ).geturl()
             return
@@ -378,7 +378,7 @@ class Rewriter(GlobalMixin):
             ).geturl()
             return True
 
-    def rewrite_images(self, soup):
+    def rewrite_images(self, soup, to_root):
         for img in soup.find_all("img", src=True):
             if not img.get("src"):
                 continue
@@ -394,7 +394,7 @@ class Rewriter(GlobalMixin):
                     continue
 
                 img["onerror"] = "onImageLoadingError(this);"
-                img["src"] = self.imager.defer(img["src"], is_profile=False)
+                img["src"] = to_root + self.imager.defer(img["src"], is_profile=False)
 
     # def censor_words_as_string(self, soup) -> str:
     #     if not self.conf.censor_words_list:

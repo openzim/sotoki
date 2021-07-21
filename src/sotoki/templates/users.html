@@ -10,14 +10,14 @@
                     {% for user in users %}
                     <div class="user-info  user-hover">
                         <div class="user-gravatar48">
-                            <a href="users/{{ user.id }}/{{ user.slug }}">
+                            <a href="{{ to_root }}users/{{ user.id }}/{{ user.slug }}">
                                 <div class="gravatar-wrapper-48">
-                                    <img class="bar-sm" src="users/profiles/{{ user.id }}.webp" width="48" height="48" data-jdenticon-value="{{ user.name }}" onerror="onImageLoadingError(this);" />
+                                    <img class="bar-sm" src="{{ to_root }}users/profiles/{{ user.id }}.webp" width="48" height="48" data-jdenticon-value="{{ user.name }}" onerror="onImageLoadingError(this);" />
                                 </div>
                             </a>
                         </div>
                         <div class="user-details">
-                            <a href="users/{{ user.id }}/{{ user.slug }}">{{ user.name }}</a>
+                            <a href="{{ to_root }}users/{{ user.id }}/{{ user.slug }}">{{ user.name }}</a>
                             {% if user.Location %}<span class="user-location">{{ user.Location }}</span>{% endif %}
                             <div class="-flair">
                                 <span class="reputation-score" title="reputation score " dir="ltr">{{ user.rep|number }}</span>

@@ -1,7 +1,7 @@
 {% if page_obj.paginator.num_pages > 1 %}
 <div class="s-pagination pager fr">
     {% if page_obj.has_previous() %}
-        <a class="s-pagination--item" href="{{ target }}_page={{ page_obj.previous_page_number() }}" rel="prev" title="Go to page {{ page_obj.previous_page_number() }}">Prev </a>
+        <a class="s-pagination--item" href="{{ to_root }}{{ target }}_page={{ page_obj.previous_page_number() }}" rel="prev" title="Go to page {{ page_obj.previous_page_number() }}">Prev </a>
     {% endif %}
     {% for i in page_obj.paginator.get_elided_page_range() %}
         {% if page_obj.number == i %}
@@ -10,12 +10,12 @@
             {% if i == page_obj.paginator.ELLIPSIS %}
                 <div class="s-pagination--item s-pagination--item__clear">…</div>
             {% else %}
-                <a class="s-pagination--item" href="{{ target }}_page={{ i }}" rel="" title="Go to page {{ i }}">{{ i }}</a>
+                <a class="s-pagination--item" href="{{ to_root }}{{ target }}_page={{ i }}" rel="" title="Go to page {{ i }}">{{ i }}</a>
             {% endif %}
         {% endif %}
     {% endfor %}
     {% if page_obj.has_next() %}
-        <a class="s-pagination--item" href="{{ target }}_page={{ page_obj.next_page_number() }}" rel="next" title="Go to page {{ page_obj.next_page_number() }}"> Next</a>
+        <a class="s-pagination--item" href="{{ to_root }}{{ target }}_page={{ page_obj.next_page_number() }}" rel="next" title="Go to page {{ page_obj.next_page_number() }}"> Next</a>
     {% endif %}
 </div>
 {% endif %}

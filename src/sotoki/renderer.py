@@ -168,7 +168,7 @@ class Renderer(GlobalMixin):
         return self.env.get_template("tag.html").render(
             body_class="tagged-questions-page",
             whereis="questions",
-            to_root="../..",
+            to_root="../../",
             title=f"Highest Voted '{tag}' Questions",
             questions=extend_questions(page),
             page_obj=page,

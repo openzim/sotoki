@@ -8,11 +8,11 @@
 {% else %}
 <div class="s-user-card s-user-card{% if highlighted %}__highlighted{% endif %}">
     <time class="s-user-card--time{% if action_from_now %} fromnow{% endif %}" datetime="{{ action_time }}">{{ action_time|datetime }}</time>
-    <a href="users/{{ user.id }}/{{ user.slug }}" class="s-avatar s-avatar__32 s-user-card--avatar">
-        <img class="s-avatar--image" src="users/profiles/{{ user.id }}.webp" data-jdenticon-width="32" data-jdenticon-height="32" data-jdenticon-value="{{ user.name }}" onerror="onImageLoadingError(this);" />
+    <a href="{{ to_root }}users/{{ user.id }}/{{ user.slug }}" class="s-avatar s-avatar__32 s-user-card--avatar">
+        <img class="s-avatar--image" src="{{ to_root }}users/profiles/{{ user.id }}.webp" data-jdenticon-width="32" data-jdenticon-height="32" data-jdenticon-value="{{ user.name }}" onerror="onImageLoadingError(this);" />
     </a>
     <div class="s-user-card--info">
-        <a href="users/{{ user.id }}/{{ user.slug }}" class="s-user-card--link">{{ user.name }}</a>
+        <a href="{{ to_root }}users/{{ user.id }}/{{ user.slug }}" class="s-user-card--link">{{ user.name }}</a>
         <ul class="s-user-card--awards">
             <li class="s-user-card--rep" title="reputation score">{{ user.rep|number }}</li>
             {% if user.nb_gold %}<li class="s-award-bling s-award-bling__gold" title="{{ user.nb_gold|number }} gold badge{{ user.nb_gold|pluralize }}">{{ user.nb_gold|number }}</li>{% endif %}

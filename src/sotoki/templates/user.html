@@ -3,9 +3,9 @@
 <main class="mobile-only">
     <div class="subheader _profile">
         <div class="-top">
-            <a href="users/{{ Id }}/{{ slug }}" class="-avatar">
+            <a href="{{ to_root }}users/{{ Id }}/{{ slug }}" class="-avatar">
                 <div class="gravatar-wrapper-48">
-                    <img class="bar-sm" src="users/profiles/{{ Id }}.webp" width="48" height="48" data-jdenticon-value="{{ DisplayName }}" onerror="javascript:onImageLoadingError.call(this);" />
+                    <img class="bar-sm" src="{{ to_root }}users/profiles/{{ Id }}.webp" width="48" height="48" data-jdenticon-value="{{ DisplayName }}" onerror="javascript:onImageLoadingError.call(this);" />
                 </div>
             </a>
             <div class="-details">
@@ -19,7 +19,7 @@
         </div><!-- / top -->
     </div>
 
-    {% if AboutMe %}<div class="user-panel wrapper _inner s-prose js-post-body _card">{{ AboutMe|rewrote }}</div>{% endif %}
+    {% if AboutMe %}<div class="user-panel wrapper _inner s-prose js-post-body _card">{{ AboutMe|rewrote(to_root) }}</div>{% endif %}
     {% if Location %}
     <div class="user-panel wrapper _inner _card">
         <ul><li><span class="icon-location"></span>
@@ -35,9 +35,9 @@
                 <div class="grid--cell fl-shrink0 ws2 overflow-hidden">
                     <div id="avatar-card" class="profile-avatar s-card mb16 p12 bc-black-100 ta-center">
                         <div class="avatar mt16 mx-auto overflow-hidden">
-                            <a class="d-block" href="users/{{ Id }}/{{ slug }}">
+                            <a class="d-block" href="{{ to_root }}users/{{ Id }}/{{ slug }}">
                                 <div class="gravatar-wrapper-164">
-                                    <img class="bar-sm" src="users/profiles/{{ Id }}.webp" width="164" height="164" data-jdenticon-value="{{ DisplayName }}" onerror="javascript:onImageLoadingError(this);" />
+                                    <img class="bar-sm" src="{{ to_root }}users/profiles/{{ Id }}.webp" width="164" height="164" data-jdenticon-value="{{ DisplayName }}" onerror="javascript:onImageLoadingError(this);" />
                                 </div>
                             </a>
                         </div>
@@ -89,7 +89,7 @@
                                     </h2>
                                 </div>
                                 {% if AboutMe %}<div class="grid--cell mt16 s-prose profile-user--bio ">
-                                {{ AboutMe|rewrote }}
+                                {{ AboutMe|rewrote(to_root) }}
                                 </div>{% endif %}
                             </div>
                         </div>
