@@ -5,8 +5,12 @@
 
 from slugify import slugify
 
+from .constants import (
+    NB_PAGINATED_USERS,
+    NB_USERS_PER_PAGE,
+)
 from .utils.shared import logger
-from .renderer import SortedSetPaginator
+from .renderer import ListPaginator
 from .utils.generator import Generator, Walker
 from .utils.misc import get_short_hash
 
@@ -104,8 +108,10 @@ class UserGenerator(Generator):
             )
 
     def generate_users_page(self):
-        paginator = SortedSetPaginator(
-            self.database.users_key(), per_page=36, at_most=3600
+        paginator = ListPaginator(
+            self.database.top_users,
+            per_page=NB_USERS_PER_PAGE,
+            at_most=NB_PAGINATED_USERS,
         )
         for page_number in paginator.page_range:
             page = paginator.get_page(page_number)

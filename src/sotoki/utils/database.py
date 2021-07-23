@@ -12,15 +12,41 @@ import json
 import time
 import datetime
 import threading
+import collections
 from typing import Union, Iterator, Tuple
 
 import redis
 import bidict
 import snappy
 
-from .shared import Global, logger
+from .shared import Global
 from .html import get_text
-from ..constants import UTF8
+from ..constants import UTF8, NB_PAGINATED_USERS
+
+
+class TopDict(collections.UserDict):
+    """A fixed-sized dict that keeps only the highest values"""
+
+    def __init__(self, maxlen: int):
+        super().__init__()
+        self.maxlen = maxlen
+
+    def __setitem__(self, key, value):
+        with threading.Lock():
+            # we're full, might not accept value
+            if len(self) >= self.maxlen:
+                # value is bellow our min, don't care
+                min_val = min(self.values())
+                if value < min_val:
+                    return
+
+                # value should be in top, let's remove our min to allow it
+                min_key = list(self.keys())[list(self.values()).index(min_val)]
+                del self[min_key]
+            super().__setitem__(key, value)
+
+    def sorted(self):
+        return [k for k, _ in sorted(self.items(), key=lambda x: x[1], reverse=True)]
 
 
 class Database:
@@ -268,18 +294,13 @@ class UsersDatabaseMixin:
     def user_key(user_id):
         return f"U:{user_id}"
 
-    @staticmethod
-    def users_key():
-        return "users"
-
-    @staticmethod
-    def unsorted_users_key():
-        return "unsorted_users"
-
     def record_user(self, user: dict):
         """record basic user details to MEM at U:{id} key
 
         Name, Reputation, NbGoldBages, NbSilverBadges, NbBronzeBadges"""
+
+        # record score in top mapping
+        self._top_users[user["Id"]] = user["Reputation"]
 
         # record profile details into individual key
         self.pipe.set(
@@ -300,24 +321,12 @@ class UsersDatabaseMixin:
         self.bump_seen()
         self.commit_maybe()
 
-    def sort_users(self):
-        """convert our unsorted users ids set into a sorted one
-        now that we have individual scores for each"""
-
-        nb_items = 500  # batch number to pop/insert together
-        user_ids = self.conn.spop(self.unsorted_users_key(), nb_items)
-        while user_ids:
-            self.conn.zadd(
-                self.users_key(),
-                mapping={
-                    uid: self.get_reputation_for(uid)
-                    for uid in user_ids
-                    if uid is not None
-                },
-                nx=True,
-            )
-            user_ids = self.conn.spop(self.unsorted_users_key(), nb_items)
-        self.users_are_sorted = True
+    def cleanup_users(self):
+        """frees list of active users that we won't need anymore. sets nb_users"""
+        self.nb_users = len(self._all_users)
+        del self._all_users
+        self.top_users = self._top_users.sorted()
+        del self._top_users
 
     def get_user_full(self, user_id: int) -> str:
         """All recorded information for a UserId
@@ -337,18 +346,10 @@ class UsersDatabaseMixin:
         }
 
     def is_active_user(self, user_id):
-        """whether a user_id is considered active (has interaction in content)"""
-        # depending on whether we've pasted the sorting step or not, retrieval differs
-        if self.users_are_sorted:
-            return self.conn.zscore(self.users_key(), user_id) is not None
-        return self.conn.sismember(self.unsorted_users_key(), user_id)
+        """whether a user_id is considered active (has interaction in content)
 
-    def get_reputation_for(self, user_id: int):
-        """Reputation score for a user_id"""
-        user = self.conn.get(self.user_key(user_id))
-        if not user:
-            return 0
-        return json.loads(snappy.decompress(user))[1]
+        WARN: only valid during Users listing step"""
+        return user_id in self._all_users
 
 
 class PostsDatabaseMixin:
@@ -395,10 +396,8 @@ class PostsDatabaseMixin:
     def record_question(self, post: dict):
 
         # update set of users_ids (users with activity)
-        if post.get("users_ids"):
-            if None in post["users_ids"]:
-                logger.error(f"None in users_ids for {post['Id']}")
-            self.pipe.sadd(self.unsorted_users_key(), *post["users_ids"])
+        for user_id in post.get("users_ids"):
+            self._all_users.add(user_id)
 
         # add this postId to the ordered list of questions sorted by score
         self.pipe.zadd(
@@ -534,7 +533,13 @@ class RedisDatabase(
 
         super().__init__()
 
-        self.users_are_sorted = False
+        # temp set to hold all active users' IDs
+        self._all_users = set()
+        # temp dict to hold `n` most active users' ID:score
+        self._top_users = TopDict(NB_PAGINATED_USERS)
+        # total number of active users
+        self.nb_users = 0
+
         self.tags_details_ids = {}
         # bidirectionnal Tag ID:name and (as inverse) name:ID mapping
         self.tags_ids = bidict.bidict()

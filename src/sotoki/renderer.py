@@ -84,6 +84,22 @@ class SortedSetPaginator(Paginator):
         )
 
 
+class ListPaginator(Paginator):
+    def __init__(self, src: list, per_page: int = 10, at_most: int = None):
+        self.src = src
+        self.at_most = at_most
+        super().__init__(per_page=per_page)
+
+    def get_count(self):
+        total = len(self.src)
+        if self.at_most:
+            return min([self.at_most, total])
+        return total
+
+    def query(self, bottom: int, top: int):
+        return self.src[bottom:top]
+
+
 class Renderer(GlobalMixin):
     def __init__(self):
         is_meta = bool(self.site.get("ParentId"))
@@ -191,8 +207,8 @@ class Renderer(GlobalMixin):
     def get_users_for_page(self, page):
         """All users listing HTML for ZIM"""
 
-        def extend_users(questions):
-            for user_id, _ in questions:
+        def extend_users(users):
+            for user_id in users:
                 yield get_user_details(user_id=user_id)
 
         return self.env.get_template("users.html").render(
@@ -219,7 +235,7 @@ class Renderer(GlobalMixin):
             nb_answers=stats["nb_answers"],
             nb_answered=stats["nb_answered"],
             percent_answered=percent_answered * 100,
-            total_users=self.database.get_set_count(self.database.users_key()),
+            total_users=self.database.nb_users,
             total_tags=self.database.get_set_count(self.database.tags_key()),
             **self.global_context,
         )

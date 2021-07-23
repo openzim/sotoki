@@ -304,8 +304,8 @@ class StackExchangeToZim:
             nb_total=int(Global.site["TotalUsers"]),
         )
         UserGenerator().run()
-        logger.debug("Sorting users list")
-        Global.database.sort_users()
+        logger.debug("Cleaning-up users list")
+        Global.database.cleanup_users()
 
     def process_questions(self):
         # We walk again through all Posts, this time to create indiv pages in Zim
