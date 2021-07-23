@@ -8,8 +8,8 @@ from zimscraperlib.download import stream_file
 # (path, source)
 ASSETS = [
     (
-        "static/css/stacks.min.css",
-        "https://unpkg.com/@stackoverflow/stacks@0.65.1/dist/css/stacks.min.css",
+        "static/css/stacks.css",
+        "https://cdn.sstatic.net/Shared/stacks.css?v=ca5319e49c63",
     ),
     (
         "static/js/stacks.min.js",
