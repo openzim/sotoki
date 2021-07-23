@@ -102,7 +102,10 @@ class Progresser(GlobalMixin):
         )
 
         if self.images_progress:
-            msg += f" Images progress: {self.images_progress * 100:.0f}%"
+            msg += (
+                f" Images progress: {self.images_progress * 100:.0f}% "
+                f"[{self.nb_img_done}/{self.nb_img_requested}]"
+            )
         logger.info(msg)
         self.last_print_on = datetime.datetime.now()
 
@@ -152,15 +155,22 @@ class Progresser(GlobalMixin):
             return 1
 
     @property
+    def nb_img_requested(self):
+        return getattr(self.imager, "nb_requested", 0)
+
+    @property
+    def nb_img_done(self):
+        return getattr(self.imager, "nb_done", 0)
+
+    @property
     def images_progress(self) -> float:
         """progress of images step (0-1)"""
-        if getattr(self.imager, "nb_requested", 0) == 0:
+        if self.nb_img_requested == 0:
             return 0
         try:
             return min(
                 [
-                    getattr(self.imager, "nb_done", 0)
-                    / getattr(self.imager, "nb_requested", 0),
+                    self.nb_img_done / self.nb_img_requested,
                     1,
                 ]
             )
