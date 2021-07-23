@@ -67,7 +67,8 @@ class Global:
         from .executor import SotokiExecutor
 
         Global.executor = SotokiExecutor(
-            queue_size=Global.conf.nb_threads * 10, nb_workers=Global.conf.nb_threads
+            queue_size=Global.conf.nb_threads,
+            nb_workers=int(Global.conf.nb_threads / 2),
         )
 
         # images handled on a different, unbounded queue
@@ -101,7 +102,7 @@ class Global:
             name=Global.conf.name,
             tags=";".join(Global.conf.tags),
             date=datetime.date.today(),
-        )
+        ).config_nbworkers(int(Global.conf.nb_threads / 2))
 
 
 class GlobalMixin:
