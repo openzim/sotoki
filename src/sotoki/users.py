@@ -44,16 +44,8 @@ class UsersWalker(Walker):
 
     def endElement(self, name):
         if name == "row":
-            # only if processing wasn't skiped by generated (user accepted)
+            # only if processor_callback retained it (to be included)
             if self.processor(item=self.user) and self.conf.with_user_identicons:
-                profile_url = self.user.get("ProfileImageUrl")
-                if profile_url:
-                    self.imager.defer(
-                        url=profile_url,
-                        path=f"users/profiles/{self.user['Id']}.webp",
-                        is_profile=True,
-                    )
-
                 self.seen += 1
                 if self.seen % 1000 == 0:
                     logger.debug(f"Seen {self.seen}")
@@ -75,9 +67,6 @@ class UserGenerator(Generator):
     def processor(self, item):
         user = item
         user["Id"] = int(user["Id"])
-
-        if not self.database.is_active_user(user["Id"]):
-            return
 
         if self.conf.without_names:
             user["DisplayName"] = get_short_hash(user["DisplayName"])
@@ -102,6 +91,17 @@ class UserGenerator(Generator):
             )
 
         self.progresser.update(incr=True)
+
+        if not self.conf.with_user_identicons:
+            return
+
+        profile_url = user.get("ProfileImageUrl")
+        if profile_url:
+            self.imager.defer(
+                url=profile_url,
+                path=f"users/profiles/{user['Id']}.webp",
+                is_profile=True,
+            )
 
     def generate_users_page(self):
         paginator = SortedSetPaginator(
