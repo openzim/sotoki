@@ -394,7 +394,11 @@ class Rewriter(GlobalMixin):
                     continue
 
                 img["onerror"] = "onImageLoadingError(this);"
-                img["src"] = to_root + self.imager.defer(img["src"], is_profile=False)
+                path = self.imager.defer(img["src"], is_profile=False)
+                if path is None:
+                    del img["src"]
+                else:
+                    img["src"] = f"{to_root}{path}"
 
     # def censor_words_as_string(self, soup) -> str:
     #     if not self.conf.censor_words_list:
