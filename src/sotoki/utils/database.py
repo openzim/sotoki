@@ -600,6 +600,10 @@ class RedisDatabase(
             for pipe in self.pipes.values():
                 pipe.execute()
 
+    def purge(self):
+        """ask redis to reclaim dirty pages space. Effective only on Linux"""
+        self.conn.memory_purge()
+
     def teardown(self):
         self.pipe.execute()
         self.conn.close()

@@ -278,6 +278,7 @@ class StackExchangeToZim:
         TagExcerptRecorder().run()
         TagDescriptionRecorder().run()
         Global.database.clear_tags_mapping()
+        Global.database.purge()
 
     def process_questions_metadata(self):
         # We walk through all Posts a first time to record question in DB
@@ -292,6 +293,7 @@ class StackExchangeToZim:
         )
         PostFirstPasser().run()
         Global.database.clear_extra_tags_questions_list(NB_PAGINATED_QUESTIONS_PER_TAG)
+        Global.database.purge()
 
     def process_indiv_users_pages(self):
         # We walk through all Users and skip all those without interactions
@@ -306,6 +308,7 @@ class StackExchangeToZim:
         UserGenerator().run()
         logger.debug("Cleaning-up users list")
         Global.database.cleanup_users()
+        Global.database.purge()
 
     def process_questions(self):
         # We walk again through all Posts, this time to create indiv pages in Zim
@@ -316,6 +319,7 @@ class StackExchangeToZim:
             nb_total=int(Global.site["TotalQuestions"]),
         )
         PostGenerator().run()
+        Global.database.purge()
 
     def process_tags(self):
         # We walk on Tags again, this time creating indiv pages for each Tag.
