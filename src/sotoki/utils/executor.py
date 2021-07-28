@@ -134,7 +134,10 @@ class SotokiExecutor(queue.Queue):
         self.no_more = True
         for t in self._workers:
             logger.debug(f"joining thread {t.name}")
-            t.join()
+            e = threading.Event()
+            while t.is_alive():
+                t.join(1)
+                e.wait(timeout=2)
             logger.debug(f"joined thread {t.name}")
         logger.debug(f"all threads joined for {self.prefix}")
 

@@ -73,7 +73,7 @@ class Global:
 
         # images handled on a different, unbounded queue
         Global.img_executor = SotokiExecutor(
-            queue_size=0,
+            queue_size=Global.conf.nb_threads * 100,
             nb_workers=max([2, int(Global.conf.nb_threads / 2)]),
             prefix="IMG-T-",
         )
