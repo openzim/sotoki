@@ -215,7 +215,7 @@ class Imager:
             url=url,
             path=path,
             is_profile=is_profile,
-            callback=once_done or self.once_done,
+            dont_release=True,
         )
 
         return path
@@ -249,6 +249,7 @@ class Imager:
                     path=path,
                     content=self.get_image_data(url.geturl(), **resize_args).getvalue(),
                     mimetype="image/webp",
+                    callback=self.once_done,
                 )
             return path
 
@@ -287,6 +288,7 @@ class Imager:
                         path=path,
                         content=fileobj.getvalue(),
                         mimetype="image/webp",
+                        callback=self.once_done,
                     )
                 return path
 
@@ -303,6 +305,7 @@ class Imager:
                 path=path,
                 content=fileobj.getvalue(),
                 mimetype="image/webp",
+                callback=self.once_done,
             )
 
         # only upload it if we didn't have it in cache

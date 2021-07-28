@@ -43,7 +43,7 @@ class TagFinder(Generator):
 
         tag["Count"] = int(tag["Count"])
         self.database.record_tag(tag)
-        self.progresser.update(incr=True)
+        self.release()
 
 
 class TagsExcerptWalker(Walker):
@@ -67,7 +67,7 @@ class TagExcerptDescriptionRecorder(Generator):
             self.database.record_tag_detail(
                 name=tag_name, field=self.field, content=item.get("Body")
             )
-        self.progresser.update(incr=True)
+        self.release()
 
 
 class TagExcerptRecorder(TagExcerptDescriptionRecorder):

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # vim: ai ts=4 sts=4 et sw=4 nu
-
 import xml.sax
 
 from ..utils.shared import Global, GlobalMixin
@@ -41,11 +40,17 @@ class Generator(GlobalMixin):
             raise Global.executor.exception
 
     def processor_callback(self, item):
-        Global.executor.submit(self.processor, item=item, raises=True)
+        Global.executor.submit(
+            self.processor, item=item, raises=True, dont_release=True
+        )
 
     def processor(self, item):
         """to override: process item"""
         raise NotImplementedError()
+
+    def release(self):
+        self.executor.task_done()
+        self.progresser.update(incr=True)
 
 
 class Walker(xml.sax.handler.ContentHandler, GlobalMixin):

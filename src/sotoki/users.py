@@ -92,9 +92,8 @@ class UserGenerator(Generator):
                 title=f'User {user["DisplayName"]}',
                 content=self.renderer.get_user(user),
                 mimetype="text/html",
+                callback=self.release,
             )
-
-        self.progresser.update(incr=True)
 
         if not self.conf.with_user_identicons:
             return

@@ -58,7 +58,6 @@ class FirstPassWalker(Walker):
     def endElement(self, name):
 
         if name == "post":
-            # write record to DB using main thread (single write trans on sqlite)
             self.processor(item=self.post)
 
             # reset data holders
@@ -88,6 +87,7 @@ class PostFirstPasser(Generator):
     def processor(self, item):
         # skip post without answers ; maybe?
         if self.conf.without_unanswered and not item["nb_answers"]:
+            self.release()
             return
 
         harmonize_post(item)
@@ -101,7 +101,7 @@ class PostFirstPasser(Generator):
 
         self.database.record_question(post=item)
 
-        self.progresser.update(incr=True)
+        self.release()
 
 
 class PostsWalker(Walker):
@@ -227,6 +227,7 @@ class PostGenerator(Generator):
     def processor(self, item):
         post = item
         if self.conf.without_unanswered and not post["answers"]:
+            self.release()
             return
         harmonize_post(post)
 
@@ -237,6 +238,7 @@ class PostGenerator(Generator):
                 title=self.rewriter.rewrite_string(post.get("Title")),
                 content=self.renderer.get_question(post),
                 mimetype="text/html",
+                callback=self.release,
             )
 
         for answer in post.get("answers", []):
@@ -245,8 +247,6 @@ class PostGenerator(Generator):
                     path=f'a/{answer["Id"]}',
                     target_path=path,
                 )
-
-        self.progresser.update(incr=True)
 
     def generate_questions_page(self):
         paginator = SortedSetPaginator(

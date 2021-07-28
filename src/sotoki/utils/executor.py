@@ -101,6 +101,7 @@ class SotokiExecutor(queue.Queue):
 
             raises = kwargs.pop("raises") if "raises" in kwargs.keys() else False
             callback = kwargs.pop("callback") if "callback" in kwargs.keys() else None
+            dont_release = kwargs.pop("dont_release", False)
 
             try:
                 func(**kwargs)
@@ -111,7 +112,10 @@ class SotokiExecutor(queue.Queue):
                     self.exceptions.append(exc)
                     self.shutdown()
             finally:
-                self.task_done()
+                # user will manually release the queue for this task.
+                # most likely in a libzim-written callback
+                if not dont_release:
+                    self.task_done()
                 if callback:
                     callback.__call__()
         logger.debug("worker out of alive loop")
