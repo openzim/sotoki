@@ -21,14 +21,13 @@ class ListAllAction(argparse.Action):
         option_strings,
         dest=argparse.SUPPRESS,
         default=argparse.SUPPRESS,
-        help="Simply print the list of available domains and exit",
     ):
         super().__init__(
             option_strings=option_strings,
             dest=dest,
             default=default,
             nargs=0,
-            help=help,
+            help="Simply print the list of available domains and exit",
         )
 
     def __call__(self, parser, namespace, values, option_string=None):

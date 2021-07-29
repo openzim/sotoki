@@ -410,10 +410,9 @@ class PostsDatabaseMixin:
                 self.tag_key(tag), mapping={post["Id"]: post["Score"]}, nx=True
             )
 
-        # TODO: just storing name instead of id is not safe. a deleted user could
-        # have a name such as "3200" and that would be rendered as User#3200
-
         # store int for user Ids (most use) to save some space in redis
+        # names stored as str thus belong to deleted users. this prevents del users
+        # with a name such as "3200" to be considered User#3200
         if post.get("OwnerUserId"):
             post["OwnerName"] = int(post["OwnerUserId"])
 

@@ -321,7 +321,7 @@ def split_posts_by_posttypeid(
                 continue
 
     # close file descriptors
-    [fh.close() for fh in fhs.values()]
+    _ = {fh.close() for fh in fhs.values()}
 
     if delete_src:
         src.unlink()
