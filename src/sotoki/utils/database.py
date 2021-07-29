@@ -610,9 +610,8 @@ class RedisDatabase(
 
     def remove(self):
         """flush database"""
-        # TODO: remove
-        return
-        self.conn.flushdb()
+        if not Global.conf.keep_redis:
+            self.conn.flushdb()
 
 
 def get_database() -> Database:

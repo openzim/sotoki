@@ -245,6 +245,15 @@ def main():
     )
 
     advanced.add_argument(
+        "--keep-redis",
+        help="Don't flush redis DB on exit. Useful to debug redis content "
+        "or to save time. FLUSHDB takes time while restarting redis process is faster.",
+        default=False,
+        action="store_true",
+        dest="keep_redis",
+    )
+
+    advanced.add_argument(
         "--keep-intermediates",
         help="Don't remove intermediate files during prepare step (debug/devel)",
         default=False,

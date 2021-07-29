@@ -81,6 +81,7 @@ class Sotoconf:
 
     # debug/devel
     keep_build_dir: Optional[bool] = False
+    keep_redis: Optional[bool] = False
     debug: Optional[bool] = False
     prepare_only: Optional[bool] = False
     keep_intermediate_files: Optional[bool] = False
