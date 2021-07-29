@@ -32,7 +32,7 @@ from typing import List
 from xml_to_dict import XMLtoDict
 from zimscraperlib.download import stream_file
 
-from ..constants import DOWNLOAD_ROOT
+from ..constants import DOWNLOAD_ROOT, FIXED_DOMAINS
 
 
 def get_all_sites() -> List[dict]:
@@ -48,7 +48,8 @@ def get_all_sites() -> List[dict]:
 def get_site(domain) -> dict:
     """Details for a single StackExchange site"""
     for site in get_all_sites():
-        if site.get("@Url") == f"https://{domain}":
+        _domain = site.get("@Url").replace("https://", "")
+        if FIXED_DOMAINS.get(_domain, _domain) == domain:
             for key in list(site.keys()):
                 site[key.replace("@", "")] = site[key]
                 del site[key]

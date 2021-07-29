@@ -18,6 +18,12 @@ with open(ROOT_DIR.joinpath("VERSION"), "r") as fh:
 UTF8 = "utf-8"
 SCRAPER = f"{NAME} {VERSION}"
 DOWNLOAD_ROOT = "https://archive.org/download/stackexchange"
+# some domains have changed names overtime but SE's Sites.xml still reference old Url
+FIXED_DOMAINS = {
+    "avp.meta.stackexchange.com": "video.meta.stackexchange.com",
+    "moderators.meta.stackexchange.com": "communitybuilding.meta.stackexchange.com",
+    "beer.meta.stackexchange.com": "alcohol.meta.stackexchange.com",
+}
 PROFILE_IMAGE_SIZE = 128
 POSTS_IMAGE_SIZE = 540
 IMAGES_ENCODER_VERSION = 1
@@ -119,6 +125,7 @@ class Sotoconf:
         )
 
     def __post_init__(self):
+        self.domain = FIXED_DOMAINS.get(self.domain, self.domain)
         self.name = self.domain.replace(".", "_")
         self.output_dir = pathlib.Path(self._output_dir).expanduser().resolve()
         self.output_dir.mkdir(parents=True, exist_ok=True)
