@@ -17,7 +17,7 @@
                     <div class="fs-body3 grid--cell fl1 mr12 sm:mr0 sm:mb12">{{ page_obj.paginator.count }} questions</div>
                 </div>
             </div>
-            <div id="questions" class="flush-left">
+            <div id="questions">
                 {% for question in questions %}
                     {% include "question_list_item.html" %}
                 {% endfor %}
