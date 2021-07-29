@@ -181,7 +181,7 @@ class StackExchangeToZim:
             return
 
         Global.progresser.print()
-        self.start()
+        return self.start()
 
     def start(self):
 
@@ -250,6 +250,7 @@ class StackExchangeToZim:
             Global.imager.abort()
             Global.executor.shutdown(wait=False)
             Global.img_executor.shutdown(wait=False)
+            return 1
         else:
             logger.info("Finishing ZIM file…")
             # we need to release libzim's resources.
