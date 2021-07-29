@@ -29,6 +29,7 @@
 import io
 from typing import List
 
+import requests
 from xml_to_dict import XMLtoDict
 from zimscraperlib.download import stream_file
 
@@ -45,6 +46,14 @@ def get_all_sites() -> List[dict]:
     return parser.parse(buf.getvalue()).get("sites", {}).get("row", [])
 
 
+def check_features_on(url):
+    resp = requests.get(url)
+    return {
+        "mathjax": '<script type="text/x-mathjax-config">' in resp.text,
+        "highlight": '"styleCodeWithHighlightjs":true' in resp.text,
+    }
+
+
 def get_site(domain) -> dict:
     """Details for a single StackExchange site"""
     for site in get_all_sites():
@@ -54,4 +63,5 @@ def get_site(domain) -> dict:
                 site[key.replace("@", "")] = site[key]
                 del site[key]
             site["Domain"] = domain
+            site.update(check_features_on(f"https://{domain}"))
             return site
