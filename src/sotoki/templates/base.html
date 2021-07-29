@@ -10,28 +10,12 @@
         <link rel="stylesheet" type="text/css" href="{{ to_root }}static/css/stacks.css" />
         <link id="primary_css" rel="stylesheet" type="text/css" href="{{ to_root }}static/css/primary.css" />
         <link id="secondary_css" rel="stylesheet" type="text/css" href="{{ to_root }}static/css/secondary.css" />
+        <link rel="stylesheet" type="text/css" href="{{ to_root }}static/css/sotoki.css" />
         <style type="text/css">
-            {{ site_css }}
-            body { padding-top: 0; } /* we don't include SE's topbar */
-            .mobile-only { display: none; }
-            body.mobile .mobile-only { display: block; }
-            body.mobile .desktop-only { display: none; }
-            body.mobile.user-page .container { display: none; }
-            body.mobile .post-layout--left, body.mobile .post-layout--left.votecell { padding-right: 0; }
-            html.html__responsive:not(.html__unpinned-leftnav) body.mobile #content { padding-left: 8px; padding-right: 8px; }
-            /*body.mobile.tagged-questions-page #questions.pl24 { padding-left:0 !important; }*/
-            body.mobile.tagged-questions-page #questions.pl24 .mln24 { margin-left: 0 !important; }
-            .about-text { padding-bottom: 16px; padding-top: 16px; }
-            a.external-link {
-                background-image: url({{ to_root }}static/img/external-link-ltr-icon.svg);
-                background-position: center right;
-                background-repeat: no-repeat;
-                padding-right: 13px;
-            }
-            .kiwix_searchform input.ui-autocomplete-input { margin-top: 0; margin-bottom: 0; }
-            .kiwix_searchform { font-size: 14px; }
+            a.external-link { background-image: url('{{ to_root }}static/img/external-link-ltr-icon.svg'); }{% if site_css %}
+            {{ site_css }}{% endif %}
         </style>
-        <script type="text/javascript" src="{{ to_root }}static/js/jdenticon.min.js" async></script>
+        <script type="text/javascript" src="{{ to_root }}static/js/jdenticon.min.js"></script>
         <script type="text/javascript" src="{{ to_root }}static/js/webp-hero.polyfill.js"></script>
         <script type="text/javascript" src="{{ to_root }}static/js/webp-hero.bundle.js"></script>
         <script type="text/javascript" src="{{ to_root }}static/js/webp-handler.js"></script>
@@ -51,7 +35,7 @@
             }
             var webp_handler = new WebPHandler({
                 on_error: replaceWithJdenticon,
-                scripts_urls: ["static/js/webp-hero.polyfill.js", "static/js/webp-hero.bundle.js"],
+                scripts_urls: ["{{ to_root }}static/js/webp-hero.polyfill.js", "{{ to_root }}static/js/webp-hero.bundle.js"],
             });
 
             /*
@@ -83,8 +67,8 @@
                     tex2jax: { inlineMath: [ ["$", "$"], ["\\\\(","\\\\)"] ], displayMath: [ ["$$","$$"], ["\\[", "\\]"] ], processEscapes: true, ignoreClass: "tex2jax_ignore|dno" },
                     TeX: {
                         extensions: ["begingroup.js"],
-                        noUndefined: { attributes: { mathcolor: "red", mathbackground: "#FFEEEE", mathsize: "90%" } }, 
-                        Macros: { href: "{}" } 
+                        noUndefined: { attributes: { mathcolor: "red", mathbackground: "#FFEEEE", mathsize: "90%" } },
+                        Macros: { href: "{}" }
                     },
                     messageStyle: "none",
                     styles: { ".MathJax_Display, .MathJax_Preview, .MathJax_Preview > *": { "background": "inherit" } },
@@ -174,15 +158,6 @@
             StackExchange.ready(function () {
                 // syntax highlighting
                 styleCode();
-                // enable mobile CSS if browser is detected as mobile
-                if (MathJax.Hub.Browser.isMobile) {
-                    $('head').append('<link rel="stylesheet" href="{{ to_root }}static/css/mobile.css" type="text/css" />');
-                    $('body').addClass('mobile');
-                    // user profile requires removing primary css
-                    {% if body_class == "user-page" %}
-                    $('#primary_css').remove();
-                    {% endif %}
-                }
             });
         </script>
         <script>

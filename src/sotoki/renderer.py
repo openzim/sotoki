@@ -157,7 +157,7 @@ class Renderer(GlobalMixin):
                 self.database.tags_key(), num=10, scored=False
             ),
             questions=extend_questions(page),
-            to_root="",
+            to_root="./",
             page_obj=page,
             **self.global_context,
         )

@@ -130,7 +130,7 @@ class StackExchangeToZim:
 
         # download primary|secondary.css from target
         assets_base = Global.site["IconUrl"].rsplit("/", 2)[0]
-        for css_fname in ("primary.css", "secondary.css", "mobile.css"):
+        for css_fname in ("primary.css", "secondary.css"):
             logger.debug(f"adding {css_fname}")
             Global.creator.add_item(
                 URLItem(
