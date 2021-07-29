@@ -161,12 +161,16 @@ class Imager:
             headers = resp.headers
         except Exception:
             logger.warning(f"Unable to HEAD {url}")
-            _, headers = stream_file(
-                url=url, byte_stream=io.BytesIO(), block_size=1, only_first_block=True
-            )
-        except Exception:
-            logger.warning(f"Unable to query image at {url}")
-            return
+            try:
+                _, headers = stream_file(
+                    url=url,
+                    byte_stream=io.BytesIO(),
+                    block_size=1,
+                    only_first_block=True,
+                )
+            except Exception:
+                logger.warning(f"Unable to query image at {url}")
+                return
 
         for header in ("ETag", "Last-Modified", "Content-Length"):
             if headers.get(header):

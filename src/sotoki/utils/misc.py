@@ -76,7 +76,7 @@ def rebuild_uri(
                 f"Failed to rebuild URI {uri} with {scheme=} {username=} {password=} "
                 f"{hostname=} {port=} {path=} "
                 f"{params=} {query=} {fragment=} - {exc}"
-            )
+            )  # lgtm [py/clear-text-logging-sensitive-data]
             return uri
         raise exc
 

@@ -55,4 +55,5 @@ class Generator(GlobalMixin):
 
 class Walker(xml.sax.handler.ContentHandler, GlobalMixin):
     def __init__(self, processor):
+        super().__init__()
         self.processor = processor

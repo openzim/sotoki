@@ -61,6 +61,7 @@
                 window.tags = data;
                 live(tagfilterEle.id, 'input', function() {
                     let search = tagfilterEle.value.toLowerCase().trim();
+                    let matchingTags = [];
                     console.log('input changed to', search);
 
                     // hide static items unless we have no search
@@ -81,8 +82,6 @@
                         matchingTags = window.tags.filter(function (item) {
                             return (~item[0].indexOf(search));
                         }).slice(0, 36); // max 36 elems
-                    } else {
-                        matchingTags = [];
                     }
 
                     // first remove previous results
