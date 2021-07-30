@@ -232,14 +232,17 @@ class PostGenerator(Generator):
         harmonize_post(post)
 
         path = f'questions/{post["Id"]}/{get_slug_for(post["Title"])}'
+        # prepare post page outside Lock to prevent dead-lock on image discovery
+        post_page = self.renderer.get_question(post)
         with self.lock:
             self.creator.add_item_for(
                 path=path,
                 title=self.rewriter.rewrite_string(post.get("Title")),
-                content=self.renderer.get_question(post),
+                content=post_page,
                 mimetype="text/html",
                 callback=self.release,
             )
+        del post_page
 
         for answer in post.get("answers", []):
             with self.lock:

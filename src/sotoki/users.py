@@ -86,14 +86,17 @@ class UserGenerator(Generator):
         if self.conf.without_user_profiles:
             return
 
+        # prepare user page outside Lock to prevent dead-lock on image discovery
+        user_page = self.renderer.get_user(user)
         with self.lock:
             self.creator.add_item_for(
                 path=f'users/{user["Id"]}/{user["slug"]}',
                 title=f'User {user["DisplayName"]}',
-                content=self.renderer.get_user(user),
+                content=user_page,
                 mimetype="text/html",
                 callback=self.release,
             )
+        del user_page
 
         if not self.conf.with_user_identicons:
             return
