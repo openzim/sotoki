@@ -11,6 +11,7 @@
         <link id="primary_css" rel="stylesheet" type="text/css" href="{{ to_root }}static/css/primary.css" />
         <link id="secondary_css" rel="stylesheet" type="text/css" href="{{ to_root }}static/css/secondary.css" />
         <link rel="stylesheet" type="text/css" href="{{ to_root }}static/css/sotoki.css" />
+        {% if site_highlight %}<link rel="stylesheet" href="{{ to_root }}static/css/highlight.default.css">{% endif %}
         <style type="text/css">
             a.external-link { background-image: url('{{ to_root }}static/img/external-link-ltr-icon.svg'); }{% if site_css %}
             {{ site_css }}{% endif %}
@@ -60,8 +61,10 @@
             }
         </script>
         <script src="{{ to_root }}static/js/moment.min.js"></script>
-        <script src="{{ to_root }}static/js/jquery.min.js"></script>
-        <script src="{{ to_root }}static/js/stub.en.js?v=784a450186a7"></script>
+        {% if site_highlight %}
+        <script src="{{ to_root }}static/js/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
+        {% endif %}
         {% if site_mathjax %}
         <script type="text/x-mathjax-config">
                 MathJax.Hub.Config({"HTML-CSS": { preferredFont: "TeX", availableFonts: ["STIX","TeX"], linebreaks: { automatic:true }, EqnChunk: (MathJax.Hub.Browser.isMobile ? 10 : 50) },
@@ -78,7 +81,6 @@
         </script>
         <script src="{{ to_root }}static/js/MathJax.js?config=TeX-AMS_HTML-full"></script>
         {% endif %}
-        <script src="{{ to_root }}static/js/highlightjs-loader.en.js?v=17552072fdc0"></script>
     </head>
     <body class="{{ body_class}} unified-theme">
         <div class="topbar mobile-only">
@@ -155,15 +157,6 @@
                     time_elements[i].innerHTML = moment(time_elements[i].getAttribute("datetime")).fromNow();
                 }
             });
-        </script>
-        <script>
-            StackExchange.ready(function () {
-                // syntax highlighting
-                styleCode();
-            });
-        </script>
-        <script>
-            StackExchange.init({"locale": "en", "serverTime": 1, "routeName": "", "stackAuthUrl": "", "networkMetaHostname": "", "site": {"name": "", "description": "", "isNoticesTabEnabled": false, "enableNewTagCreationWarning": false, "insertSpaceAfterNameTabCompletion": false, "id": 1, "cookieDomain": "", "childUrl": "", "styleCodeWithHighlightjs": true, "negativeVoteScoreFloor": null, "enableSocialMediaInSharePopup": false, "protocol": "https"}, "user": {"fkey": "", "tid": "", "rep": 0, "isAnonymous": true, "isAnonymousNetworkWide": true}, "events": {"postType": {"question": 1}, "postEditionSection": {"title": 1, "body": 2, "tags": 3}}, "story": {"minCompleteBodyLength": 75, "likedTagsMaxLength": 300, "dislikedTagsMaxLength": 300}, "jobPreferences": {"maxNumDeveloperRoles": 2, "maxNumIndustries": 4}, "svgIconPath": "", "svgIconHash": ""}, {"userProfile": {"openGraphAPIKey": ""}, "userMessaging": {"showNewFeatureNotice": false}, "tags": {}, "subscriptions": {"defaultBasicMaxTrueUpSeats": 250, "defaultFreemiumMaxTrueUpSeats": 50, "defaultMaxTrueUpSeats": 1000}, "snippets": {"renderDomain": "stacksnippets.net", "snippetsEnabled": false}, "site": {"allowImageUploads": false, "enableImgurHttps": false, "enableUserHovercards": false, "forceHttpsImages": false, "styleCode": true}, "questions": {"enableQuestionTitleLengthLiveWarning": false, "maxTitleSize": 150, "questionTitleLengthStartLiveWarningChars": 50}, "intercom": {"appId": "", "hostBaseUrl": ""}, "paths": {}, "monitoring": {"clientTimingsAbsoluteTimeout": 30000, "clientTimingsDebounceTimeout": 1000}, "mentions": {"maxNumUsersInDropdown": 50}, "markdown": {"enableTables": true}, "legal": {"oneTrustConfigId": ""}, "flags": {"allowRetractingCommentFlags": false, "allowRetractingFlags": false}, "elections": {"opaVoteResultsBaseUrl": ""}, "comments": {}, "accounts": {"currentPasswordRequiredForChangingStackIdPassword": true}});
         </script>
         {% block bodytail %}{% endblock %}
     </body>

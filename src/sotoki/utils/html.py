@@ -168,6 +168,9 @@ class Rewriter(GlobalMixin):
             except AttributeError:
                 pass
 
+        if self.site.get("highlight", False):
+            self.rewrite_code(soup)
+
         self.rewrite_links(soup, to_root)
 
         self.rewrite_images(soup, to_root)
@@ -446,3 +449,11 @@ class Rewriter(GlobalMixin):
             for attr in ("title", "alt"):
                 if tag.attrs.get(attr):
                     tag.attrs[attr] = self.rewrite_string(tag.attrs[attr])
+
+    def rewrite_code(self, soup):
+        for code in soup.find_all(
+            lambda x: x.name == "code" and x.parent.name == "pre"
+        ):
+            code.parent["class"] = " ".join(
+                set(code.parent.get("class", []) + ["s-code-block"])
+            )

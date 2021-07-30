@@ -12,25 +12,12 @@ ASSETS = [
         "https://cdn.sstatic.net/Shared/stacks.css?v=ca5319e49c63",
     ),
     (
-        "static/js/stacks.min.js",
-        "https://unpkg.com/@stackoverflow/stacks@0.65.1/dist/js/stacks.min.js",
-    ),
-    (
-        "static/js/polyfill.min.js",
-        "https://polyfill.io/v3/polyfill.min.js?features=es6",
-    ),
-    (
         "static/js/tex-mml-chtml.js",
         "https://cdn.jsdelivr.net/npm/mathjax@3.1.3/es5/tex-mml-chtml.js",
     ),
     (
         "static/js/stack-icons.js",
         "https://unpkg.com/@stackoverflow/stacks-icons@2.20.0/build/index.js",
-    ),
-    ("static/js/stub.en.js", "https://cdn.sstatic.net/Js/stub.en.js?v=784a450186a7"),
-    (
-        "static/js/jquery.min.js",
-        "https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js",
     ),
     ("static/js/moment.min.js", "https://momentjs.com/downloads/moment.min.js"),
     (
@@ -39,16 +26,13 @@ ASSETS = [
         "/dist/jdenticon.min.js",
     ),
     (
-        "static/js/highlightjs-loader.en.js",
-        "https://cdn.sstatic.net/Js/highlightjs-loader.en.js?v=17552072fdc0",
+        "static/css/highight.default.min.css",
+        "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.1.0/styles/"
+        "default.min.css",
     ),
     (
-        "static/js/full-anon.en.js",
-        "https://cdn.sstatic.net/Js/full-anon.en.js",
-    ),
-    (
-        "static/js/mobile.en.js",
-        "https://cdn.sstatic.net/Js/mobile.en.js",
+        "static/js/highlight.min.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.1.0/highlight.min.js",
     ),
     # WepP Hero polyfill
     (
@@ -64,7 +48,7 @@ ASSETS = [
         "https://gist.githubusercontent.com/rgaudin/60bb9cc6f187add506584258028b8ee1/"
         "raw/9d575b8e25d67eed2a9c9a91d3e053a0062d2fc7/web-handler.js",
     ),
-    # external icon from WP
+    # external icon from Wikipedia
     (
         "static/img/external-link-ltr-icon.svg",
         "https://fr.wikipedia.org/w/skins/Vector/"
