@@ -40,7 +40,7 @@ def number_format_short(number: int):
     return number_format(number, short=True)
 
 
-def date_format(adate: Union[datetime.datetime, str]):
+def date_format(adate: Union[datetime.datetime, str], fmt: str = "%b %d '%y at %H:%M"):
     if adate:
         try:
             if not isinstance(adate, datetime.datetime):
@@ -48,7 +48,7 @@ def date_format(adate: Union[datetime.datetime, str]):
         except ValueError:
             pass
         else:
-            return adate.strftime("%b %m '%y at %H:%M")
+            return adate.strftime(fmt)
     return adate
 
 
