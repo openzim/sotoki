@@ -66,15 +66,16 @@ class Global:
         # all tasks added to a bound queue processed by workers
         from .executor import SotokiExecutor
 
+        nb_workers = max([2, int(Global.conf.nb_threads / 2)])
         Global.executor = SotokiExecutor(
             queue_size=Global.conf.nb_threads,
-            nb_workers=int(Global.conf.nb_threads / 2),
+            nb_workers=nb_workers,
         )
 
         # images handled on a different, unbounded queue
         Global.img_executor = SotokiExecutor(
-            queue_size=Global.conf.nb_threads * 100,
-            nb_workers=max([2, int(Global.conf.nb_threads / 2)]),
+            queue_size=Global.conf.nb_threads * 10,
+            nb_workers=nb_workers,
             prefix="IMG-T-",
         )
 
