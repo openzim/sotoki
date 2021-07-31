@@ -454,6 +454,7 @@ class Rewriter(GlobalMixin):
         for code in soup.find_all(
             lambda x: x.name == "code" and x.parent.name == "pre"
         ):
-            code.parent["class"] = " ".join(
-                set(code.parent.get("class", []) + ["s-code-block"])
-            )
+            pre_class = code.parent.attrs.get("class", [])
+            if not isinstance(pre_class, list):
+                pre_class = list(pre_class)
+            code.parent.attrs["class"] = list(set(pre_class + ["s-code-block"]))
