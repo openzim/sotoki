@@ -26,7 +26,7 @@ ASSETS = [
         "/dist/jdenticon.min.js",
     ),
     (
-        "static/css/highight.default.min.css",
+        "static/css/highlight.default.min.css",
         "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.1.0/styles/"
         "default.min.css",
     ),
