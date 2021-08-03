@@ -381,6 +381,13 @@ class Rewriter(GlobalMixin):
             ).geturl()
             return True
 
+        # did not require rewritting. Need normalization and to_root though
+        link["href"] = rebuild_uri(
+            uri=uri,
+            path=f"{to_root}{uri_path}",
+            failsafe=True,
+        ).geturl()
+
     def rewrite_images(self, soup, to_root):
         for img in soup.find_all("img", src=True):
             if not img.get("src"):
