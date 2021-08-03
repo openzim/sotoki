@@ -12,7 +12,7 @@ jobs:
         run: docker build . -t sotoki
       - run: mkdir -p output
       - name: run for beer meta
-        run: docker run -v $(pwd)/output:/output sotoki sotoki --domain "beer.meta.stackexchange.com" --threads 20 --output /output/ --zim-file beer_meta.zim --mirror "https://org-kiwix-stackexchange.s3.us-west-1.wasabisys.com" --redis-url "file:///var/run/redis.sock" --debug
+        run: docker run -v $(pwd)/output:/output sotoki sotoki --domain "beer.meta.stackexchange.com" --threads 20 --output /output/ --zim-file beer_meta.zim --mirror "https://org-kiwix-stackexchange.s3.us-west-1.wasabisys.com" --redis-url "unix:///var/run/redis.sock" --debug
       - run: ls -alh $(pwd)/output
       - name: pull zim-tools
         run: docker pull openzim/zim-tools:latest
