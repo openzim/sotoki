@@ -38,7 +38,7 @@ class ArchiveManager:
 
     @property
     def domain(self):
-        return Global.conf.domain
+        return Global.conf.dump_domain
 
     @property
     def mirror(self):

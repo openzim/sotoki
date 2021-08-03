@@ -125,6 +125,7 @@ class Sotoconf:
         )
 
     def __post_init__(self):
+        self.dump_domain = self.domain  # dumps are named after unfixed domains
         self.domain = FIXED_DOMAINS.get(self.domain, self.domain)
         self.name = self.domain.replace(".", "_")
         self.output_dir = pathlib.Path(self._output_dir).expanduser().resolve()
