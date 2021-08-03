@@ -49,8 +49,8 @@ class Global:
     def init(site=None):
         from .progress import Progresser
 
-        Global.progresser = Progresser()
         Global.site = site
+        Global.progresser = Progresser(int(site["TotalQuestions"]))
 
     @staticmethod
     def setup():

@@ -15,6 +15,10 @@ from .constants import (
     Sotoconf,
     ROOT_DIR,
     NB_PAGINATED_QUESTIONS_PER_TAG,
+    NB_USERS_PER_PAGE,
+    NB_USERS_PAGES,
+    NB_QUESTIONS_PER_PAGE,
+    NB_QUESTIONS_PAGES,
 )
 from .archives import ArchiveManager
 from .utils.s3 import setup_s3_and_check_credentials
@@ -332,17 +336,38 @@ class StackExchangeToZim:
         TagGenerator().run()
 
     def process_pages_lists(self):
-        Global.progresser.start(Global.progresser.LISTS_STEP, nb_total=2)
+        # compute expected number of items to add to Zim (for progress)
+        nb_user_pages = Global.database.nb_users / NB_USERS_PER_PAGE
+        nb_user_pages = int(
+            nb_user_pages if nb_user_pages < NB_USERS_PAGES else NB_USERS_PAGES
+        )
+        nb_question_pages = int(
+            Global.database.get_set_count(Global.database.questions_key())
+            / NB_QUESTIONS_PER_PAGE
+        )
+        nb_question_pages = (
+            nb_question_pages
+            if nb_question_pages < NB_QUESTIONS_PAGES
+            else NB_QUESTIONS_PAGES
+        )
+        Global.progresser.start(
+            Global.progresser.LISTS_STEP,
+            nb_total=nb_user_pages + nb_question_pages + 1,
+        )
+
         logger.info("Generating Users page")
         UserGenerator().generate_users_page()
-        Global.progresser.update(incr=True)
+        Global.progresser.update(incr=nb_user_pages)
         logger.info(".. done")
 
         Global.progresser.print()
 
         # build home page in ZIM using questions list
         logger.info("Generating Questions page (homepage)")
+
         PostGenerator().generate_questions_page()
+        Global.progresser.update(incr=nb_question_pages)
+
         with Global.lock:
             Global.creator.add_item_for(
                 path="about",

@@ -5,7 +5,7 @@
 import json
 import datetime
 from typing import Union
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 
 from .shared import logger, GlobalMixin
 
@@ -26,21 +26,33 @@ class Progresser(GlobalMixin):
         [
             (PREPARATION_STEP, 5),
             (TAGS_METADATA_STEP, 2),
-            (QUESTIONS_METADATA_STEP, 10),
-            (USERS_STEP, 5),
-            (QUESTIONS_STEP, 30),
+            (QUESTIONS_METADATA_STEP, 5),
+            (USERS_STEP, 10),
+            (QUESTIONS_STEP, 70),
             (TAGS_STEP, 2),
             (LISTS_STEP, 1),
         ]
     )
 
-    # weight of images processing within the whole scraping process
-    IMAGES_WEIGHT = 60
+    def __init__(self, nb_questions: int):
+        # adjust print periodicity based on global nb of questions for site
+        self.print_every_updates = 50
+        self.print_every_seconds = 60
 
-    PRINT_EVERY_UPDATES = 10000
-    PRINT_EVERY_SECONDS = 300
+        MConf = namedtuple("MConf", ["nb_updates", "nb_minutes"])
+        milestones = {
+            10000: MConf(100, 5),
+            100000: MConf(1000, 10),
+            1000000: MConf(5000, 15),
+            10000000: MConf(1000, 30),
+        }
+        for milestone, conf in milestones.items():
+            if nb_questions >= milestone:
+                self.print_every_updates = conf.nb_updates
+                self.print_every_seconds = conf.nb_minutes * 60
+            else:
+                break
 
-    def __init__(self):
         # keep track of current step's data
         self.current_step = self.PREPARATION_STEP
         self.current_step_index = 0
@@ -51,13 +63,10 @@ class Progresser(GlobalMixin):
         # computed sum of all previous steps
         self.previous_step_weight = 0
 
-        # compute respective weights of all steps
-        # to fix weights from constants
-        total_weight = self.IMAGES_WEIGHT + sum(self.STEPS.values())
-        self.weights = {key: value / total_weight for key, value in self.STEPS.items()}
-        self.weights[self.IMAGES_STEP] = (
-            self.IMAGES_WEIGHT / total_weight if not self.conf.without_images else 0
-        )
+        # compute respective weights of all steps to fix weights from constants
+        self.weights = {
+            key: value / sum(self.STEPS.values()) for key, value in self.STEPS.items()
+        }
 
         self.last_print_on = datetime.datetime.now()
 
@@ -95,24 +104,23 @@ class Progresser(GlobalMixin):
 
     def print(self):
         """log current progress state"""
+
         msg = (
             f"PROGRESS: {self.overall_progress * 100:.1f}% – "
-            f"{self.current_step.title()} "
-            f"Step ({self.current_step_index + 1}/{len(self.STEPS)})"
+            f"Step {self.current_step_index + 1}/{len(self.STEPS)}: "
+            f"{self.current_step.title()} -- "
+            f"{self.current_step_progress}/{self.current_step_total}"
         )
 
         if self.images_progress:
-            msg += (
-                f" Images progress: {self.images_progress * 100:.0f}% "
-                f"[{self.nb_img_done}/{self.nb_img_requested}]"
-            )
+            msg += f" -- Images: {self.nb_img_done}"
         logger.info(msg)
         self.last_print_on = datetime.datetime.now()
 
     def print_maybe(self):
         if (
-            self.current_step_updates % self.PRINT_EVERY_UPDATES == 0
-            or self.last_print_on + datetime.timedelta(seconds=self.PRINT_EVERY_SECONDS)
+            self.current_step_updates % self.print_every_updates == 0
+            or self.last_print_on + datetime.timedelta(seconds=self.print_every_seconds)
             < datetime.datetime.now()
         ):
             self.print()
@@ -180,8 +188,6 @@ class Progresser(GlobalMixin):
     @property
     def overall_progress(self) -> float:
         """scraper progress (0-1)"""
-        return (
-            self.previous_step_weight
-            + (self.images_progress * self.weight_for(self.IMAGES_STEP))
-            + (self.step_progress * self.weight_for(self.current_step))
+        return self.previous_step_weight + (
+            self.step_progress * self.weight_for(self.current_step)
         )
