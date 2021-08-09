@@ -79,9 +79,11 @@ class ArchiveManager:
 
         def _run(url, fpath):
             if not fpath.exists():
+                logger.info(f"Downloading {fpath.name}")
                 download(url, fpath)
             Global.progresser.update(incr=1)
 
+            logger.info(f"Exctracting {fpath.name}")
             extract_7z(fpath, self.build_dir, delete_src=self.delete_src)
             Global.progresser.update(incr=1)
 

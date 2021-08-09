@@ -73,10 +73,11 @@ def rebuild_uri(
     except Exception as exc:
         if failsafe:
             logger.error(
-                f"Failed to rebuild URI {uri} with {scheme=} {username=} {password=} "
+                f"Failed to rebuild "  # lgtm [py/clear-text-logging-sensitive-data]
+                f"URI {uri} with {scheme=} {username=} {password=} "
                 f"{hostname=} {port=} {path=} "
                 f"{params=} {query=} {fragment=} - {exc}"
-            )  # lgtm [py/clear-text-logging-sensitive-data]
+            )
             return uri
         raise exc
 
