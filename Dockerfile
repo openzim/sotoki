@@ -32,11 +32,17 @@ RUN wget --progress=dot:giga http://tmp.kiwix.org/wheels/libzim-1.0.0.dev1-cp38-
 
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -U pip ipython==7.25.0 && pip install --no-cache-dir -r /tmp/requirements.txt
-COPY . /app/
+COPY setup.py LICENSE MANIFEST.in README.md requirements.txt /app/
+COPY src app/src
 RUN cd /app && python setup.py install && cd - && rm -rf /app
 
 # start redis
-RUN printf "#!/bin/sh\necho \"Starting redis\"...\nredis-server --daemonize yes --save \"\" --appendonly no --unixsocket /var/run/redis.sock --unixsocketperm 744 --port 0 --bind 127.0.0.1\n\nexec \"\$@\"\n" > /usr/local/bin/start-redis-daemon && chmod +x /usr/local/bin/start-redis-daemon
+RUN printf "#!/bin/sh\n\
+echo \"Starting redis\"...\n\
+redis-server --daemonize yes --save \"\" --appendonly no \
+--unixsocket /var/run/redis.sock --unixsocketperm 744 \
+--port 0 --bind 127.0.0.1\n\nexec \"\$@\"\n" > /usr/local/bin/start-redis-daemon && \
+chmod +x /usr/local/bin/start-redis-daemon
 ENTRYPOINT ["start-redis-daemon"]
 
 CMD ["sotoki", "--help"]
