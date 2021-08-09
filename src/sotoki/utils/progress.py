@@ -24,13 +24,13 @@ class Progresser(GlobalMixin):
     # steps names and weights
     STEPS = OrderedDict(
         [
-            (PREPARATION_STEP, 5),
+            (PREPARATION_STEP, 152),
             (TAGS_METADATA_STEP, 2),
-            (QUESTIONS_METADATA_STEP, 5),
-            (USERS_STEP, 10),
-            (QUESTIONS_STEP, 70),
-            (TAGS_STEP, 2),
-            (LISTS_STEP, 1),
+            (QUESTIONS_METADATA_STEP, 470),
+            (USERS_STEP, 225),
+            (QUESTIONS_STEP, 3460),
+            (TAGS_STEP, 10),
+            (LISTS_STEP, 2),
         ]
     )
 
