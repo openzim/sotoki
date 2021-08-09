@@ -19,7 +19,7 @@ import redis
 import bidict
 import snappy
 
-from .shared import Global
+from .shared import Global, logger
 from .html import get_text
 from ..constants import UTF8, NB_PAGINATED_USERS
 
@@ -104,7 +104,7 @@ class Database:
 
     def get_set_count(self, set_name: str) -> int:
         """Number of recorded entries in set"""
-        return self.conn.zcard(set_name)
+        return self.safe_zcard(set_name)
 
     def query_set(
         self,
@@ -126,7 +126,7 @@ class Database:
         func = getattr(self.conn, "zrevrangebyscore" if desc else "zrangebyscore")
 
         if num is None:
-            num = self.conn.zcard(set_name)
+            num = self.safe_zcard(set_name)
 
         kwargs = {
             "name": set_name,
@@ -220,7 +220,7 @@ class TagsDatabaseMixin:
         # don't use pipeline as those commands are RAM-hungry on redis side and
         # we don't want to stack them up
         for tag in self.tags_ids.inverse.keys():
-            self.conn.zremrangebyrank(self.tag_key(tag), 0, -(at_most + 1))
+            self.safe_command("zremrangebyrank", self.tag_key(tag), 0, -(at_most + 1))
 
     def get_tag_id(self, name: str) -> int:
         """Tag ID for its name"""
@@ -236,11 +236,11 @@ class TagsDatabaseMixin:
         """Total number of questions using tag by name
 
         Stored as score of tag entry in main tags zset"""
-        return int(self.conn.zscore(self.tags_key(), name))
+        return int(self.safe_zscore(self.tags_key(), name))
 
     def get_tag_detail(self, name: str, field: str) -> str:
         """single detail (excerpt or description) for a tag"""
-        detail = self.conn.get(self.tag_detail_key(name, field))
+        detail = self.safe_get(self.tag_detail_key(name, field))
         return detail.decode(UTF8) if detail is not None else None
 
     def get_tag_details(self, name) -> dict:
@@ -255,7 +255,7 @@ class TagsDatabaseMixin:
 
         name, score, excerpt?, description?"""
         if score is None:
-            score = self.conn.zscore(self.tags_key(), name)
+            score = self.safe_zscore(self.tags_key(), name)
 
         item = self.get_tag_details(name) or {}
         item["score"] = score
@@ -332,7 +332,7 @@ class UsersDatabaseMixin:
         """All recorded information for a UserId
 
         id, name, rep, nb_gold, nb_silver, nb_bronze"""
-        user = self.conn.get(self.user_key(user_id))
+        user = self.safe_get(self.user_key(user_id))
         if not user:
             return None
         user = json.loads(snappy.decompress(user))
@@ -467,7 +467,7 @@ class PostsDatabaseMixin:
         """dict including title and excerpt fo a question by PostId"""
         try:
             data = json.loads(
-                snappy.decompress(self.conn.get(self.question_details_key(post_id)))
+                snappy.decompress(self.safe_get(self.question_details_key(post_id)))
             )
         except Exception:
             # we might not have a record for that post_id:
@@ -481,13 +481,13 @@ class PostsDatabaseMixin:
 
         is, score, creation_date, owner_user_id, has_accepted"""
         if score is None:
-            score = self.conn.zscore(self.questions_key(), post_id)
+            score = self.safe_zscore(self.questions_key(), post_id)
 
         item = self.get_question_title_desc(post_id) or {}
         item["score"] = score
         item["id"] = post_id
 
-        post_entry = self.conn.get(self.question_key(post_id))
+        post_entry = self.safe_get(self.question_key(post_id))
         if post_entry:
             (
                 item["creation_date"],
@@ -504,11 +504,11 @@ class PostsDatabaseMixin:
 
     def get_question_score(self, post_id: int) -> int:
         """Score of a question by PostId"""
-        return int(self.conn.zscore(self.questions_key(), int(post_id)))
+        return int(self.safe_zscore(self.questions_key(), int(post_id)))
 
     def question_has_accepted_answer(self, post_id: int) -> bool:
         """Whether the question has an accepted answer or not"""
-        post_entry = self.conn.get(self.question_key(post_id))
+        post_entry = self.safe_get(self.question_key(post_id))
         if post_entry:
             return json.loads(snappy.decompress(post_entry))[2]  # 3rd entry, accepted
         return False
@@ -516,7 +516,7 @@ class PostsDatabaseMixin:
     def get_questions_stats(self) -> int:
         """total number of answers in dump (not in DB)"""
         try:
-            item = json.loads(self.conn.get(self.questions_stats_key()))
+            item = json.loads(self.safe_get(self.questions_stats_key()))
         except Exception:
             item = [0, 0, 0]
         return {"nb_answers": item[0], "nb_answered": item[1], "nb_accepted": item[2]}
@@ -589,6 +589,32 @@ class RedisDatabase(
 
     def make_dummy_query(self):
         self.pipe.get("")
+
+    def safe_get(self, key: str):
+        """ GET command retried on ConnectionError """
+        return self.safe_command("get", key)
+
+    def safe_zcard(self, key: str):
+        """ ZCARD command retried on ConnectionError """
+        return self.safe_command("zcard", key)
+
+    def safe_zscore(self, key: str, member: Union[str, int]):
+        """ ZSCORE command retried on ConnectionError """
+        return self.safe_command("zscore", key, member)
+
+    def safe_command(self, command: str, *args, retries: int = 20):
+        """ RO command retried on ConnectionError """
+        attempt = 1
+        func = getattr(self.conn, command.lower())
+        while attempt < retries:
+            try:
+                return func(*args)
+            except redis.exceptions.ConnectionError as exc:
+                logger.error(f"Redis {func.upper()} Error #{attempt}/{retries}: {exc}")
+                attempt += 1
+                # wait for 2s
+                threading.Event().wait(2)
+        return func(*args)
 
     def commit(self, done=False):
         self.pipe.execute()
