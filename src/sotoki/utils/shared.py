@@ -66,16 +66,19 @@ class Global:
         # all tasks added to a bound queue processed by workers
         from .executor import SotokiExecutor
 
-        nb_workers = max([2, int(Global.conf.nb_threads / 2)])
+        # mostly transforms HTML and sends to zim.
+        # tests show no speed improv. beyond 3 workers.
         Global.executor = SotokiExecutor(
-            queue_size=Global.conf.nb_threads,
-            nb_workers=nb_workers,
+            queue_size=10,
+            nb_workers=3,
         )
 
-        # images handled on a different, unbounded queue
+        # images handled on a different queue.
+        # mostly network I/O to retrieve and/or upload image.
+        # if not in S3 bucket, resize/optimize webp image
         Global.img_executor = SotokiExecutor(
-            queue_size=Global.conf.nb_threads * 10,
-            nb_workers=nb_workers,
+            queue_size=30,
+            nb_workers=10,
             prefix="IMG-T-",
         )
 
