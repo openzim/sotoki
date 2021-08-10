@@ -106,7 +106,7 @@ class Global:
             name=Global.conf.name,
             tags=";".join(Global.conf.tags),
             date=datetime.date.today(),
-        ).config_nbworkers(int(Global.conf.nb_threads / 2))
+        )
 
 
 class GlobalMixin:
