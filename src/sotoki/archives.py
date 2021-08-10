@@ -83,7 +83,7 @@ class ArchiveManager:
                 download(url, fpath)
             Global.progresser.update(incr=1)
 
-            logger.info(f"Exctracting {fpath.name}")
+            logger.info(f"Extracting {fpath.name}")
             extract_7z(fpath, self.build_dir, delete_src=self.delete_src)
             Global.progresser.update(incr=1)
 

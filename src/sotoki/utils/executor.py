@@ -37,6 +37,7 @@ class SotokiExecutor(queue.Queue):
         self.prefix = prefix
         self._shutdown_lock = threading.Lock()
         self.nb_workers = nb_workers
+        self.exceptions = []
 
     @property
     def exception(self):
@@ -77,7 +78,7 @@ class SotokiExecutor(queue.Queue):
         self.release_halt()
         self._workers = set()
         self._shutdown = False
-        self.exceptions = []
+        self.exceptions[:] = []
 
         for n in range(self.nb_workers):
             t = threading.Thread(target=self.worker, name=f"{self.prefix}{n}")
@@ -96,7 +97,7 @@ class SotokiExecutor(queue.Queue):
                 continue
             except TypeError:
                 # received None from the queue. most likely shuting down
-                logger.debug("task is Nont, prob. shutting down, exiting")
+                logger.debug("task is None, prob. shutting down, exiting")
                 return
 
             raises = kwargs.pop("raises") if "raises" in kwargs.keys() else False
@@ -118,6 +119,7 @@ class SotokiExecutor(queue.Queue):
                     self.task_done()
                 if callback:
                     callback.__call__()
+
         logger.debug("worker out of alive loop")
 
     def drain(self):
