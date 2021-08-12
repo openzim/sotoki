@@ -3,7 +3,7 @@
 # vim: ai ts=4 sts=4 et sw=4 nu
 import datetime
 
-from .utils.shared import logger
+from .utils.shared import logger, Global
 from .constants import NB_QUESTIONS_PER_PAGE, NB_PAGINATED_QUESTIONS
 from .renderer import SortedSetPaginator
 from .utils.generator import Generator, Walker
@@ -18,10 +18,18 @@ def harmonize_post(post: dict):
     )
 
 
-class FirstPassWalker(Walker):
+class WalkerWithTrigger(Walker):
     def startDocument(self):
         self.seen = 0
 
+    def check_trigger(self):
+        self.seen += 1
+        if self.seen % 10000 == 0:
+            logger.debug(f"Seen {self.seen}")
+            Global.collect()
+
+
+class FirstPassWalker(WalkerWithTrigger):
     def startElement(self, name, attrs):
         def _user_to_set(aset, field):
             if attrs.get(field):
@@ -38,10 +46,6 @@ class FirstPassWalker(Walker):
             self.post["nb_answers"] = 0
             _user_to_set(self.post["users_ids"], "OwnerUserId")
             _user_to_set(self.post["users_ids"], "LastEditorUserId")
-
-            self.seen += 1
-            if self.seen % 10000 == 0:
-                logger.debug(f"Seen {self.seen}")
             return
 
         # opening comments of a question
@@ -62,6 +66,8 @@ class FirstPassWalker(Walker):
 
             # reset data holders
             del self.post
+
+            self.check_trigger()
 
 
 class PostFirstPasser(Generator):
@@ -104,7 +110,7 @@ class PostFirstPasser(Generator):
         self.release()
 
 
-class PostsWalker(Walker):
+class PostsWalker(WalkerWithTrigger):
     """posts_complete SAX parser
 
         Schema:
@@ -126,6 +132,7 @@ class PostsWalker(Walker):
     </post>"""
 
     def startDocument(self):
+        super().startDocument()
         self.currently_in = None
 
     def startElement(self, name, attrs):
@@ -215,6 +222,8 @@ class PostsWalker(Walker):
             self.post = {}
             self.comments = []
             self.answers = []
+
+            self.check_trigger()
 
 
 class PostGenerator(Generator):

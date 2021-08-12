@@ -3,6 +3,7 @@
 # vim: ai ts=4 sts=4 et sw=4 nu
 # pylint: disable=cyclic-import
 
+import gc
 import datetime
 import threading
 import logging
@@ -36,6 +37,10 @@ class Global:
     renderer = None
     rewriter = None
     lock = threading.Lock()
+
+    @staticmethod
+    def collect():
+        logger.debug(f"Collecting {gc.get_count()}… {gc.collect()} collected.")
 
     @staticmethod
     def set_debug(value):
