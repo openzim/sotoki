@@ -15,7 +15,6 @@ class Generator(GlobalMixin):
     def __init__(self):
 
         self.fpath = None
-        self.futures = {}
 
     def run(self):
         Global.database.begin()

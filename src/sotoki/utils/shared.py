@@ -76,9 +76,10 @@ class Global:
         # images handled on a different queue.
         # mostly network I/O to retrieve and/or upload image.
         # if not in S3 bucket, resize/optimize webp image
+        # we should consider using coroutines instead of threads
         Global.img_executor = SotokiExecutor(
-            queue_size=30,
-            nb_workers=10,
+            queue_size=200,
+            nb_workers=100,
             prefix="IMG-T-",
         )
 
