@@ -30,9 +30,10 @@ class TopDict(collections.UserDict):
     def __init__(self, maxlen: int):
         super().__init__()
         self.maxlen = maxlen
+        self.lock = threading.Lock()
 
     def __setitem__(self, key, value):
-        with threading.Lock():
+        with self.lock:
             # we're full, might not accept value
             if len(self) >= self.maxlen:
                 # value is bellow our min, don't care
