@@ -41,7 +41,7 @@ RUN printf "#!/bin/sh\n\
 echo \"Starting redis\"...\n\
 redis-server --daemonize yes --save \"\" --appendonly no \
 --unixsocket /var/run/redis.sock --unixsocketperm 744 \
---port 6379 --bind 127.0.0.1\n\nexec \"\$@\"\n" > /usr/local/bin/start-redis-daemon && \
+--port 6379 --bind 0.0.0.0\n\nexec \"\$@\"\n" > /usr/local/bin/start-redis-daemon && \
 chmod +x /usr/local/bin/start-redis-daemon
 
 EXPOSE 6379
