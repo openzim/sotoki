@@ -592,19 +592,19 @@ class RedisDatabase(
         self.pipe.get("")
 
     def safe_get(self, key: str):
-        """ GET command retried on ConnectionError """
+        """GET command retried on ConnectionError"""
         return self.safe_command("get", key)
 
     def safe_zcard(self, key: str):
-        """ ZCARD command retried on ConnectionError """
+        """ZCARD command retried on ConnectionError"""
         return self.safe_command("zcard", key)
 
     def safe_zscore(self, key: str, member: Union[str, int]):
-        """ ZSCORE command retried on ConnectionError """
+        """ZSCORE command retried on ConnectionError"""
         return self.safe_command("zscore", key, member)
 
     def safe_command(self, command: str, *args, retries: int = 20):
-        """ RO command retried on ConnectionError """
+        """RO command retried on ConnectionError"""
         attempt = 1
         func = getattr(self.conn, command.lower())
         while attempt < retries:
