@@ -1,4 +1,4 @@
-kiwixstorage>=0.8,<1.0
+kiwixstorage>=0.8.1,<1.0
 pif>=0.8.2,<0.9
 zimscraperlib>=1.4.0.dev1,<1.5
 xml_to_dict>=0.1.6,<0.2

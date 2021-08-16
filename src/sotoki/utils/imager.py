@@ -14,7 +14,7 @@ from resizeimage.imageexceptions import ImageSizeError
 from zimscraperlib.download import stream_file
 from zimscraperlib.image.optimization import optimize_webp
 from zimscraperlib.image.transformation import resize_image
-from kiwixstorage import KiwixStorage
+from kiwixstorage import KiwixStorage, NotFoundError
 
 from ..constants import (
     PROFILE_IMAGE_SIZE,
@@ -269,32 +269,25 @@ class Imager:
 
         download_failed = False  # useful to trigger reupload or not
         try:
-            is_on_s3 = s3_storage.has_object_matching(key, meta=meta)
-        except Exception as exc:
-            logger.error(f"Failed to query S3 for {key} and {meta} -- {url} -- {exc}")
-            is_on_s3 = False  # trigger manual download
-            download_failed = True  # don't upload this as we might have it already
-
-        if is_on_s3:
-            logger.debug(f"Downloading S3::{key} into ZIM::{path}")
-            # download file into memory
+            logger.debug(f"Attempting download of S3::{key} into ZIM::{path}")
             fileobj = io.BytesIO()
-            try:
-                s3_storage.download_fileobj(key, fileobj)
-            except Exception as exc:
-                logger.error(f"failed to download {key} from cache: {exc}")
-                logger.exception(exc)
-                download_failed = True
-            # make sure we fallback to re-encode
-            else:
-                with Global.lock:
-                    Global.creator.add_item_for(
-                        path=path,
-                        content=fileobj.getvalue(),
-                        mimetype="image/webp",
-                        callback=self.once_done,
-                    )
-                return path
+            s3_storage.download_matching_fileobj(key, fileobj, meta=meta)
+        except NotFoundError:
+            # don't have it, not a donwload error. we'll upload after processing
+            pass
+        except Exception as exc:
+            logger.error(f"failed to download {key} from cache: {exc}")
+            logger.exception(exc)
+            download_failed = True
+        else:
+            with Global.lock:
+                Global.creator.add_item_for(
+                    path=path,
+                    content=fileobj.getvalue(),
+                    mimetype="image/webp",
+                    callback=self.once_done,
+                )
+            return path
 
         # we're using S3 but don't have it or failed to download
         try:
