@@ -279,7 +279,9 @@ class StackExchangeToZim:
             Global.progresser.TAGS_METADATA_STEP,
             nb_total=int(Global.site["TotalTags"]) * 3,
         )
-        TagFinder().run()
+        if not self.conf.skip_tags_meta:
+            TagFinder().run()
+        Global.database.ack_tags_ids()
         TagExcerptRecorder().run()
         TagDescriptionRecorder().run()
         Global.database.clear_tags_mapping()
@@ -296,7 +298,9 @@ class StackExchangeToZim:
             Global.progresser.QUESTIONS_METADATA_STEP,
             nb_total=int(Global.site["TotalQuestions"]),
         )
-        PostFirstPasser().run()
+        if not self.conf.skip_questions_meta:
+            PostFirstPasser().run()
+        Global.database.ack_users_ids()
         Global.database.clear_extra_tags_questions_list(NB_PAGINATED_QUESTIONS_PER_TAG)
         Global.database.purge()
 
@@ -310,7 +314,8 @@ class StackExchangeToZim:
             Global.progresser.USERS_STEP,
             nb_total=int(Global.site["TotalUsers"]),
         )
-        UserGenerator().run()
+        if not self.conf.skip_users:
+            UserGenerator().run()
         logger.debug("Cleaning-up users list")
         Global.database.cleanup_users()
         Global.database.purge()

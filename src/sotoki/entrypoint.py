@@ -277,6 +277,30 @@ def main():
         dest="open_shell",
     )
 
+    advanced.add_argument(
+        "--dev-skip-tags-meta",
+        help="Dev only. don't run tag metadata. assumes redis and dumps",
+        default=False,
+        action="store_true",
+        dest="skip_tags_meta",
+    )
+
+    advanced.add_argument(
+        "--dev-skip-questions-meta",
+        help="Dev only. don't run questions first-pass. assumes redis and dumps",
+        default=False,
+        action="store_true",
+        dest="skip_questions_meta",
+    )
+
+    advanced.add_argument(
+        "--dev-skip-users",
+        help="Dev only. don't read users file. assumes redis and dumps",
+        default=False,
+        action="store_true",
+        dest="skip_users",
+    )
+
     parser.add_argument(
         "--version",
         help="Display scraper version and exit",

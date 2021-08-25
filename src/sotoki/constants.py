@@ -92,10 +92,12 @@ class Sotoconf:
     prepare_only: Optional[bool] = False
     keep_intermediate_files: Optional[bool] = False
     stats_filename: Optional[str] = None
-    #
     build_dir_is_tmp_dir: Optional[bool] = False
     dump_date: Optional[datetime.date] = datetime.date.today()
     open_shell: Optional[bool] = False
+    skip_tags_meta: Optional[bool] = False
+    skip_questions_meta: Optional[bool] = False
+    skip_users: Optional[bool] = False
 
     @property
     def s3_url(self):
