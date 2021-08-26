@@ -21,6 +21,7 @@ from .constants import (
     NB_QUESTIONS_PAGES,
 )
 from .archives import ArchiveManager
+from .utils.misc import restart_redis_at
 from .utils.s3 import setup_s3_and_check_credentials
 from .utils.sites import get_site
 from .utils.shared import Global, logger
@@ -282,8 +283,9 @@ class StackExchangeToZim:
         if not self.conf.skip_tags_meta:
             TagFinder().run()
         Global.database.ack_tags_ids()
-        TagExcerptRecorder().run()
-        TagDescriptionRecorder().run()
+        if not self.conf.skip_tags_meta:
+            TagExcerptRecorder().run()
+            TagDescriptionRecorder().run()
         Global.database.clear_tags_mapping()
         Global.database.purge()
 
@@ -319,6 +321,9 @@ class StackExchangeToZim:
         logger.debug("Cleaning-up users list")
         Global.database.cleanup_users()
         Global.database.purge()
+        if self.conf.redis_pid:
+            Global.database.dump()
+            restart_redis_at(self.conf.redis_pid)
 
     def process_questions(self):
         # We walk again through all Posts, this time to create indiv pages in Zim

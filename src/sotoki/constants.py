@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 # vim: ai ts=4 sts=4 et sw=4 nu
 
+import os
 import pathlib
 import datetime
+import re
 import tempfile
 import urllib.parse
 from typing import Optional, List
@@ -93,6 +95,7 @@ class Sotoconf:
     keep_intermediate_files: Optional[bool] = False
     stats_filename: Optional[str] = None
     build_dir_is_tmp_dir: Optional[bool] = False
+    defrag_redis: Optional[str] = ""
     dump_date: Optional[datetime.date] = datetime.date.today()
     open_shell: Optional[bool] = False
     skip_tags_meta: Optional[bool] = False
@@ -110,6 +113,21 @@ class Sotoconf:
     @property
     def with_user_identicons(self):
         return not self.without_images and not self.without_user_identicons
+
+    @property
+    def redis_pid(self):
+        if not self.defrag_redis:
+            return
+        if self.defrag_redis == "service":
+            return self.defrag_redis
+        if self.defrag_redis.isnumeric():
+            return int(self.defrag_redis)
+        m = re.match(r"^ENV:(?P<name>.+)", self.defrag_redis)
+        if m and m.groupdict().get("name"):
+            try:
+                return int(os.getenv(m.groupdict().get("name")))
+            except Exception:
+                return
 
     @property
     def any_restriction(self):

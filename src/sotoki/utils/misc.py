@@ -4,14 +4,14 @@
 
 import zlib
 import pathlib
-import logging
+import platform
 import subprocess
 import urllib.parse
 from typing import Union, Iterable
 
 import psutil
 
-logger = logging.getLogger(__name__)
+from .shared import logger
 
 
 def has_binary(name):
@@ -110,3 +110,23 @@ def get_available_memory():
         return mem_total - mem_used
 
     return psutil.virtual_memory().available
+
+
+def restart_redis_at(pid: Union[str, int]):
+    """restart redis-server so it reallocates from dump, eliminating fragmentation"""
+    if pid == "service":
+        logger.debug("Restarting redis")
+        if platform.system() == "Darwin":
+            subprocess.run(
+                ["/usr/bin/env", "brew", "services", "stop", "redis"], check=True
+            )
+            subprocess.run(
+                ["/usr/bin/env", "brew", "services", "start", "redis"], check=True
+            )
+            return
+        subprocess.run(["/usr/bin/env", "service", "redis-server", "stop"], check=True)
+
+    logger.debug(f"Looking for redis at PID {pid}")
+    ps = psutil.Process(pid)
+    logger.debug(f"Calling `redis-restart {pid}`")
+    subprocess.Popen(["/usr/bin/env", "redis-restart", str(pid)], cwd=ps.cwd())

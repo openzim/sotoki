@@ -673,6 +673,10 @@ class RedisDatabase(
         """ask redis to reclaim dirty pages space. Effective only on Linux"""
         self.conn.memory_purge()
 
+    def dump(self):
+        """ SAVE a dump on disk (as dump.rdb on CWD) """
+        self.conn.save()
+
     def teardown(self):
         self.pipe.execute()
         self.conn.close()
