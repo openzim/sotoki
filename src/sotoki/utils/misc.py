@@ -129,4 +129,6 @@ def restart_redis_at(pid: Union[str, int]):
     logger.debug(f"Looking for redis at PID {pid}")
     ps = psutil.Process(pid)
     logger.debug(f"Calling `redis-restart {pid}`")
-    subprocess.Popen(["/usr/bin/env", "redis-restart", str(pid)], cwd=ps.cwd())
+    subprocess.run(
+        ["/usr/bin/env", "redis-restart", str(pid)], cwd=ps.cwd(), check=True
+    )
