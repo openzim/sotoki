@@ -357,7 +357,7 @@ class UsersDatabaseMixin:
     def cleanup_users(self):
         """frees list of active users that we won't need anymore. sets nb_users
 
-            Loads top_users from JSON dump if avail and top_users are empty"""
+        Loads top_users from JSON dump if avail and top_users are empty"""
         self.nb_users = len(self._all_users_ids)
         del self._all_users_ids
         self.top_users = self._top_users.sorted()
@@ -674,7 +674,7 @@ class RedisDatabase(
         self.conn.memory_purge()
 
     def dump(self):
-        """ SAVE a dump on disk (as dump.rdb on CWD) """
+        """SAVE a dump on disk (as dump.rdb on CWD)"""
         self.conn.save()
 
     def teardown(self):
