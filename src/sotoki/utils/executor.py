@@ -65,7 +65,6 @@ class SotokiExecutor(queue.Queue):
                 self.put((task, kwargs), block=True, timeout=3.0)
             except queue.Full:
                 if self.no_more:
-                    logger.debug("rejecting task: queue full and currently `join`ing")
                     break
             else:
                 break
@@ -92,12 +91,10 @@ class SotokiExecutor(queue.Queue):
                 func, kwargs = self.get(block=True, timeout=2.0)
             except queue.Empty:
                 if self.no_more:
-                    logger.debug("queue Empty with no_more flag, exiting loop")
                     break
                 continue
             except TypeError:
                 # received None from the queue. most likely shuting down
-                logger.debug("task is None, prob. shutting down, exiting")
                 return
 
             raises = kwargs.pop("raises") if "raises" in kwargs.keys() else False
@@ -120,8 +117,6 @@ class SotokiExecutor(queue.Queue):
                 if callback:
                     callback.__call__()
 
-        logger.debug("worker out of alive loop")
-
     def drain(self):
         """Empty the queue without processing the tasks (tasks will be lost)"""
         while True:
@@ -135,12 +130,10 @@ class SotokiExecutor(queue.Queue):
         logger.debug(f"joining all threads for {self.prefix}")
         self.no_more = True
         for t in self._workers:
-            logger.debug(f"joining thread {t.name}")
             e = threading.Event()
             while t.is_alive():
                 t.join(1)
                 e.wait(timeout=2)
-            logger.debug(f"joined thread {t.name}")
         logger.debug(f"all threads joined for {self.prefix}")
 
     def release_halt(self):
