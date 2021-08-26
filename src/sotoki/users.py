@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 # vim: ai ts=4 sts=4 et sw=4 nu
 
-
 from slugify import slugify
 
 from .constants import (
@@ -48,11 +47,10 @@ class UsersWalker(Walker):
 
     def endElement(self, name):
         if name == "row":
-            # only if processor_callback retained it (to be included)
-            if self.processor(item=self.user) and self.conf.with_user_identicons:
-                self.seen += 1
-                if self.seen % 1000 == 0:
-                    logger.debug(f"Seen {self.seen}")
+            self.processor(item=self.user)
+            self.seen += 1
+            if self.seen % 1000 == 0:
+                logger.debug(f"Seen {self.seen}")
 
 
 class UserGenerator(Generator):
@@ -64,9 +62,8 @@ class UserGenerator(Generator):
 
     def processor_callback(self, item):
         if not self.database.is_active_user(int(item["Id"])):
-            return
+            return False  # user was skipped
         super().processor_callback(item=item)
-        return True
 
     def processor(self, item):
         user = item

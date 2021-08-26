@@ -270,11 +270,48 @@ def main():
     )
 
     advanced.add_argument(
+        "--defrag-redis",
+        help="Restart Redis after Users cleanup to remove fragmentation. "
+        "On large domains, redis fragmentation can represent 25%% (several GB) of RAM. "
+        "This initiate a SAVE once DB is filled, then restart redis so that "
+        "it will restore the dump without fragmentation. "
+        "Expects “service” string as param to restart using `service` command (linux) "
+        "or brew (macos). If your redis-server is started differently, pass it a redis "
+        "PID or an `ENV:` prefixed-environ name containing PID and place a "
+        "`redis-restart` named script (taking PID as arg) in PATH",
+        dest="defrag_redis",
+    )
+
+    advanced.add_argument(
         "--shell",
         help="Initialize context then open a shell (developers only). Requires ipython",
         default=False,
         action="store_true",
         dest="open_shell",
+    )
+
+    advanced.add_argument(
+        "--dev-skip-tags-meta",
+        help="Dev only. don't run tag metadata. assumes redis and dumps",
+        default=False,
+        action="store_true",
+        dest="skip_tags_meta",
+    )
+
+    advanced.add_argument(
+        "--dev-skip-questions-meta",
+        help="Dev only. don't run questions first-pass. assumes redis and dumps",
+        default=False,
+        action="store_true",
+        dest="skip_questions_meta",
+    )
+
+    advanced.add_argument(
+        "--dev-skip-users",
+        help="Dev only. don't read users file. assumes redis and dumps",
+        default=False,
+        action="store_true",
+        dest="skip_users",
     )
 
     parser.add_argument(

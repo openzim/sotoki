@@ -16,3 +16,4 @@ dateparser>=1.0.0,<1.1
 psutil>=5.8.0,<5.9
 python-snappy>=0.6.0,<1.0
 bidict>=0.21.2,<0.22
+cchardet>=2.1.7,<2.2

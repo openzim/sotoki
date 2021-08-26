@@ -133,3 +133,7 @@ dmypy.json
 
 .dockerignore
 src/sotoki/assets/*
+/profiles
+/*test*.py
+*.zim
+*.rdb

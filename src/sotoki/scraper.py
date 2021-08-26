@@ -21,6 +21,7 @@ from .constants import (
     NB_QUESTIONS_PAGES,
 )
 from .archives import ArchiveManager
+from .utils.misc import restart_redis_at
 from .utils.s3 import setup_s3_and_check_credentials
 from .utils.sites import get_site
 from .utils.shared import Global, logger
@@ -279,9 +280,12 @@ class StackExchangeToZim:
             Global.progresser.TAGS_METADATA_STEP,
             nb_total=int(Global.site["TotalTags"]) * 3,
         )
-        TagFinder().run()
-        TagExcerptRecorder().run()
-        TagDescriptionRecorder().run()
+        if not self.conf.skip_tags_meta:
+            TagFinder().run()
+        Global.database.ack_tags_ids()
+        if not self.conf.skip_tags_meta:
+            TagExcerptRecorder().run()
+            TagDescriptionRecorder().run()
         Global.database.clear_tags_mapping()
         Global.database.purge()
 
@@ -296,7 +300,9 @@ class StackExchangeToZim:
             Global.progresser.QUESTIONS_METADATA_STEP,
             nb_total=int(Global.site["TotalQuestions"]),
         )
-        PostFirstPasser().run()
+        if not self.conf.skip_questions_meta:
+            PostFirstPasser().run()
+        Global.database.ack_users_ids()
         Global.database.clear_extra_tags_questions_list(NB_PAGINATED_QUESTIONS_PER_TAG)
         Global.database.purge()
 
@@ -310,10 +316,14 @@ class StackExchangeToZim:
             Global.progresser.USERS_STEP,
             nb_total=int(Global.site["TotalUsers"]),
         )
-        UserGenerator().run()
+        if not self.conf.skip_users:
+            UserGenerator().run()
         logger.debug("Cleaning-up users list")
         Global.database.cleanup_users()
         Global.database.purge()
+        if self.conf.redis_pid:
+            Global.database.dump()
+            restart_redis_at(self.conf.redis_pid)
 
     def process_questions(self):
         # We walk again through all Posts, this time to create indiv pages in Zim

@@ -201,6 +201,27 @@ class TagsDatabaseMixin:
         self.bump_seen(2)
         self.commit_maybe()
 
+    def ack_tags_ids(self):
+        """dump or load tags_ids and tags_details_ids"""
+        tags_ids_fpath = Global.conf.build_dir / "tags_ids.json"
+        if not self.tags_ids and tags_ids_fpath.exists():
+            logger.debug(f"loading tags_ids from {tags_ids_fpath.name}")
+            with open(tags_ids_fpath, "r") as fh:
+                for tid, tname in json.load(fh).items():
+                    self.tags_ids[tid] = tname
+        else:
+            with open(tags_ids_fpath, "w") as fh:
+                json.dump(dict(self.tags_ids), fh, indent=4)
+
+        tags_details_ids_fpath = Global.conf.build_dir / "tags_details_ids.json"
+        if not self.tags_details_ids and tags_details_ids_fpath.exists():
+            logger.debug(f"loading tags_details_ids from {tags_details_ids_fpath.name}")
+            with open(tags_details_ids_fpath, "r") as fh:
+                self.tags_details_ids = json.load(fh)
+        else:
+            with open(tags_details_ids_fpath, "w") as fh:
+                json.dump(self.tags_details_ids, fh, indent=4)
+
     def record_tag_detail(self, name: str, field: str, content: str):
         """insert or update tag row for excerpt or description"""
         self.pipe.set(self.tag_detail_key(name, field), content)
@@ -322,12 +343,34 @@ class UsersDatabaseMixin:
         self.bump_seen()
         self.commit_maybe()
 
+    def ack_users_ids(self):
+        """dump or load users_ids"""
+        all_users_ids_fpath = Global.conf.build_dir / "all_users_ids.json"
+        if not self._all_users_ids and all_users_ids_fpath.exists():
+            logger.debug(f"loading all_users_ids from {all_users_ids_fpath.name}")
+            with open(all_users_ids_fpath, "r") as fh:
+                self._all_users_ids = set(json.load(fh))
+        else:
+            with open(all_users_ids_fpath, "w") as fh:
+                json.dump(list(self._all_users_ids), fh, indent=4)
+
     def cleanup_users(self):
-        """frees list of active users that we won't need anymore. sets nb_users"""
-        self.nb_users = len(self._all_users)
-        del self._all_users
+        """frees list of active users that we won't need anymore. sets nb_users
+
+        Loads top_users from JSON dump if avail and top_users are empty"""
+        self.nb_users = len(self._all_users_ids)
+        del self._all_users_ids
         self.top_users = self._top_users.sorted()
         del self._top_users
+
+        top_users_fpath = Global.conf.build_dir / "top_users.json"
+        if not self.top_users and top_users_fpath.exists():
+            logger.debug(f"loading top_users from {top_users_fpath.name}")
+            with open(top_users_fpath, "r") as fh:
+                self.top_users = json.load(fh)
+        else:
+            with open(top_users_fpath, "w") as fh:
+                json.dump(self.top_users, fh, indent=4)
 
     def get_user_full(self, user_id: int) -> str:
         """All recorded information for a UserId
@@ -350,7 +393,7 @@ class UsersDatabaseMixin:
         """whether a user_id is considered active (has interaction in content)
 
         WARN: only valid during Users listing step"""
-        return user_id in self._all_users
+        return user_id in self._all_users_ids
 
 
 class PostsDatabaseMixin:
@@ -398,7 +441,7 @@ class PostsDatabaseMixin:
 
         # update set of users_ids (users with activity)
         for user_id in post.get("users_ids"):
-            self._all_users.add(user_id)
+            self._all_users_ids.add(user_id)
 
         # add this postId to the ordered list of questions sorted by score
         self.pipe.zadd(
@@ -534,7 +577,7 @@ class RedisDatabase(
         super().__init__()
 
         # temp set to hold all active users' IDs
-        self._all_users = set()
+        self._all_users_ids = set()
         # temp dict to hold `n` most active users' ID:score
         self._top_users = TopDict(NB_PAGINATED_USERS)
         # total number of active users
@@ -585,7 +628,7 @@ class RedisDatabase(
         self.conn.get("NOOP")
 
         # clean up potentially existing DB
-        if not Global.conf.open_shell:
+        if not Global.conf.open_shell and not Global.conf.keep_redis:
             self.conn.flushdb()
 
     def make_dummy_query(self):
@@ -629,6 +672,10 @@ class RedisDatabase(
     def purge(self):
         """ask redis to reclaim dirty pages space. Effective only on Linux"""
         self.conn.memory_purge()
+
+    def dump(self):
+        """SAVE a dump on disk (as dump.rdb on CWD)"""
+        self.conn.save()
 
     def teardown(self):
         self.pipe.execute()
