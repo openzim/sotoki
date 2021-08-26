@@ -628,7 +628,7 @@ class RedisDatabase(
         self.conn.get("NOOP")
 
         # clean up potentially existing DB
-        if not Global.conf.open_shell:
+        if not Global.conf.open_shell and not Global.conf.keep_redis:
             self.conn.flushdb()
 
     def make_dummy_query(self):
