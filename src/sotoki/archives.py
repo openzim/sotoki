@@ -6,7 +6,7 @@ import datetime
 import concurrent.futures as cf
 
 import requests
-import dateparser
+import dateutil.parser
 from zimscraperlib.download import stream_file, save_large_file
 
 from .utils.shared import Global, logger
@@ -66,8 +66,8 @@ class ArchiveManager:
         header = resp.headers.get("Last-Modified")
         if header:
             try:
-                return dateparser.parse(header)
-            except ValueError:
+                return dateutil.parser.parse(header)
+            except Exception:
                 pass
         return datetime.datetime.now()  # default to today
 
