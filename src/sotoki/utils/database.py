@@ -21,6 +21,7 @@ import snappy
 
 from .shared import Global, logger
 from .html import get_text
+from .misc import restart_redis_at
 from ..constants import UTF8, NB_PAGINATED_USERS
 
 
@@ -672,6 +673,27 @@ class RedisDatabase(
     def purge(self):
         """ask redis to reclaim dirty pages space. Effective only on Linux"""
         self.conn.memory_purge()
+
+    def defrag_external(self):
+        if not Global.conf.redis_pid:
+            logger.warning("Cannot defrag with {Global.conf.redis_pid=}")
+            return
+
+        logger.info("Starting REDIS defrag (external)")
+        logger.debug(".. dumping to filesystem")
+        self.dump()
+        logger.debug(".. restarting redis")
+        restart_redis_at(Global.conf.redis_pid)
+        logger.debug(".. awaiting dump load completion")
+        while True:
+            try:
+                self.conn.get("NOOP")
+            except redis.BusyLoadingError:
+                logger.debug("> busy")
+                time.sleep(2)
+            else:
+                break
+        logger.debug("REDIS is ready")
 
     def dump(self):
         """SAVE a dump on disk (as dump.rdb on CWD)"""

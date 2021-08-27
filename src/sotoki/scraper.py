@@ -21,7 +21,6 @@ from .constants import (
     NB_QUESTIONS_PAGES,
 )
 from .archives import ArchiveManager
-from .utils.misc import restart_redis_at
 from .utils.s3 import setup_s3_and_check_credentials
 from .utils.sites import get_site
 from .utils.shared import Global, logger
@@ -322,8 +321,7 @@ class StackExchangeToZim:
         Global.database.cleanup_users()
         Global.database.purge()
         if self.conf.redis_pid:
-            Global.database.dump()
-            restart_redis_at(self.conf.redis_pid)
+            Global.database.defrag_external()
 
     def process_questions(self):
         # We walk again through all Posts, this time to create indiv pages in Zim

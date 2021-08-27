@@ -57,6 +57,7 @@ fi\n\
 echo -n \"Starting redis\"\n\
 redis-server --daemonize yes --save \"\" --appendonly no \
 --unixsocket /var/run/redis.sock --unixsocketperm 744 \
+--dir /output \
 --port 6379 --bind 0.0.0.0 --pidfile /var/run/redis.pid\n\
 \n\
 while ! test -f /var/run/redis.pid; do\n\
