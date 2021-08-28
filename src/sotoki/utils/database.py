@@ -209,7 +209,7 @@ class TagsDatabaseMixin:
             logger.debug(f"loading tags_ids from {tags_ids_fpath.name}")
             with open(tags_ids_fpath, "r") as fh:
                 for tid, tname in json.load(fh).items():
-                    self.tags_ids[tid] = tname
+                    self.tags_ids[int(tid)] = tname
         else:
             with open(tags_ids_fpath, "w") as fh:
                 json.dump(dict(self.tags_ids), fh, indent=4)
