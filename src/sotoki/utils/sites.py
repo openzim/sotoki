@@ -65,3 +65,4 @@ def get_site(domain) -> dict:
             site["Domain"] = domain
             site.update(check_features_on(f"https://{domain}"))
             return site
+    raise KeyError(f"No site details found for {domain=}")
