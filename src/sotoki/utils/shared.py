@@ -4,14 +4,58 @@
 # pylint: disable=cyclic-import
 
 import gc
-import datetime
 import threading
 import logging
+import weakref
 
-from zimscraperlib.zim.creator import Creator
 from zimscraperlib.logging import getLogger as lib_getLogger
 
 from ..constants import NAME
+
+
+class Dummy:
+    pass
+
+
+class FakeCreator:
+    def __init__(self, filename, workdir):
+        self.filename = filename
+        self.workdir = workdir
+
+    def start(self):
+        pass
+
+    def finish(self):
+        pass
+
+    def add_illustration(self, *args, **kwargs):
+        pass
+
+    def add_redirect(self, *args, **kwargs):
+        pass
+
+    def add_item_for(
+        self,
+        path: str,
+        content=None,
+        fpath=None,
+        title: str = None,
+        mimetype=None,
+        callback=None,
+        is_front=None,
+    ):
+        if fpath:
+            return
+
+        if callback:
+            obj = Dummy()
+            if callable(callback):
+                weakref.finalize(obj, callback)
+            else:
+                weakref.finalize(obj, *callback)
+
+    def add_item(self, item):
+        self.add_item_for(path=item.get_path(), content=b"Item")
 
 
 class Global:
@@ -100,19 +144,11 @@ class Global:
 
         Global.renderer = Renderer()
 
-        Global.creator = Creator(
-            filename=Global.conf.output_dir.joinpath(Global.conf.fname),
-            main_path="questions",
-            favicon_path="illustration",
-            language="eng",
-            title=Global.conf.title,
-            description=Global.conf.description,
-            creator=Global.conf.author,
-            publisher=Global.conf.publisher,
-            name=Global.conf.name,
-            tags=";".join(Global.conf.tags),
-            date=datetime.date.today(),
-        ).config_verbose(True)
+        zimdir = Global.conf.build_dir / "fake-zim"
+        zimdir.mkdir(parents=True, exist_ok=True)
+        Global.creator = FakeCreator(
+            filename=Global.conf.output_dir.joinpath(Global.conf.fname), workdir=zimdir
+        )
 
 
 class GlobalMixin:
