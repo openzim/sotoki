@@ -249,6 +249,7 @@ class PostGenerator(Generator):
                 title=self.rewriter.rewrite_string(post.get("Title")),
                 content=post_page,
                 mimetype="text/html",
+                is_front=True,
                 callback=self.release,
             )
         del post_page
@@ -278,9 +279,9 @@ class PostGenerator(Generator):
                     content=self.renderer.get_all_questions_for_page(page),
                     mimetype="text/html",
                     title="Highest Voted Questions" if page_number == 1 else None,
+                    is_front=page_number == 1,
                 )
         with self.lock:
             self.creator.add_redirect(
-                path="questions_page=1",
-                target_path="questions",
+                path="questions_page=1", target_path="questions", is_front=False
             )

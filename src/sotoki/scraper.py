@@ -114,7 +114,7 @@ class StackExchangeToZim:
         # download and add actual favicon (ICO file)
         favicon_fpath = self.build_dir / "favicon.ico"
         handle_user_provided_file(source=Global.site["IconUrl"], dest=favicon_fpath)
-        Global.creator.add_item_for("favicon.ico", fpath=favicon_fpath)
+        Global.creator.add_item_for("favicon.ico", fpath=favicon_fpath, is_front=False)
 
         # download apple-touch-icon
         Global.creator.add_item(
@@ -129,7 +129,9 @@ class StackExchangeToZim:
                     continue
                 logger.debug(str(fpath.relative_to(assets_root)))
                 Global.creator.add_item_for(
-                    path=str(fpath.relative_to(assets_root)), fpath=fpath
+                    path=str(fpath.relative_to(assets_root)),
+                    fpath=fpath,
+                    is_front=False,
                 )
 
         # download primary|secondary.css from target
@@ -382,6 +384,7 @@ class StackExchangeToZim:
                 title="About",
                 content=Global.renderer.get_about_page(),
                 mimetype="text/html",
+                is_front=True,
             )
             Global.creator.add_redirect(path="", target_path="questions")
         Global.progresser.update(incr=True)

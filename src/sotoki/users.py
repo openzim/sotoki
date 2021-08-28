@@ -91,6 +91,7 @@ class UserGenerator(Generator):
                 title=f'User {user["DisplayName"]}',
                 content=user_page,
                 mimetype="text/html",
+                is_front=True,
                 callback=self.release,
             )
         del user_page
@@ -122,9 +123,11 @@ class UserGenerator(Generator):
                     content=self.renderer.get_users_for_page(page),
                     mimetype="text/html",
                     title="Users" if page_number == 1 else None,
+                    is_front=page_number == 1,
                 )
         with self.lock:
             self.creator.add_redirect(
                 path="users_page=1",
                 target_path="users",
+                is_front=False,
             )

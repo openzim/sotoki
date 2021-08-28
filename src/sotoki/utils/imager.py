@@ -253,6 +253,7 @@ class Imager:
                     path=path,
                     content=self.get_image_data(url.geturl(), **resize_args).getvalue(),
                     mimetype="image/webp",
+                    is_front=False,
                     callback=self.once_done,
                 )
             return path
@@ -285,6 +286,7 @@ class Imager:
                     path=path,
                     content=fileobj.getvalue(),
                     mimetype="image/webp",
+                    is_front=False,
                     callback=self.once_done,
                 )
             return path
@@ -302,6 +304,7 @@ class Imager:
                 path=path,
                 content=fileobj.getvalue(),
                 mimetype="image/webp",
+                is_front=False,
                 callback=self.once_done,
             )
 

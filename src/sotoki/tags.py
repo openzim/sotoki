@@ -105,12 +105,14 @@ class TagGenerator(Generator):
                         title=f"Highest Voted '{tag_name}' Questions"
                         if page_number == 1
                         else None,
+                        is_front=page_number == 1,
                     )
 
             with self.lock:
                 self.creator.add_redirect(
                     path=f"questions/tagged/{tag_name}_page=1",
                     target_path=f"questions/tagged/{tag_name}",
+                    is_front=False,
                 )
             self.progresser.update(incr=True)
 
@@ -126,11 +128,13 @@ class TagGenerator(Generator):
                     content=self.renderer.get_all_tags_for_page(page),
                     mimetype="text/html",
                     title="Tags" if page_number == 1 else None,
+                    is_front=page_number == 1,
                 )
         with self.lock:
             self.creator.add_redirect(
                 path="tags_page=1",
                 target_path="tags",
+                is_front=False,
             )
 
         with self.lock:
@@ -140,4 +144,5 @@ class TagGenerator(Generator):
                     list(self.database.query_set(self.database.tags_key()))
                 ),
                 mimetype="application/json",
+                is_front=False,
             )

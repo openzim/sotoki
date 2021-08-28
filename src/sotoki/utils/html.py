@@ -7,6 +7,7 @@ import urllib.parse
 import warnings
 
 import bs4
+
 # import mistune
 # from mistune.plugins import plugin_strikethrough, plugin_table, plugin_footnotes
 from tld import get_fld
@@ -62,7 +63,7 @@ SOCIAL_DOMAINS = [
 REDACTED_STRING = "[redacted]"
 
 # prevent beautifulsoup warning on comments containing only URLs
-warnings.filterwarnings('ignore', category=bs4.MarkupResemblesLocatorWarning)
+warnings.filterwarnings("ignore", category=bs4.MarkupResemblesLocatorWarning)
 
 
 class Rewriter(GlobalMixin):
