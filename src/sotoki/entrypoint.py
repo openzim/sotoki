@@ -36,13 +36,26 @@ class ListAllAction(argparse.Action):
             nb_questions = int(site.get("@TotalQuestions", 0))
             return (url, site.get("@Name"), "{:,}".format(nb_questions))
 
+        # not sure what's most useful: order by domain or by Nb of question?
+        order_by_questions = True
+        order_desc = True
+
+        def _sort_key(item):
+            if order_by_questions:
+                return int(item[2].replace(",", ""))
+            else:
+                return item[0]
+
         builder = TableBuilderClassic()
         formatter = parser._get_formatter()
+
         formatter.add_text(
             builder.build_table(
                 header=["Domain", "Name", "Nb. Questions"],
                 data=sorted(
-                    [to_row(site) for site in get_all_sites()], key=lambda r: r[0]
+                    [to_row(site) for site in get_all_sites()],
+                    key=_sort_key,
+                    reverse=order_desc,
                 ),
             ),
         )
