@@ -20,4 +20,4 @@ jobs:
         # not using --redundant as user profile pics can be duplicates
         # not using --url_internal as zimcheck doesn't account for <base/> https://github.com/openzim/zim-tools/issues/250
         # not using --url_external as zimcheck doesn't account for <blockquote />, <script />, etc. https://github.com/openzim/zim-tools/issues/149
-        run: docker run -v $(pwd)/output:/data:ro openzim/zim-tools:latest zimcheck --empty --checksum --integrity --metadata --favicon --main --mime --details /data/beer_meta.zim
+        run: docker run -v $(pwd)/output:/data:ro openzim/zim-tools:latest zimcheck --empty --checksum --integrity --metadata --favicon --main --details /data/beer_meta.zim
