@@ -6,8 +6,8 @@
             </div>
             <div id="questions" class="bc-black-100 mln24 pl24">
                 {% if excerpt or description %}<div class="s-prose js-post-body">
-                    {% if excerpt %}<div class="welovestackoverflow" id="wiki-excerpt"><p>{{ excerpt }}</p></div>{% endif %}
-                    {% if description %}{{ description }}{% endif %}
+                    {% if excerpt %}<div class="welovestackoverflow" id="wiki-excerpt"><p>{{ excerpt|rewrote(to_root) }}</p></div>{% endif %}
+                    {% if description %}{{ description|rewrote(to_root) }}{% endif %}
                 </div>{% endif %}
 
                 <div>
