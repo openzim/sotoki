@@ -11,6 +11,12 @@ import bs4
 # import mistune
 # from mistune.plugins import plugin_strikethrough, plugin_table, plugin_footnotes
 from tld import get_fld
+from tld.exceptions import (
+    TldBadUrl,
+    TldDomainNotFound,
+    TldImproperlyConfigured,
+    TldIOError,
+)
 from slugify import slugify
 
 from .shared import logger, GlobalMixin
@@ -238,12 +244,15 @@ class Rewriter(GlobalMixin):
             self.rewrite_external_link(link)
 
     def rewrite_user_link(self, link):
-        if self.conf.without_users_links and (
-            link["href"].startswith("mailto:")
-            or get_fld(link["href"]) in SOCIAL_DOMAINS
-        ):
-            self.redact_link(link)
-            return 1
+        try:
+            if self.conf.without_users_links and (
+                link["href"].startswith("mailto:")
+                or get_fld(link["href"]) in SOCIAL_DOMAINS
+            ):
+                self.redact_link(link)
+                return 1
+        except (TldBadUrl, TldDomainNotFound, TldImproperlyConfigured, TldIOError):
+            return 0
 
     def rewrite_external_link(self, link):
         link["class"] = " ".join(link.get("class", []) + ["external-link"])
