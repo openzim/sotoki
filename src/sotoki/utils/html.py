@@ -11,12 +11,6 @@ import bs4
 # import mistune
 # from mistune.plugins import plugin_strikethrough, plugin_table, plugin_footnotes
 from tld import get_fld
-from tld.exceptions import (
-    TldBadUrl,
-    TldDomainNotFound,
-    TldImproperlyConfigured,
-    TldIOError,
-)
 from slugify import slugify
 
 from .shared import logger, GlobalMixin
@@ -251,7 +245,8 @@ class Rewriter(GlobalMixin):
             ):
                 self.redact_link(link)
                 return 1
-        except (TldBadUrl, TldDomainNotFound, TldImproperlyConfigured, TldIOError):
+        except Exception as exc:
+            logger.warning(f"Failed to get fld for {link.get('href')}: {exc}")
             return 0
 
     def rewrite_external_link(self, link):
