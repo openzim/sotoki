@@ -179,7 +179,11 @@ class Rewriter(GlobalMixin):
 
         self.rewrite_links(soup, to_root)
 
-        self.rewrite_images(soup, to_root)
+        try:
+            self.rewrite_images(soup, to_root)
+        except Exception as exc:
+            logger.warning(f"Failed to rewrite image: {exc}")
+            logger.debug(content)
 
         # apply censorship rewriting
         if self.conf.censor_words_list:
