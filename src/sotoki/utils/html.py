@@ -66,6 +66,15 @@ REDACTED_STRING = "[redacted]"
 warnings.filterwarnings("ignore", category=bs4.MarkupResemblesLocatorWarning)
 
 
+class BeautifulSoup(bs4.BeautifulSoup):
+    def find_all(self, *args, **kwargs):
+        try:
+            return super().find_all(*args, **kwargs)
+        except AttributeError as exc:
+            logger.error(exc)
+            return []
+
+
 class Rewriter(GlobalMixin):
     redacted_text = "[redacted]"
 
@@ -122,9 +131,9 @@ class Rewriter(GlobalMixin):
 
     def redact_link(self, link):
         for attr in ("href", "title"):
-            if attr in link:
-                del link[attr]
-        link.contents = [self.redacted_string]
+            if attr in link.attrs:
+                del link.attrs[attr]
+        link.contents = [bs4.NavigableString("[redacted]")]
 
     def rewrite(self, content: str, to_root: str = "", unwrap: bool = False):
         """rewrite a stackexchange HTML markup to comply with ZIM and options
@@ -152,7 +161,7 @@ class Rewriter(GlobalMixin):
 
         try:
             # soup = bs4.BeautifulSoup(self.markdown(content), "lxml")
-            soup = bs4.BeautifulSoup(content, "lxml")
+            soup = BeautifulSoup(content, "lxml")
         except Exception as exc:
             logger.error(f"Unable to init soup or markdown for {content}: {exc}")
             return content
@@ -179,11 +188,7 @@ class Rewriter(GlobalMixin):
 
         self.rewrite_links(soup, to_root)
 
-        try:
-            self.rewrite_images(soup, to_root)
-        except Exception as exc:
-            logger.warning(f"Failed to rewrite image: {exc}")
-            logger.debug(content)
+        self.rewrite_images(soup, to_root)
 
         # apply censorship rewriting
         if self.conf.censor_words_list:
@@ -205,7 +210,7 @@ class Rewriter(GlobalMixin):
             if not link.get("href", "").strip():
                 # remove link to "" as the use of a <base /> in our template
                 # would turn it into a link to root
-                del link["href"]
+                del link.attrs["href"]
                 continue
 
             # skip links inside <code /> nodes
@@ -256,7 +261,7 @@ class Rewriter(GlobalMixin):
     def rewrite_external_link(self, link):
         link["class"] = " ".join(link.get("class", []) + ["external-link"])
         if self.conf.without_external_links:
-            del link["href"]
+            del link.attrs["href"]
 
     def rewrite_relative_link(self, link, to_root):
         # link to root (/)
@@ -287,7 +292,7 @@ class Rewriter(GlobalMixin):
             aid = qid_answer_m.groupdict().get("answer_id")
             title = self.database.get_question_title_desc(qid)["title"]
             if not title:
-                del link["href"]
+                del link.attrs["href"]
             else:
                 link["href"] = rebuild_uri(
                     uri=uri,
@@ -310,7 +315,7 @@ class Rewriter(GlobalMixin):
             qid = qid_m.groupdict().get("post_id")
             title = self.database.get_question_title_desc(qid)["title"]
             if not title:
-                del link["href"]
+                del link.attrs["href"]
             else:
                 link["href"] = rebuild_uri(
                     uri=uri,
@@ -353,7 +358,7 @@ class Rewriter(GlobalMixin):
                 # we might not get a response from database for that user_id:
                 # - link to be to an invalid user_id
                 # - user might have been excluded if without interactions
-                del link["href"]
+                del link.attrs["href"]
             else:
                 link["href"] = rebuild_uri(
                     uri=uri,
@@ -373,7 +378,7 @@ class Rewriter(GlobalMixin):
                     int(tid_m.groupdict().get("tag_id"))
                 )
             except KeyError:
-                del link["href"]
+                del link.attrs["href"]
             else:
                 link["href"] = rebuild_uri(
                     uri=uri,
@@ -409,7 +414,7 @@ class Rewriter(GlobalMixin):
 
             # remove all images
             if self.conf.without_images:
-                del img["src"]
+                del img.attrs["src"]
             # process all images
             else:
 
@@ -420,7 +425,7 @@ class Rewriter(GlobalMixin):
                 img["onerror"] = "onImageLoadingError(this);"
                 path = self.imager.defer(img["src"], is_profile=False)
                 if path is None:
-                    del img["src"]
+                    del img.attrs["src"]
                 else:
                     img["src"] = f"{to_root}{path}"
 
