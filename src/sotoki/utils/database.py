@@ -655,7 +655,9 @@ class RedisDatabase(
             try:
                 return func(*args)
             except redis.exceptions.ConnectionError as exc:
-                logger.error(f"Redis {func.upper()} Error #{attempt}/{retries}: {exc}")
+                logger.error(
+                    f"Redis {command.upper()} Error #{attempt}/{retries}: {exc}"
+                )
                 attempt += 1
                 # wait for 2s
                 threading.Event().wait(2)
