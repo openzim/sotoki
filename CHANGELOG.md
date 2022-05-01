@@ -1,4 +1,4 @@
-### 2.0.0.dev0
+### 2.0.0
 
 - rewrite using python-libzim (libzim7)
 - added --list-all option to list all available stackexchange domains

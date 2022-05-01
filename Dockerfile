@@ -70,6 +70,8 @@ export REDIS_PID=\$(/bin/cat /var/run/redis.pid)\n\
 exec \"\$@\"\n" > /usr/local/bin/start-redis-daemon && \
 chmod +x /usr/local/bin/start-redis-daemon
 
+RUN mkdir -p /output
+
 EXPOSE 6379
 ENTRYPOINT ["start-redis-daemon"]
 
