@@ -5,11 +5,6 @@
 - added --preparation-only to only prepare XML files
 - faster XML dumps creation step (x5)
 
-#### Current known bugs/limitations:
-
-- Not using new libzim Illustration API (awaiting pylibzim)
-- No WebP polyfill
-
 ### 1.3.2.dev0
 
 * removed pre-generated identicons (#141)
