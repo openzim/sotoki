@@ -134,6 +134,9 @@ class PostsWalker(WalkerWithTrigger):
     def startDocument(self):
         super().startDocument()
         self.currently_in = None
+        self.post = {}
+        self.comments = []
+        self.answers = []
 
     def startElement(self, name, attrs):
         # a question

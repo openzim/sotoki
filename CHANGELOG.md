@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Default Name (and thus default filename) now setto plain {domain} instead of replacing `.` with `_`.
+- Fixed crash when first post in XML dump has zero comments (#254)
 
 ## [2.0.0] - 2022-05-1
 
