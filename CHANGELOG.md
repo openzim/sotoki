@@ -1,3 +1,7 @@
+### Unreleased
+
+- changed default Name (and thus default filename) to plain {domain} instead of replacing `.` with `_`.
+
 ### 2.0.0
 
 - rewrite using python-libzim (libzim7)
