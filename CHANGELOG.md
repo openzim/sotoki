@@ -1,15 +1,24 @@
-### Unreleased
+## Changelog
 
-- changed default Name (and thus default filename) to plain {domain} instead of replacing `.` with `_`.
+All notable changes to this project are documented in this file.
 
-### 2.0.0
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (as of version 2.0.1).
+
+## [Unreleased]
+
+### Changed
+
+- Default Name (and thus default filename) now setto plain {domain} instead of replacing `.` with `_`.
+
+## [2.0.0] - 2022-05-1
 
 - rewrite using python-libzim (libzim7)
 - added --list-all option to list all available stackexchange domains
 - added --preparation-only to only prepare XML files
 - faster XML dumps creation step (x5)
 
-### 1.3.2.dev0
+## [1.3.2.dev0]
 
 * removed pre-generated identicons (#141)
 * removed templates_mini
@@ -26,7 +35,7 @@
 * error during ZIM creation now properly returns 1
 * handle internal `/` link
 
-### 1.3.1
+## [1.3.1]
 
 * fixed identicons for missing source image (#142)
 * use magic for filetype identification
@@ -39,7 +48,7 @@
 * Added timeout on HEAD request
 * Better handling of images with misleading extensions
 
-### 1.3
+## [1.3]
 
 * better logging
 * added suppot for optimizaton-cache (S3)
@@ -55,7 +64,7 @@
 * better filetype checking: fallback to magic no known filetype found in header
 * replaced filemagic with python-magic
 
-## 1.2.1
+## [1.2.1]
 
 * image optimization now performed in memory (/dev/shm) if possible (#84)
 * improved Usage wording
@@ -63,7 +72,7 @@
 * bumped external image optimizers versions
 * fixed failed-to-optimize image being left on disk (#111)
 
-## 1.2
+## [1.2]
 
 * Switched to python3, abandonning python2 support (#92)
 * Added warning before long extract operation (#91)
@@ -74,10 +83,10 @@
 * Changed image optimization timeout (20s vs 10s before)
 * Image optim and resize in memory (/dev/shm) if possible (#84)
 
-## 1.1.2
+## [1.1.2]
 
 * Added `physics.stackexchange.com` to list of Mathjax domains
 
-## 1.1.1
+## [1.1.1]
 
 * Initial version
