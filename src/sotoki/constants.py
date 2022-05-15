@@ -11,6 +11,8 @@ import urllib.parse
 from typing import Optional, List
 from dataclasses import dataclass, field
 
+from zimscraperlib.i18n import get_language_details, NotFound
+
 ROOT_DIR = pathlib.Path(__file__).parent
 NAME = ROOT_DIR.name
 
@@ -40,6 +42,19 @@ NB_USERS_PAGES = 100
 NB_PAGINATED_USERS = NB_USERS_PER_PAGE * NB_USERS_PAGES
 
 
+def lang_for_domain(domain):
+    match = re.match(r"^(?P<lang>[a-z]+)\.(stackexchange|stackoverflow)\.com$", domain)
+    if match:
+        so_code = match.groupdict()["lang"]
+        if so_code != "meta":
+            try:
+                lang = get_language_details(so_code)
+                return lang["iso-639-1"], lang["iso-639-3"]
+            except NotFound:
+                ...
+    return "en", "eng"
+
+
 @dataclass
 class Sotoconf:
     required = [
@@ -61,6 +76,8 @@ class Sotoconf:
     publisher: Optional[str] = ""
     fname: Optional[str] = ""
     tag: List[str] = field(default_factory=list)
+    iso_lang_1: str = "en"  # ISO-639-1
+    iso_lang_3: str = "eng"  # ISO-639-3
 
     # customization
     favicon: Optional[str] = ""
@@ -147,7 +164,8 @@ class Sotoconf:
     def __post_init__(self):
         self.dump_domain = self.domain  # dumps are named after unfixed domains
         self.domain = FIXED_DOMAINS.get(self.domain, self.domain)
-        self.name = self.domain
+        self.iso_lang_1, self.iso_lang_3 = lang_for_domain(self.domain)
+        self.name = f"{self.domain}_{self.iso_lang_1}"
         self.output_dir = pathlib.Path(self._output_dir).expanduser().resolve()
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.tmp_dir = pathlib.Path(self._tmp_dir).expanduser().resolve()

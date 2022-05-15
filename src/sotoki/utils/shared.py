@@ -104,7 +104,7 @@ class Global:
             filename=Global.conf.output_dir.joinpath(Global.conf.fname),
             main_path="questions",
             favicon_path="illustration",
-            language="eng",
+            language=Global.conf.iso_lang_3,
             title=Global.conf.title,
             description=Global.conf.description,
             creator=Global.conf.author,
