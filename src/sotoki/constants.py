@@ -11,6 +11,7 @@ import urllib.parse
 from typing import Optional, List
 from dataclasses import dataclass, field
 
+import requests
 from zimscraperlib.i18n import get_language_details, NotFound
 
 ROOT_DIR = pathlib.Path(__file__).parent
@@ -21,6 +22,10 @@ with open(ROOT_DIR.joinpath("VERSION"), "r") as fh:
 
 UTF8 = "utf-8"
 SCRAPER = f"{NAME} {VERSION}"
+USER_AGENT = (
+    f"{NAME}/{VERSION} (https://github.com/openzim/sotoki; "
+    f"contact+crawl@kiwix.org) requests/{requests.__version__}"
+)
 DOWNLOAD_ROOT = "https://archive.org/download/stackexchange"
 # some domains have changed names overtime but SE's Sites.xml still reference old Url
 FIXED_DOMAINS = {

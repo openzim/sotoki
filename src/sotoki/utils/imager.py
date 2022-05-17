@@ -20,6 +20,7 @@ from ..constants import (
     PROFILE_IMAGE_SIZE,
     POSTS_IMAGE_SIZE,
     IMAGES_ENCODER_VERSION,
+    USER_AGENT,
 )
 from .misc import rebuild_uri
 from .shared import Global
@@ -157,13 +158,14 @@ class Imager:
     def get_version_ident_for(self, url: str) -> str:
         """~version~ of the URL data to use for comparisons. Built from headers"""
         try:
-            resp = requests.head(url)
+            resp = requests.head(url, headers={"User-Agent": USER_AGENT})
             headers = resp.headers
         except Exception:
             logger.warning(f"Unable to HEAD {url}")
             try:
                 _, headers = stream_file(
                     url=url,
+                    headers={"User-Agent": USER_AGENT},
                     byte_stream=io.BytesIO(),
                     block_size=1,
                     only_first_block=True,
