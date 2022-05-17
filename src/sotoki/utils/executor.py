@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 # vim: ai ts=4 sts=4 et sw=4 nu
 
+import datetime
 import queue
 import threading
 from typing import Callable
@@ -12,6 +13,7 @@ _shutdown = False
 # Lock that ensures that new workers are not created while the interpreter is
 # shutting down. Must be held while mutating _threads_queues and _shutdown.
 _global_shutdown_lock = threading.Lock()
+thread_deadline_sec = 60
 
 
 def excepthook(args):
@@ -129,11 +131,19 @@ class SotokiExecutor(queue.Queue):
         """Await completion of workers, requesting them to stop taking new task"""
         logger.debug(f"joining all threads for {self.prefix}")
         self.no_more = True
-        for t in self._workers:
+        for num, t in enumerate(self._workers):
+            deadline = datetime.datetime.now() + datetime.timedelta(
+                seconds=thread_deadline_sec
+            )
+            logger.debug(f"Giving {self.prefix}{num} {thread_deadline_sec}s to join")
             e = threading.Event()
-            while t.is_alive():
+            while t.is_alive() and datetime.datetime.now() < deadline:
                 t.join(1)
                 e.wait(timeout=2)
+            if t.is_alive():
+                logger.debug(f"Thread {self.prefix}{num} is not joining. Skipping…")
+            else:
+                logger.debug(f"Thread {self.prefix}{num} joined")
         logger.debug(f"all threads joined for {self.prefix}")
 
     def release_halt(self):
