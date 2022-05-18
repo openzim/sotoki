@@ -9,8 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Default Name (and thus default filename) now setto plain {domain} instead of replacing `.` with `_`.
+- Default Name (and thus default filename) now uses plain {domain} instead of replacing `.` with `_`.
+- Default Name includes language and `_all` (#250 #251)
 - Fixed crash when first post in XML dump has zero comments (#254)
+- Image requests now uses a User-Agent header (#252)
+- Fixed an issue completing process at very end (#253)
 
 ## [2.0.0] - 2022-05-1
 
