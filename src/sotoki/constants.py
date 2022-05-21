@@ -51,9 +51,21 @@ def lang_for_domain(domain):
     match = re.match(r"^(?P<lang>[a-z]+)\.(stackexchange|stackoverflow)\.com$", domain)
     if match:
         so_code = match.groupdict()["lang"]
-        if so_code not in ("meta", "diy"):
+        if so_code not in (
+            "meta",
+            "diy",
+            "sqa",
+            "tor",
+            "dba",
+            "tex",
+            "law",
+            "ham",
+            "gis",
+        ):
             try:
                 lang = get_language_details(so_code)
+                if not lang["iso-639-1"] or not lang["iso-639-3"]:
+                    raise NotFound("Might be an abbreviation")
                 return lang["iso-639-1"], lang["iso-639-3"]
             except NotFound:
                 ...
