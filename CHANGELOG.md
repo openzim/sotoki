@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed crash when first post in XML dump has zero comments (#254)
 - Image requests now uses a User-Agent header (#252)
 - Fixed an issue completing process at very end (#253)
+- Using zimscraperlib v1.6 (libzim 1.1.0)
 
 ## [2.0.0] - 2022-05-1
 
