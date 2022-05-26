@@ -10,10 +10,6 @@ It is based on Stack Exchange's Data Dumps hosted by [The Internet Archive](http
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![PyPI version shields.io](https://img.shields.io/pypi/v/sotoki.svg)](https://pypi.org/project/sotoki/)
 
-## ⚠️ Warning
-
-`sotoki` is undergoing a major rewrite to use libzim7 and its python binding in order to bypass filesystem limitations seen in version `1.x`. Use tagged version until this warning is removed as **current master is not-functionnal**.
-
 ## Usage
 
 `sotoki` works off a `domain` that you must provide. That is the domain-name of the stackexchange website you want to scrape. Run `sotoki --list-all` to get a list of those
