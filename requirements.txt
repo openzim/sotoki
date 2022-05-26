@@ -1,6 +1,5 @@
 kiwixstorage>=0.8.1,<1.0
 pif>=0.8.2,<0.9
-libzim>=1.1.0,<1.2
 zimscraperlib>=1.6.0,<1.7
 xml_to_dict>=0.1.6,<0.2
 cli-formatter>=1.2.0,<1.3
