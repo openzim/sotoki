@@ -14,13 +14,15 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Build and push
-        uses: openzim/docker-publish-action@v5
+        uses: openzim/docker-publish-action@v9
         with:
           image-name: openzim/sotoki
           on-master: dev
           tag-pattern: /^v([0-9.]+)$/
           latest-on-tag: true
           restrict-to: openzim/sotoki
+          repo_description: auto
+          repo_overview: auto
           credentials:
             DOCKERIO_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
             DOCKERIO_TOKEN=${{ secrets.DOCKERHUB_PASSWORD }}
