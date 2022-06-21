@@ -61,6 +61,9 @@ def lang_for_domain(domain):
             "law",
             "ham",
             "gis",
+            "ell",
+            "or",
+            "vi",
         ):
             try:
                 lang = get_language_details(so_code)
