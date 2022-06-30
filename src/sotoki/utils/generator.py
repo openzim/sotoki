@@ -23,9 +23,15 @@ class Generator(GlobalMixin):
         # parse XML file. not using defusedxml for performances reasons.
         # although containing user-generated content, we trust Stack Exchange dump
         parser = xml.sax.make_parser()  # nosec
-        parser.setContentHandler(self.walker(processor=self.processor_callback))
-        parser.parse(self.fpath)
-        parser.setContentHandler(None)
+        try:
+            parser.setContentHandler(self.walker(processor=self.processor_callback))
+            parser.parse(self.fpath)
+            parser.setContentHandler(None)
+        finally:
+            try:
+                parser.close()
+            except xml.sax.SAXException as e:
+                logger.debug(str(e))
         logger.debug(f"Done parsing {type(self).__name__}, collecting workers…")
 
         # await offloaded processing
