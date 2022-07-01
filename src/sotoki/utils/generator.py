@@ -30,8 +30,8 @@ class Generator(GlobalMixin):
         finally:
             try:
                 parser.close()
-            except xml.sax.SAXException as e:
-                logger.debug(str(e))
+            except xml.sax.SAXException as exc:
+                logger.exception(exc)
         logger.debug(f"Done parsing {type(self).__name__}, collecting workers…")
 
         # await offloaded processing
