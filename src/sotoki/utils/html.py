@@ -79,7 +79,7 @@ class Rewriter(GlobalMixin):
     redacted_text = "[redacted]"
 
     def __init__(self):
-        self.domain_re = re.compile(rf"https?://{self.domain}(?P<path>/.+)")
+        self.domain_re = re.compile(rf"(https?:)?//{self.domain}(?P<path>/.+)")
         self.qid_slug_answer_re = re.compile(
             r"^(q|questions)/(?P<post_id>[0-9]+)/[^/]+/(?P<answer_id>[0-9]+)"
         )
@@ -224,6 +224,7 @@ class Rewriter(GlobalMixin):
             # it's unlikely those are valid links inside questions as it would
             # only point to paths inside current path where users have no control
             is_relative = link["href"][0] in ("/", ".")
+            is_relative &= not link["href"].startswith("//")
 
             if not is_relative:
                 match = self.domain_re.match(link["href"])
