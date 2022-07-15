@@ -185,7 +185,7 @@ class Sotoconf:
         self.dump_domain = self.domain  # dumps are named after unfixed domains
         self.domain = FIXED_DOMAINS.get(self.domain, self.domain)
         self.iso_lang_1, self.iso_lang_3 = lang_for_domain(self.domain)
-        self.name = f"{self.domain}_{self.iso_lang_1}_all"
+        self.name = self.name or f"{self.domain}_{self.iso_lang_1}_all"
         self.output_dir = pathlib.Path(self._output_dir).expanduser().resolve()
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.tmp_dir = pathlib.Path(self._tmp_dir).expanduser().resolve()
