@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `--name` parameter not being used to set Name nor filename (#267)
 - Sax parser now explicitly closed after use
 - Fixed same-protocol links being considered relative paths during rewriting (#265)
+- Redis command-stack's `should_commit` whenever `nb_seen` reaches `commit_every`
 
 ## [2.0.1] - 2022-05-26
 

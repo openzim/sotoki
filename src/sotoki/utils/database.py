@@ -79,7 +79,7 @@ class Database:
         """whether to commit now
 
         This impl. compares `self.nb_seen` with `commit_every` constant"""
-        return self.nb_seen % self.commit_every == 0
+        return self.nb_seen >= self.commit_every
 
     def commit_maybe(self):
         """commit() should should_commit allows it"""
