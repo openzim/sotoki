@@ -67,11 +67,11 @@ class Database:
 
     commit_every = 1000
     record_on_main_thread = False
-    """whether to commit now"""
-    should_commit = False
 
     def __init__(self):
         self.nb_seen = 0
+        """whether to commit now"""
+        self.should_commit = False
 
     def initialize(self):
         """to override: initialize database"""
@@ -573,6 +573,7 @@ class RedisDatabase(
         self.connections = {}
         self.pipes = {}
         self.nb_seens = {}
+        self.should_commits = {}
 
         super().__init__()
 
@@ -622,6 +623,19 @@ class RedisDatabase(
     @nb_seen.setter
     def nb_seen(self, value):
         self.nb_seens[threading.get_ident()] = value
+
+    @property
+    def should_commit(self):
+        """thread-specific number of items seen"""
+        try:
+            return self.should_commits[threading.get_ident()]
+        except KeyError:
+            self.should_commits[threading.get_ident()] = False
+            return self.should_commits[threading.get_ident()]
+
+    @should_commit.setter
+    def should_commit(self, value):
+        self.should_commits[threading.get_ident()] = value
 
     def initialize(self):
         # test connection
