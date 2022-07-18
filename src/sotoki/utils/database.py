@@ -67,6 +67,8 @@ class Database:
 
     commit_every = 1000
     record_on_main_thread = False
+    """whether to commit now"""
+    should_commit = False
 
     def __init__(self):
         self.nb_seen = 0
@@ -74,23 +76,20 @@ class Database:
     def initialize(self):
         """to override: initialize database"""
 
-    @property
-    def should_commit(self) -> bool:
-        """whether to commit now
-
-        This impl. compares `self.nb_seen` with `commit_every` constant"""
-        return self.nb_seen % self.commit_every == 0
-
     def commit_maybe(self):
         """commit() should should_commit allows it"""
         if self.should_commit:
             self.commit()
+            self.should_commit = False
 
     def begin(self):
         """to override: start a session/transaction"""
 
     def bump_seen(self, by: int = 1):
+        old_nb_seen = self.nb_seen
         self.nb_seen += by
+        if ((old_nb_seen // self.commit_every) != (self.nb_seen  // self.commit_every)):
+            self.should_commit = True
 
     def make_dummy_query(self):
         """to override: used to ensure a started session can be closed safely"""
