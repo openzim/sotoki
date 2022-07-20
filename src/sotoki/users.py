@@ -125,6 +125,7 @@ class UserGenerator(Generator):
                     title="Users" if page_number == 1 else None,
                     is_front=page_number == 1,
                 )
+            del page
         with self.lock:
             self.creator.add_redirect(
                 path="users_page=1",

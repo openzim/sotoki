@@ -107,6 +107,7 @@ class TagGenerator(Generator):
                         else None,
                         is_front=page_number == 1,
                     )
+                del page
 
             with self.lock:
                 self.creator.add_redirect(
@@ -130,6 +131,7 @@ class TagGenerator(Generator):
                     title="Tags" if page_number == 1 else None,
                     is_front=page_number == 1,
                 )
+            del page
         with self.lock:
             self.creator.add_redirect(
                 path="tags_page=1",

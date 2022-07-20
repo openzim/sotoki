@@ -626,7 +626,7 @@ class RedisDatabase(
 
     @property
     def should_commit(self):
-        """thread-specific number of items seen"""
+        """thread-specific flag to decide if it should commit"""
         try:
             return self.should_commits[threading.get_ident()]
         except KeyError:

@@ -284,6 +284,7 @@ class PostGenerator(Generator):
                     title="Highest Voted Questions" if page_number == 1 else None,
                     is_front=page_number == 1,
                 )
+            del page
         with self.lock:
             self.creator.add_redirect(
                 path="questions_page=1", target_path="questions", is_front=False
