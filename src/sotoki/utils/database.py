@@ -88,7 +88,7 @@ class Database:
     def bump_seen(self, by: int = 1):
         old_nb_seen = self.nb_seen
         self.nb_seen += by
-        if ((old_nb_seen // self.commit_every) != (self.nb_seen  // self.commit_every)):
+        if ((old_nb_seen // self.commit_every) != (self.nb_seen // self.commit_every)):
             self.should_commit = True
 
     def make_dummy_query(self):
