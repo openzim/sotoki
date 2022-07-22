@@ -273,18 +273,19 @@ class PostGenerator(Generator):
         for page_number in paginator.page_range:
             page = paginator.get_page(page_number)
             with self.lock:
+                self.renderer.get_all_questions_for_page(page)
                 # we don't index same-title page for all paginated pages
                 # instead we index the redirect to the first page
                 self.creator.add_item_for(
                     path="questions"
                     if page_number == 1
                     else f"questions_page={page_number}",
-                    content=self.renderer.get_all_questions_for_page(page),
+                    content=page_content,
                     mimetype="text/html",
                     title="Highest Voted Questions" if page_number == 1 else None,
                     is_front=page_number == 1,
                 )
-            del page
+                del page_content
         with self.lock:
             self.creator.add_redirect(
                 path="questions_page=1", target_path="questions", is_front=False
