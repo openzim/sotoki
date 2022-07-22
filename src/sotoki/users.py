@@ -116,16 +116,17 @@ class UserGenerator(Generator):
         for page_number in paginator.page_range:
             page = paginator.get_page(page_number)
             with self.lock:
+                page_content=self.renderer.get_users_for_page(page)
                 # we don't index same-title page for all paginated pages
                 # instead we index the redirect to the first page
                 self.creator.add_item_for(
                     path="users" if page_number == 1 else f"users_page={page_number}",
-                    content=self.renderer.get_users_for_page(page),
+                    content=page_content,
                     mimetype="text/html",
                     title="Users" if page_number == 1 else None,
                     is_front=page_number == 1,
                 )
-            del page
+                del page_content
         with self.lock:
             self.creator.add_redirect(
                 path="users_page=1",
