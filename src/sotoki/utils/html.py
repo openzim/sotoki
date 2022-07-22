@@ -19,7 +19,9 @@ from .misc import rebuild_uri
 
 def get_text(content: str, strip_at: int = -1):
     """extracted text from an HTML source, optionaly striped"""
-    text = bs4.BeautifulSoup(content, "lxml").text
+    soup = bs4.BeautifulSoup(content, "lxml")
+    text = soup.text
+    soup.decompose()
     if strip_at and len(text) > strip_at:
         return f'{text[0:strip_at].rsplit(" ", 1)[0]}…'
     return text
@@ -194,7 +196,9 @@ class Rewriter(GlobalMixin):
         if self.conf.censor_words_list:
             self.censor_words(soup)
 
-        return str(soup)
+        result = str(soup)
+        soup.decompose()
+        return result
 
     def rewrite_string(self, content: str) -> str:
         """rewritten single-string using non-markup-related rules"""
