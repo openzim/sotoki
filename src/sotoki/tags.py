@@ -96,7 +96,7 @@ class TagGenerator(Generator):
             for page_number in paginator.page_range:
                 page = paginator.get_page(page_number)
                 with self.lock:
-                    page_content=self.renderer.get_tag_for_page(tag_name, page)
+                    page_content = self.renderer.get_tag_for_page(tag_name, page)
                     self.creator.add_item_for(
                         path=f"questions/tagged/{tag_name}"
                         if page_number == 1
@@ -123,7 +123,7 @@ class TagGenerator(Generator):
         for page_number in paginator.page_range:
             page = paginator.get_page(page_number)
             with self.lock:
-                page_content=self.renderer.get_all_tags_for_page(page)
+                page_content = self.renderer.get_all_tags_for_page(page)
                 # we don't index same-title page for all paginated pages
                 # instead we index the redirect to the first page
                 self.creator.add_item_for(
