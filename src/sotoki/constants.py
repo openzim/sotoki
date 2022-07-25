@@ -95,6 +95,7 @@ class Sotoconf:
     author: Optional[str] = ""
     publisher: Optional[str] = ""
     fname: Optional[str] = ""
+    compression: Optional[str] = None
     tag: List[str] = field(default_factory=list)
     iso_lang_1: str = "en"  # ISO-639-1
     iso_lang_3: str = "eng"  # ISO-639-3
@@ -113,6 +114,7 @@ class Sotoconf:
     nb_threads: Optional[int] = -1
     s3_url_with_credentials: Optional[str] = ""
     mirror: Optional[str] = ""
+    make_fulltext_index: Optional[bool] = False
 
     # censorship
     censor_words_list: Optional[str] = ""
