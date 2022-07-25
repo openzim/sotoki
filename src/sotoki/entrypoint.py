@@ -184,6 +184,19 @@ def main():
 
     advanced = parser.add_argument_group("Advanced")
 
+    metadata.add_argument(
+        "--make_fulltext_index",
+        action="store_true",
+        default=False,
+        help="Activate the generation of the fulltext index, expect high ram usage with big sites",
+    )
+
+    metadata.add_argument(
+        "--compression",
+        help="Activate the compression of the generated zim file, expect high ram usage with big sites",
+        dest="compression",
+    )
+
     advanced.add_argument(
         "--output",
         help="Output folder for ZIM file",
