@@ -28,7 +28,7 @@ ENV LC_ALL en_US.UTF-8
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -U pip ipython==7.25.0 && pip install --no-cache-dir -r /tmp/requirements.txt
 COPY setup.py LICENSE MANIFEST.in README.md requirements.txt /app/
-COPY src app/src
+COPY src /app/src
 RUN cd /app && python setup.py install && cd - && rm -rf /app
 
 # redis-restart script is use to start redis initally (redis-restart 0)
