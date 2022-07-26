@@ -70,27 +70,31 @@ class Database:
 
     def __init__(self):
         self.nb_seen = 0
+        """whether to commit now"""
+        self.should_commit = False
 
     def initialize(self):
         """to override: initialize database"""
-
-    @property
-    def should_commit(self) -> bool:
-        """whether to commit now
-
-        This impl. compares `self.nb_seen` with `commit_every` constant"""
-        return self.nb_seen % self.commit_every == 0
 
     def commit_maybe(self):
         """commit() should should_commit allows it"""
         if self.should_commit:
             self.commit()
+            self.should_commit = False
 
     def begin(self):
         """to override: start a session/transaction"""
 
+    def seen_step_changed(self, old_nb_seen):
+        step_old = old_nb_seen // self.commit_every
+        step_new = self.nb_seen // self.commit_every
+        return step_old != step_new
+
     def bump_seen(self, by: int = 1):
+        old_nb_seen = self.nb_seen
         self.nb_seen += by
+        if self.seen_step_changed(old_nb_seen):
+            self.should_commit = True
 
     def make_dummy_query(self):
         """to override: used to ensure a started session can be closed safely"""
@@ -574,6 +578,7 @@ class RedisDatabase(
         self.connections = {}
         self.pipes = {}
         self.nb_seens = {}
+        self.should_commits = {}
 
         super().__init__()
 
@@ -623,6 +628,19 @@ class RedisDatabase(
     @nb_seen.setter
     def nb_seen(self, value):
         self.nb_seens[threading.get_ident()] = value
+
+    @property
+    def should_commit(self):
+        """thread-specific flag to decide if it should commit"""
+        try:
+            return self.should_commits[threading.get_ident()]
+        except KeyError:
+            self.should_commits[threading.get_ident()] = False
+            return self.should_commits[threading.get_ident()]
+
+    @should_commit.setter
+    def should_commit(self, value):
+        self.should_commits[threading.get_ident()] = value
 
     def initialize(self):
         # test connection

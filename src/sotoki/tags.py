@@ -96,17 +96,19 @@ class TagGenerator(Generator):
             for page_number in paginator.page_range:
                 page = paginator.get_page(page_number)
                 with self.lock:
+                    page_content = self.renderer.get_tag_for_page(tag_name, page)
                     self.creator.add_item_for(
                         path=f"questions/tagged/{tag_name}"
                         if page_number == 1
                         else f"questions/tagged/{tag_name}_page={page_number}",
-                        content=self.renderer.get_tag_for_page(tag_name, page),
+                        content=page_content,
                         mimetype="text/html",
                         title=f"Highest Voted '{tag_name}' Questions"
                         if page_number == 1
                         else None,
                         is_front=page_number == 1,
                     )
+                    del page_content
 
             with self.lock:
                 self.creator.add_redirect(
@@ -121,15 +123,17 @@ class TagGenerator(Generator):
         for page_number in paginator.page_range:
             page = paginator.get_page(page_number)
             with self.lock:
+                page_content = self.renderer.get_all_tags_for_page(page)
                 # we don't index same-title page for all paginated pages
                 # instead we index the redirect to the first page
                 self.creator.add_item_for(
                     path="tags" if page_number == 1 else f"tags_page={page_number}",
-                    content=self.renderer.get_all_tags_for_page(page),
+                    content=page_content,
                     mimetype="text/html",
                     title="Tags" if page_number == 1 else None,
                     is_front=page_number == 1,
                 )
+                del page_content
         with self.lock:
             self.creator.add_redirect(
                 path="tags_page=1",
