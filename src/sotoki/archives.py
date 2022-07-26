@@ -68,7 +68,7 @@ class ArchiveManager:
             try:
                 return dateutil.parser.parse(header)
             except Exception:
-                pass
+                ...
         return datetime.datetime.now()  # default to today
 
     def download_and_extract_archives(self):
