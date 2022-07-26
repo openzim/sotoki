@@ -70,7 +70,6 @@ class Database:
 
     def __init__(self):
         self.nb_seen = 0
-        """whether to commit now"""
         self.should_commit = False
 
     def initialize(self):
@@ -85,15 +84,11 @@ class Database:
     def begin(self):
         """to override: start a session/transaction"""
 
-    def seen_step_changed(self, old_nb_seen):
-        step_old = old_nb_seen // self.commit_every
-        step_new = self.nb_seen // self.commit_every
-        return step_old != step_new
-
     def bump_seen(self, by: int = 1):
-        old_nb_seen = self.nb_seen
+        old_threshold = self.nb_seen // self.commit_every
         self.nb_seen += by
-        if self.seen_step_changed(old_nb_seen):
+        new_threshold = self.nb_seen // self.commit_every
+        if old_threshold != new_threshold:
             self.should_commit = True
 
     def make_dummy_query(self):
