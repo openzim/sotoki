@@ -3,7 +3,7 @@
 # vim: ai ts=4 sts=4 et sw=4 nu
 
 from .common import Database
-from .redis import RedisDatabase
+from .redisdb import RedisDatabase
 
 
 def get_database() -> Database:
