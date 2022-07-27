@@ -14,30 +14,6 @@ Archive](https://archive.org/download/stackexchange/).
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![PyPI version shields.io](https://img.shields.io/pypi/v/sotoki.svg)](https://pypi.org/project/sotoki/)
 
-## Installation
-
-`sotoki` is a Python3 software. If you are not using the
-[Docker](https://docker.com) image, you are advised to use it in a
-virtual environment to avoid installing software dependencies on your
-system.
-
-### Locally (with virtualenv)
-
-```bash
-python3 -m venv env      # Create virtualenv
-source env/bin/activate  # Activate the virtualenv
-pip3 install sotoki      # Install dependencies
-sotoki --help            # Display Sotoki help
-```
-
-Call `deactivate` to quit the virtual environment.
-
-### Globally (as root)
-
-```bash
-sudo -H pip3 install sotoki
-```
-
 ## Usage
 
 `Sotoki` works off a `domain` that you must provide. That is the
@@ -48,6 +24,29 @@ domain-name of the stackexchange website you want to scrape. Run
 
 ```bash
 docker run -v my_dir:/output openzim/sotoki sotoki --help
+```
+
+### Installation
+
+`sotoki` is a Python3 software. If you are not using the
+[Docker](https://hub.docker.com/r/openzim/sotoki/) image, you are advised to use it in a
+virtual environment to avoid installing software dependencies on your
+system.
+
+```sh
+python3 -m venv ./env  # creates a virtual python environment in ./env folder
+./env/bin/pip install -U pip  # upgrade pip (package manager). recommended
+./env/bin/pip install -U sotoki  # install/upgrade sotoki inside virtualenv
+
+# direct access to in-virtualenv sotoki binary, without shell-attachment
+./env/bin/sotoki --help
+# alias or link it for convenience
+sudo ln -s $(pwd)/env/bin/sotoki /usr/local/bin/
+
+# alternatively, attach virtualenv to shell
+source env/bin/activate
+sotoki --help
+deactivate  # unloads virtualenv from shell
 ```
 
 ## Developers
