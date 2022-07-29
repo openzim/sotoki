@@ -100,19 +100,24 @@ class Global:
 
         Global.renderer = Renderer()
 
-        Global.creator = Creator(
-            filename=Global.conf.output_dir.joinpath(Global.conf.fname),
-            main_path="questions",
-            favicon_path="illustration",
-            language=Global.conf.iso_lang_3,
-            title=Global.conf.title,
-            description=Global.conf.description,
-            creator=Global.conf.author,
-            publisher=Global.conf.publisher,
-            name=Global.conf.name,
-            tags=";".join(Global.conf.tags),
-            date=datetime.date.today(),
-        ).config_verbose(True)
+        Global.creator = (
+            Creator(
+                filename=Global.conf.output_dir.joinpath(Global.conf.fname),
+                main_path="questions",
+                favicon_path="illustration",
+                language=Global.conf.iso_lang_3,
+                title=Global.conf.title,
+                description=Global.conf.description,
+                creator=Global.conf.author,
+                publisher=Global.conf.publisher,
+                name=Global.conf.name,
+                tags=";".join(Global.conf.tags),
+                date=datetime.date.today(),
+            )
+            .config_verbose(True)
+            .config_compression("none")
+            .config_indexing(False, Global.conf.iso_lang_3)
+        )
 
 
 class GlobalMixin:
