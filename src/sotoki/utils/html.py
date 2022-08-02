@@ -427,7 +427,6 @@ class Rewriter(GlobalMixin):
                 if is_in_code(img):
                     continue
 
-                img["onerror"] = "onImageLoadingError(this);"
                 path = self.imager.defer(img["src"], is_profile=False)
                 if path is None:
                     del img.attrs["src"]
