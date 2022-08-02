@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sax parser now explicitly closed after use
 - Fixed same-protocol links being considered relative paths during rewriting (#265)
 - More reliable database commits
-- Updated to zimscraperlib 1.6.1 and lxml 4.9.1
+- Updated to zimscraperlib 1.6.3 and lxml 4.9.1
 - Removed inline JS to comply with some CSP
 
 ## [2.0.1] - 2022-05-26
