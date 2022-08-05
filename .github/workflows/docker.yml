@@ -4,8 +4,9 @@ on:
   push:
     branches:
       - master
+      - nocomp
     tags:
-      - v*
+      - nocomp
 
 jobs:
   build-and-push:
@@ -18,8 +19,8 @@ jobs:
         with:
           image-name: openzim/sotoki
           on-master: dev
-          tag-pattern: /^v([0-9.]+)$/
-          latest-on-tag: true
+          tag-pattern: /^(.+)$/
+          latest-on-tag: false
           restrict-to: openzim/sotoki
           repo_description: auto
           repo_overview: auto
