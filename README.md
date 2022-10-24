@@ -58,3 +58,10 @@ external dependencies that we pack in Python releases. Just run
 `python src/sotoki/dependencies.py`.
 
 See `requirements.txt` for the list of python dependencies.
+
+## Users
+
+You don't have to make your own ZIM files of Stack Exchange's Web 
+sites. Updated ZIM files are built on a regular basis for all 
+of them. Look at https://library.kiwix.org/?category=stack_exchange
+to download them.
