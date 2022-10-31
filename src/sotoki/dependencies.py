@@ -48,12 +48,6 @@ ASSETS = [
         "https://gist.githubusercontent.com/rgaudin/60bb9cc6f187add506584258028b8ee1/"
         "raw/9d575b8e25d67eed2a9c9a91d3e053a0062d2fc7/web-handler.js",
     ),
-    # external icon from Wikipedia
-    (
-        "static/img/external-link-ltr-icon.svg",
-        "https://fr.wikipedia.org/w/skins/Vector/"
-        "resources/common/images/external-link-ltr-icon.svg?48e54",
-    ),
     # MathJax dependencies. SE uses v2.7.5 ATM
     (
         "static/js/MathJax.js",
