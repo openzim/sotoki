@@ -89,10 +89,6 @@ class StackExchangeToZim:
             self.conf.publisher = "Openzim"
         self.conf.publisher = self.conf.publisher.strip()
 
-        self.conf.tags = list(
-            set(self.conf.tag + ["_category:stack_exchange", "stack_exchange"])
-        )
-
     def add_illustrations(self):
         src_illus_fpath = self.build_dir / "illustration"
 

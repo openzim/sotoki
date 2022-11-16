@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Redirection from `/questions/{questionId}` to the question page (#277)
 
+## Changed
+
+- ZIM Tags now include `_videos:no;_details:no` and conditionaly include `_pictures:no` (#278)
+- Default filename now uses `nopic` instead of `all` if using `--without-images` (#278)
+
 ## [2.0.2] - 2022-10-31
 
 ### Changed

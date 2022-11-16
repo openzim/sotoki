@@ -140,6 +140,10 @@ class Sotoconf:
     skip_users: Optional[bool] = False
 
     @property
+    def tags(self):
+        return list(set(self.tag))
+
+    @property
     def s3_url(self):
         return self.s3_url_with_credentials
 
@@ -185,7 +189,8 @@ class Sotoconf:
         self.dump_domain = self.domain  # dumps are named after unfixed domains
         self.domain = FIXED_DOMAINS.get(self.domain, self.domain)
         self.iso_lang_1, self.iso_lang_3 = lang_for_domain(self.domain)
-        self.name = self.name or f"{self.domain}_{self.iso_lang_1}_all"
+        variant = "nopic" if self.without_images else "all"
+        self.name = self.name or f"{self.domain}_{self.iso_lang_1}_{variant}"
         self.output_dir = pathlib.Path(self._output_dir).expanduser().resolve()
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.tmp_dir = pathlib.Path(self._tmp_dir).expanduser().resolve()
@@ -207,6 +212,16 @@ class Sotoconf:
                 f"Unknown scheme `{self.redis_url.scheme}` for redis. "
                 "Use redis:// or unix://"
             )
+
+        self.tag += [
+            "_category:stack_exchange",
+            "stack_exchange",
+            "_videos:no",
+            "_details:no",
+        ]
+
+        if self.without_images:
+            self.tag.append("_pictures:no")
 
         # shell implies debug
         if self.open_shell:
