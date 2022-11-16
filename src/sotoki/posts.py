@@ -255,6 +255,10 @@ class PostGenerator(Generator):
                 is_front=True,
                 callback=self.release,
             )
+            self.creator.add_redirect(
+                path=f'questions/{post["Id"]}',
+                target_path=path,
+            )
         del post_page
 
         for answer in post.get("answers", []):
