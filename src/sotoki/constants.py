@@ -2,17 +2,17 @@
 # -*- coding: utf-8 -*-
 # vim: ai ts=4 sts=4 et sw=4 nu
 
+import datetime
 import os
 import pathlib
-import datetime
 import re
 import tempfile
 import urllib.parse
-from typing import Optional, List
 from dataclasses import dataclass, field
+from typing import List, Optional
 
 import requests
-from zimscraperlib.i18n import get_language_details, NotFound
+from zimscraperlib.i18n import NotFound, get_language_details
 
 ROOT_DIR = pathlib.Path(__file__).parent
 NAME = ROOT_DIR.name
@@ -70,10 +70,10 @@ def lang_for_domain(domain):
                 lang = get_language_details(so_code)
                 if not lang["iso-639-1"] or not lang["iso-639-3"]:
                     raise NotFound("Might be an abbreviation")
-                return lang["iso-639-1"], lang["iso-639-3"]
+                return lang["iso-639-1"], lang["iso-639-3"], True
             except NotFound:
                 ...
-    return "en", "eng"
+    return "en", "eng", False
 
 
 @dataclass
@@ -189,9 +189,20 @@ class Sotoconf:
     def __post_init__(self):
         self.dump_domain = self.domain  # dumps are named after unfixed domains
         self.domain = FIXED_DOMAINS.get(self.domain, self.domain)
-        self.iso_lang_1, self.iso_lang_3 = lang_for_domain(self.domain)
+        self.iso_lang_1, self.iso_lang_3, is_multi_language = lang_for_domain(
+            self.domain
+        )
         variant = "nopic" if self.without_images else "all"
-        self.name = self.name or f"{self.domain}_{self.iso_lang_1}_{variant}"
+        if not self.name:
+            # if domain is a multi-language, add `multi` to file name.
+            if is_multi_language:
+                self.name = f"{self.domain}_multi_{self.iso_lang_1}_{variant}"
+            else:
+                self.name = f"{self.domain}_{self.iso_lang_1}_{variant}"
+        # update language for metadata.
+        if is_multi_language:
+            self.iso_lang_1 = f"{self.iso_lang_1}, en"
+            self.iso_lang_3 = f"{self.iso_lang_3}, eng"
         self.output_dir = pathlib.Path(self._output_dir).expanduser().resolve()
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.tmp_dir = pathlib.Path(self._tmp_dir).expanduser().resolve()
