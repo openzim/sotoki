@@ -53,7 +53,7 @@ def lang_for_domain(domain):
     an English website, we need to return "en" and "eng" in any situation
 
     :param domain: the domain of the target.
-    :return: [[<iso_lang_1>], [<iso_lang_3>]]
+    :return: ([<iso_lang_1>], [<iso_lang_3>])
     """
     match = re.match(r"^(?P<lang>[a-z]+)\.(stackexchange|stackoverflow)\.com$", domain)
     if match:
