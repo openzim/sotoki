@@ -197,14 +197,14 @@ class Sotoconf:
         self.dump_domain = self.domain  # dumps are named after unfixed domains
         self.domain = FIXED_DOMAINS.get(self.domain, self.domain)
         iso_lang_1_codes, iso_lang_3_codes = lang_for_domain(self.domain)
-        iso_lang_1_primary_name = iso_lang_1_codes[0]
+        iso_lang_1_primary_code = iso_lang_1_codes[0]
         variant = "nopic" if self.without_images else "all"
         if not self.name:
             # if domain is a multi-language, add `multi` to file name.
             if len(iso_lang_1_codes) > 1:
-                self.name = f"{self.domain}_multi_{iso_lang_1_primary_name}_{variant}"
+                self.name = f"{self.domain}_multi_{iso_lang_1_primary_code}_{variant}"
             else:
-                self.name = f"{self.domain}_{iso_lang_1_primary_name}_{variant}"
+                self.name = f"{self.domain}_{iso_lang_1_primary_code}_{variant}"
         # update language for metadata.
         if is_multi_language:
             self.iso_lang_1 = ", ".join(iso_lang_1_codes)
