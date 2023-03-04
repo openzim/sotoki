@@ -48,6 +48,13 @@ NB_PAGINATED_USERS = NB_USERS_PER_PAGE * NB_USERS_PAGES
 
 
 def lang_for_domain(domain):
+    """
+    Get iso language code(s) from a specific domain. Since stackexchange is
+    an English website, we need to return "en" and "eng" in any situation
+
+    :param domain: the domain of the target.
+    :return: [[<iso_lang_1>], [<iso_lang_3>]]
+    """
     match = re.match(r"^(?P<lang>[a-z]+)\.(stackexchange|stackoverflow)\.com$", domain)
     if match:
         so_code = match.groupdict()["lang"]
@@ -70,10 +77,10 @@ def lang_for_domain(domain):
                 lang = get_language_details(so_code)
                 if not lang["iso-639-1"] or not lang["iso-639-3"]:
                     raise NotFound("Might be an abbreviation")
-                return lang["iso-639-1"], lang["iso-639-3"], True
+                return [lang["iso-639-1"], "en"], [lang["iso-639-3"], "eng"]
             except NotFound:
                 ...
-    return "en", "eng", False
+    return ["en"], ["eng"]
 
 
 @dataclass
@@ -189,20 +196,19 @@ class Sotoconf:
     def __post_init__(self):
         self.dump_domain = self.domain  # dumps are named after unfixed domains
         self.domain = FIXED_DOMAINS.get(self.domain, self.domain)
-        self.iso_lang_1, self.iso_lang_3, is_multi_language = lang_for_domain(
-            self.domain
-        )
+        iso_lang_1_codes, iso_lang_3_codes = lang_for_domain(self.domain)
+        iso_lang_1_primary_name = iso_lang_1_codes[0]
         variant = "nopic" if self.without_images else "all"
         if not self.name:
             # if domain is a multi-language, add `multi` to file name.
-            if is_multi_language:
-                self.name = f"{self.domain}_multi_{self.iso_lang_1}_{variant}"
+            if len(iso_lang_1_codes) > 1:
+                self.name = f"{self.domain}_multi_{iso_lang_1_primary_name}_{variant}"
             else:
-                self.name = f"{self.domain}_{self.iso_lang_1}_{variant}"
+                self.name = f"{self.domain}_{iso_lang_1_primary_name}_{variant}"
         # update language for metadata.
         if is_multi_language:
-            self.iso_lang_1 = f"{self.iso_lang_1}, en"
-            self.iso_lang_3 = f"{self.iso_lang_3}, eng"
+            self.iso_lang_1 = ", ".join(iso_lang_1_codes)
+            self.iso_lang_3 = ", ".join(iso_lang_3_codes)
         self.output_dir = pathlib.Path(self._output_dir).expanduser().resolve()
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.tmp_dir = pathlib.Path(self._tmp_dir).expanduser().resolve()
