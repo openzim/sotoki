@@ -7,16 +7,16 @@ import threading
 import time
 from typing import Union
 
-import redis
 import bidict
+import redis
+from sotoki.constants import NB_PAGINATED_USERS, UTF8
 
+from ..misc import restart_redis_at
+from ..shared import Global, logger
 from .common import Database
 from .posts import PostsDatabaseMixin
 from .tags import TagsDatabaseMixin
 from .users import UsersDatabaseMixin
-from ..shared import Global, logger
-from ..misc import restart_redis_at
-from sotoki.constants import UTF8, NB_PAGINATED_USERS
 
 
 class TopDict(collections.UserDict):
@@ -77,7 +77,7 @@ class RedisDatabase(
             return self.connections[threading.get_ident()]
         except KeyError:
             self.connections[threading.get_ident()] = redis.StrictRedis.from_url(
-                Global.conf.redis_url.geturl(), charset=UTF8, decode_responses=False
+                Global.conf.redis_url.geturl(), encoding=UTF8, decode_responses=False
             )
             return self.connections[threading.get_ident()]
 
