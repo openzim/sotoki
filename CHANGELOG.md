@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - ZIM Tags now include `_videos:no;_details:no` and conditionaly include `_pictures:no` (#278)
 - Default filename now uses `nopic` instead of `all` if using `--without-images` (#278)
+- Multi-language domains now handled as such:
+  - `Language` metadata to be set to `eng,xxx` (xxx being the second language)
+  - `Name` metadata to be like "{domain}_mul_{variant}"
+  - Filename metadata to match `Name`
+- Using zimscraperlib 2.1
 
 ## [2.0.2] - 2022-10-31
 

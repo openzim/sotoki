@@ -8,7 +8,7 @@ import datetime
 import re
 import tempfile
 import urllib.parse
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from dataclasses import dataclass, field
 
 import requests
@@ -47,7 +47,9 @@ NB_USERS_PAGES = 100
 NB_PAGINATED_USERS = NB_USERS_PER_PAGE * NB_USERS_PAGES
 
 
-def lang_for_domain(domain):
+def langs_for_domain(domain: str) -> Tuple[List[str], List[str]]:
+    """(ISO-639-1 lang codes, ISO-639-3 lang codes) for a domain"""
+    iso_langs_1, iso_langs_3 = ["en"], ["eng"]
     match = re.match(r"^(?P<lang>[a-z]+)\.(stackexchange|stackoverflow)\.com$", domain)
     if match:
         so_code = match.groupdict()["lang"]
@@ -70,10 +72,11 @@ def lang_for_domain(domain):
                 lang = get_language_details(so_code)
                 if not lang["iso-639-1"] or not lang["iso-639-3"]:
                     raise NotFound("Might be an abbreviation")
-                return lang["iso-639-1"], lang["iso-639-3"]
+                iso_langs_1.append(lang["iso-639-1"])
+                iso_langs_3.append(lang["iso-639-3"])
             except NotFound:
                 ...
-    return "en", "eng"
+    return iso_langs_1, iso_langs_3
 
 
 @dataclass
@@ -97,8 +100,8 @@ class Sotoconf:
     publisher: Optional[str] = ""
     fname: Optional[str] = ""
     tag: List[str] = field(default_factory=list)
-    iso_lang_1: str = "en"  # ISO-639-1
-    iso_lang_3: str = "eng"  # ISO-639-3
+    iso_langs_1: List[str] = field(default_factory=list)  # ISO-639-1
+    iso_langs_3: List[str] = field(default_factory=list)  # ISO-639-3
 
     # customization
     favicon: Optional[str] = ""
@@ -189,9 +192,10 @@ class Sotoconf:
     def __post_init__(self):
         self.dump_domain = self.domain  # dumps are named after unfixed domains
         self.domain = FIXED_DOMAINS.get(self.domain, self.domain)
-        self.iso_lang_1, self.iso_lang_3 = lang_for_domain(self.domain)
+        self.iso_langs_1, self.iso_langs_3 = langs_for_domain(self.domain)
         variant = "nopic" if self.without_images else "all"
-        self.name = self.name or f"{self.domain}_{self.iso_lang_1}_{variant}"
+        lang_in_name = self.iso_langs_1[0] if len(self.iso_langs_1) == 1 else "mul"
+        self.name = self.name or f"{self.domain}_{lang_in_name}_{variant}"
         self.output_dir = pathlib.Path(self._output_dir).expanduser().resolve()
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.tmp_dir = pathlib.Path(self._tmp_dir).expanduser().resolve()

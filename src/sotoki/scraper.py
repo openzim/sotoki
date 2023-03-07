@@ -156,7 +156,7 @@ class StackExchangeToZim:
         logger.info(
             f"Starting scraper with:\n"
             f"  domain: {self.domain}\n"
-            f"  lang: {self.conf.iso_lang_1} ({self.conf.iso_lang_3})\n"
+            f"  lang: {self.conf.iso_langs_1} ({self.conf.iso_langs_3})\n"
             f"  build_dir: {self.build_dir}\n"
             f"  output_dir: {self.conf.output_dir}\n"
             f"{s3_msg}"
