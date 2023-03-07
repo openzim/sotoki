@@ -87,7 +87,7 @@ class Sotoconf:
     ]
 
     domain: str
-    _redis_url: str
+    redis_url: str
 
     # zim params
     name: str
@@ -207,10 +207,10 @@ class Sotoconf:
             self.stats_filename = pathlib.Path(self.stats_filename).expanduser()
             self.stats_filename.parent.mkdir(parents=True, exist_ok=True)
 
-        self.redis_url = urllib.parse.urlparse(self._redis_url)
-        if self.redis_url and self.redis_url.scheme not in ("unix", "redis"):
+        redis_url = urllib.parse.urlparse(self.redis_url)
+        if redis_url and redis_url.scheme not in ("unix", "redis"):
             raise ValueError(
-                f"Unknown scheme `{self.redis_url.scheme}` for redis. "
+                f"Unknown scheme `{redis_url.scheme}` for redis. "
                 "Use redis:// or unix://"
             )
 

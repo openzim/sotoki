@@ -77,7 +77,7 @@ class RedisDatabase(
             return self.connections[threading.get_ident()]
         except KeyError:
             self.connections[threading.get_ident()] = redis.StrictRedis.from_url(
-                Global.conf.redis_url.geturl(), encoding=UTF8, decode_responses=False
+                Global.conf.redis_url, encoding=UTF8, decode_responses=False
             )
             return self.connections[threading.get_ident()]
 

@@ -233,7 +233,7 @@ def main():
         "Must be redis://user?:pass?@host:port/dbnum. "
         "Use unix:///path/to/redis.sock?db=dbnum for sockets",
         default="redis://localhost:6379",
-        dest="_redis_url",
+        dest="redis_url",
     )
 
     advanced.add_argument(
