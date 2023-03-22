@@ -7,7 +7,7 @@ jobs:
   build-and-run:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3.4.0
       - name: Build image
         run: docker build . -t sotoki
       - run: mkdir -p output
@@ -15,7 +15,7 @@ jobs:
         run: docker run -v $(pwd)/output:/output sotoki sotoki --domain "beer.meta.stackexchange.com" --threads 20 --output /output/ --zim-file beer_meta.zim --mirror "https://org-kiwix-stackexchange.s3.us-west-1.wasabisys.com" --redis-url "unix:///var/run/redis.sock" --debug
       - run: ls -alh $(pwd)/output
       - name: pull zim-tools
-        run: docker pull openzim/zim-tools:latest
+        run: docker pull ghcr.io/openzim/zim-tools:latest
       - name: run zimcheck
         # not using --redundant as user profile pics can be duplicates
         # not using --url_internal as zimcheck doesn't account for <base/> https://github.com/openzim/zim-tools/issues/250

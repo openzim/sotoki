@@ -10,11 +10,11 @@ on:
 jobs:
   build-and-push:
     name: Deploy Docker Image
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3.4.0
       - name: Build and push
-        uses: openzim/docker-publish-action@v9
+        uses: openzim/docker-publish-action@v10
         with:
           image-name: openzim/sotoki
           on-master: dev
@@ -23,8 +23,7 @@ jobs:
           restrict-to: openzim/sotoki
           repo_description: auto
           repo_overview: auto
+          registries: ghcr.io
           credentials:
-            DOCKERIO_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
-            DOCKERIO_TOKEN=${{ secrets.DOCKERHUB_PASSWORD }}
             GHCRIO_USERNAME=${{ secrets.GHCR_USERNAME }}
             GHCRIO_TOKEN=${{ secrets.GHCR_TOKEN }}
