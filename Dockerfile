@@ -24,10 +24,11 @@ RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
-RUN pip install --upgrade pip
-RUN pip install pipenv
-COPY Pipfile .
-COPY Pipfile.lock .
+RUN pip install --upgrade --no-cache-dir pip
+RUN pip install --no-cache-dir pipenv
+COPY Pipfile /tmp/pipenv/Pipfile
+COPY Pipfile.lock /tmp/pipenv/Pipfile.lock
+ENV PIPENV_PIPFILE=/tmp/pipenv/Pipfile
 RUN PIPENV_VENV_IN_PROJECT=1 pipenv sync --dev --system
 COPY setup.py LICENSE MANIFEST.in README.md /app/
 COPY src /app/src
