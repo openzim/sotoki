@@ -55,9 +55,9 @@ Anybody is welcome to improve the Sotoki.
 
 To run Sotoki off the git repository, you'll need to download a few
 external dependencies that we pack in Python releases. Just run
-`python src/sotoki/dependencies.py`.
+`pipenv sync --dev`.
 
-See `requirements.txt` for the list of python dependencies.
+See `Pipfile` for the list of python dependencies.
 
 ## Users
 
