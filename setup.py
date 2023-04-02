@@ -36,7 +36,7 @@ setup(
     install_requires=[
         line.strip()
         for line in read("requirements.txt").splitlines()
-        if not line.strip().startswith("#")
+        if not (line.strip().startswith("#") or line.strip().startswith("-i"))
     ],
     zip_safe=False,
     include_package_data=True,

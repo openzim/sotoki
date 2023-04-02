@@ -24,11 +24,14 @@ RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
-
-COPY requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -U pip ipython==7.25.0 && pip install --no-cache-dir -r /tmp/requirements.txt
-COPY setup.py LICENSE MANIFEST.in README.md requirements.txt /app/
+RUN pip install --upgrade pip
+RUN pip install pipenv
+COPY Pipfile .
+COPY Pipfile.lock .
+RUN PIPENV_VENV_IN_PROJECT=1 pipenv sync --dev --system
+COPY setup.py LICENSE MANIFEST.in README.md /app/
 COPY src /app/src
+RUN PIPENV_VENV_IN_PROJECT=1 pipenv requirements > /app/requirements.txt
 RUN cd /app && python setup.py install && cd - && rm -rf /app
 
 # redis-restart script is use to start redis initally (redis-restart 0)
