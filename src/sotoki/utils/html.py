@@ -8,8 +8,8 @@ import warnings
 
 import bs4
 
-# import mistune
-# from mistune.plugins import plugin_strikethrough, plugin_table, plugin_footnotes
+import mistune
+from mistune.plugins import plugin_strikethrough, plugin_table, plugin_footnotes
 from tld import get_fld
 from slugify import slugify
 
@@ -110,10 +110,10 @@ class Rewriter(GlobalMixin):
         )
 
         self.redacted_string = bs4.NavigableString(self.redacted_text)
-        # self.markdown = mistune.create_markdown(
-        #     escape=False,
-        #     plugins=[plugin_strikethrough, plugin_table, plugin_footnotes],
-        # )
+        self.markdown = mistune.create_markdown(
+            escape=False,
+            plugins=[plugin_strikethrough, plugin_table, plugin_footnotes],
+        )
         if self.conf.censor_words_list:
             with open(self.conf.build_dir.joinpath("words.list"), "r") as fh:
                 # this will actually replace occurences of ~strings matching
@@ -162,8 +162,8 @@ class Rewriter(GlobalMixin):
             return ""
 
         try:
-            # soup = bs4.BeautifulSoup(self.markdown(content), "lxml")
-            soup = BeautifulSoup(content, "lxml")
+            soup = bs4.BeautifulSoup(self.markdown(content), "lxml")
+            # soup = BeautifulSoup(content, "lxml")
         except Exception as exc:
             logger.error(f"Unable to init soup or markdown for {content}: {exc}")
             return content
