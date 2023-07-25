@@ -4,7 +4,7 @@
 
 import io
 import re
-import zlib
+import hashlib
 import urllib.parse
 from typing import Optional
 
@@ -153,7 +153,8 @@ class Imager:
 
     def get_digest_for(self, url: str) -> str:
         """Unique identifier of that url"""
-        return zlib.adler32(url.encode("UTF-8"))
+        return hashlib.md5(url.encode("UTF-8"), usedforsecurity=False).hexdigest()
+
 
     def get_version_ident_for(self, url: str) -> str:
         """~version~ of the URL data to use for comparisons. Built from headers"""
