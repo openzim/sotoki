@@ -153,7 +153,7 @@ class Imager:
 
     def get_digest_for(self, url: str) -> str:
         """Unique identifier of that url"""
-        return hashlib.md5(url.encode("UTF-8"), usedforsecurity=False).hexdigest()
+        return hashlib.md5(url.encode("UTF-8")).hexdigest()
 
 
     def get_version_ident_for(self, url: str) -> str:
