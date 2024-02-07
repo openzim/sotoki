@@ -99,7 +99,8 @@ def main():
     )
     metadata.add_argument(
         "--long-description",
-        help="Custom long description for your ZIM, defaults to description",
+        help="Custom long description for your ZIM, defaults to description if description is too long",
+        required=False,
     )
 
     metadata.add_argument(

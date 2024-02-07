@@ -7,13 +7,9 @@ import pathlib
 import datetime
 
 from zimscraperlib.zim.items import URLItem
-from zimscraperlib.inputs import handle_user_provided_file
+from zimscraperlib.inputs import handle_user_provided_file, compute_descriptions
 from zimscraperlib.image.convertion import convert_image
 from zimscraperlib.image.transformation import resize_image
-from zimscraperlib.constants import (
-    MAXIMUM_DESCRIPTION_METADATA_LENGTH,
-    MAXIMUM_LONG_DESCRIPTION_METADATA_LENGTH,
-)
 
 from .constants import (
     Sotoconf,
@@ -81,20 +77,15 @@ class StackExchangeToZim:
             self.conf.title = Global.site["LongName"]
         self.conf.title = self.conf.title.strip()
 
-        if not self.conf.description:
-            self.conf.description = Global.site["Tagline"]
-        full_length_description = self.conf.description
-        # zimscraperlib enforces a maximum length for the description
-        self.conf.description = full_length_description.strip()[:MAXIMUM_DESCRIPTION_METADATA_LENGTH]
-
-        if not self.conf.long_description:
-            # while the long description is optional, there shouldn't be
-            # a downside to defaulting to the normal description
-            self.conf.long_description = full_length_description
-        # NOTE: as carriage returns are allowed in the long_description,
-        # it is acceptable for a long description to end with a "\n"
-        # thus, we only use a .lstrip() here
-        self.conf.long_description = self.conf.long_description.lstrip()[:MAXIMUM_LONG_DESCRIPTION_METADATA_LENGTH]
+        default_description = Global.site["Tagline"].strip()
+        if self.conf.description is not None:
+            user_description = self.conf.description.strip()
+        else:
+            user_description = None
+        user_long_description = self.conf.long_description
+        description, long_description = compute_descriptions(default_description, user_description, user_long_description)
+        self.conf.description = description
+        self.conf.long_description = long_description
 
         if not self.conf.author:
             self.conf.author = "Stack Exchange"
