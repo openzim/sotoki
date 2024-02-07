@@ -10,6 +10,10 @@ from zimscraperlib.zim.items import URLItem
 from zimscraperlib.inputs import handle_user_provided_file
 from zimscraperlib.image.convertion import convert_image
 from zimscraperlib.image.transformation import resize_image
+from zimscraperlib.constants import (
+    MAXIMUM_DESCRIPTION_METADATA_LENGTH,
+    MAXIMUM_LONG_DESCRIPTION_METADATA_LENGTH,
+)
 
 from .constants import (
     Sotoconf,
@@ -79,7 +83,18 @@ class StackExchangeToZim:
 
         if not self.conf.description:
             self.conf.description = Global.site["Tagline"]
-        self.conf.description = self.conf.description.strip()
+        full_length_description = self.conf.description
+        # zimscraperlib enforces a maximum length for the description
+        self.conf.description = full_length_description.strip()[:MAXIMUM_DESCRIPTION_METADATA_LENGTH]
+
+        if not self.conf.long_description:
+            # while the long description is optional, there shouldn't be
+            # a downside to defaulting to the normal description
+            self.conf.long_description = full_length_description
+        # NOTE: as carriage returns are allowed in the long_description,
+        # it is acceptable for a long description to end with a "\n"
+        # thus, we only use a .lstrip() here
+        self.conf.long_description = self.conf.long_description.lstrip()[:MAXIMUM_LONG_DESCRIPTION_METADATA_LENGTH]
 
         if not self.conf.author:
             self.conf.author = "Stack Exchange"
@@ -102,7 +117,7 @@ class StackExchangeToZim:
         convert_image(src_illus_fpath, illus_fpath)
 
         # resize to appropriate size (ZIM uses 48x48 so we double for retina)
-        for size in (96, 48):
+        for size in (96, ):  # 48x48 illustration is added during metadata configuration
             resize_image(illus_fpath, width=size, height=size, method="thumbnail")
             with open(illus_fpath, "rb") as fh:
                 Global.creator.add_illustration(size, fh.read())

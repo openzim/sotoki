@@ -96,10 +96,12 @@ class Sotoconf:
     name: str
     title: Optional[str] = ""
     description: Optional[str] = ""
+    long_description: Optional[str] = ""
     author: Optional[str] = ""
     publisher: Optional[str] = ""
     fname: Optional[str] = ""
     tag: List[str] = field(default_factory=list)
+    flavour: Optional[str] = ""
     iso_langs_1: List[str] = field(default_factory=list)  # ISO-639-1
     iso_langs_3: List[str] = field(default_factory=list)  # ISO-639-3
 
@@ -193,9 +195,9 @@ class Sotoconf:
         self.dump_domain = self.domain  # dumps are named after unfixed domains
         self.domain = FIXED_DOMAINS.get(self.domain, self.domain)
         self.iso_langs_1, self.iso_langs_3 = langs_for_domain(self.domain)
-        variant = "nopic" if self.without_images else "all"
+        self.flavour = "nopic" if self.without_images else "all"
         lang_in_name = self.iso_langs_1[0] if len(self.iso_langs_1) == 1 else "mul"
-        self.name = self.name or f"{self.domain}_{lang_in_name}_{variant}"
+        self.name = self.name or f"{self.domain}_{lang_in_name}_{self.flavour}"
         self.output_dir = pathlib.Path(self._output_dir).expanduser().resolve()
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.tmp_dir = pathlib.Path(self._tmp_dir).expanduser().resolve()
