@@ -113,7 +113,7 @@ def main():
         "-p",
         "--publisher",
         help="Custom publisher name (ZIM metadata). “OpenZIM” otherwise",
-        default="Kiwix",
+        default="openZIM",
     )
     metadata.add_argument(
         "--tag",
