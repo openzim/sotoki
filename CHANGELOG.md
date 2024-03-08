@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Name` metadata to be like "{domain}_mul_{variant}"
   - Filename metadata to match `Name`
 - Using zimscraperlib 2.1
+- Changed default publisher metadata from 'Kiwix' to 'openZIM'
 
 ## [2.0.2] - 2022-10-31
 

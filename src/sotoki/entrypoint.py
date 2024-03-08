@@ -112,8 +112,7 @@ def main():
     metadata.add_argument(
         "-p",
         "--publisher",
-        help="Custom publisher name (ZIM metadata). “OpenZIM” otherwise",
-        default="openZIM",
+        help="Custom publisher name (ZIM metadata). “openZIM” otherwise"
     )
     metadata.add_argument(
         "--tag",
