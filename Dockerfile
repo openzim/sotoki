@@ -1,6 +1,6 @@
 FROM redis:6.2.4-buster AS redis
 
-FROM python:3.8-slim
+FROM python:3.8-slim-buster
 
 RUN groupadd -r -g 999 redis && useradd -r -g redis -u 999 redis
 COPY --from=redis /usr/local/bin/redis-server /usr/local/bin/redis-server
