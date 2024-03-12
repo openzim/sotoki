@@ -86,7 +86,7 @@ class StackExchangeToZim:
         self.conf.author = self.conf.author.strip()
 
         if not self.conf.publisher:
-            self.conf.publisher = "Openzim"
+            self.conf.publisher = "openZIM"
         self.conf.publisher = self.conf.publisher.strip()
 
     def add_illustrations(self):
