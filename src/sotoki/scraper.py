@@ -78,14 +78,11 @@ class StackExchangeToZim:
         self.conf.title = self.conf.title.strip()
 
         default_description = Global.site["Tagline"].strip()
-        if self.conf.description is not None:
+        if self.conf.description:
             user_description = self.conf.description.strip()
         else:
             user_description = None
-        user_long_description = self.conf.long_description
-        description, long_description = compute_descriptions(default_description, user_description, user_long_description)
-        self.conf.description = description
-        self.conf.long_description = long_description
+        self.conf.description, self.conf.long_description = compute_descriptions(default_description, user_description, self.conf.long_description)
 
         if not self.conf.author:
             self.conf.author = "Stack Exchange"
