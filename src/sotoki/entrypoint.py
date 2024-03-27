@@ -97,6 +97,11 @@ def main():
         "--description",
         help="Custom description for your ZIM. Site tagline otherwise",
     )
+    metadata.add_argument(
+        "--long-description",
+        help="Custom long description for your ZIM, defaults to description if description is too long",
+        required=False,
+    )
 
     metadata.add_argument(
         "--favicon",

@@ -10,8 +10,11 @@ import logging
 
 from zimscraperlib.zim.creator import Creator
 from zimscraperlib.logging import getLogger as lib_getLogger
+from zimscraperlib.inputs import handle_user_provided_file
+from zimscraperlib.image.convertion import convert_image
+from zimscraperlib.image.transformation import resize_image
 
-from ..constants import NAME
+from ..constants import NAME, SCRAPER
 
 
 class Global:
@@ -100,18 +103,41 @@ class Global:
 
         Global.renderer = Renderer()
 
+        # load illustration data, required for creator metadata setup
+        # the following code section is taken from sotoki.scraper.add_illustrations()
+        src_illus_fpath = Global.conf.build_dir / "illustration"
+        if not Global.conf.favicon:
+            Global.conf.favicon = Global.site["BadgeIconUrl"]
+        handle_user_provided_file(source=Global.conf.favicon, dest=src_illus_fpath)
+
+        # convert to PNG (might already be PNG but it's OK)
+        illus_fpath = src_illus_fpath.with_suffix(".png")
+        convert_image(src_illus_fpath, illus_fpath)
+
+        # resize to appropriate size
+        resize_image(illus_fpath, width=48, height=48, method="thumbnail")
+        with open(illus_fpath, "rb") as fh:
+            illustration_data = fh.read()
+
         Global.creator = Creator(
             filename=Global.conf.output_dir.joinpath(Global.conf.fname),
             main_path="questions",
-            favicon_path="illustration",
-            language=Global.conf.iso_langs_3,
-            title=Global.conf.title,
-            description=Global.conf.description,
-            creator=Global.conf.author,
-            publisher=Global.conf.publisher,
-            name=Global.conf.name,
-            tags=";".join(Global.conf.tags),
-            date=datetime.date.today(),
+       ).config_metadata(
+            Name=Global.conf.name,
+            Language=",".join(Global.conf.iso_langs_3),  # python-scraperlib needs language list as a single string
+            Title=Global.conf.title,
+            Description=Global.conf.description,
+            LongDescription=Global.conf.long_description,
+            Creator=Global.conf.author,
+            Publisher=Global.conf.publisher,
+            Date=datetime.date.today(),
+            Illustration_48x48_at_1=illustration_data,
+            Tags=Global.conf.tags,
+            Scraper=SCRAPER,
+            Flavour=Global.conf.flavour,
+            # Source=,
+            License="CC-BY-SA",  # as per stack exchange ToS, see about page in ZIM
+            # Relation=,
         ).config_verbose(True)
 
 
