@@ -10,7 +10,7 @@
 import os
 import re
 import pathlib
-import xml.sax
+import xml.sax.saxutils
 import subprocess
 from typing import Union
 
