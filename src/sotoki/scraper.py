@@ -7,7 +7,7 @@ import pathlib
 import datetime
 
 from zimscraperlib.zim.items import URLItem
-from zimscraperlib.inputs import handle_user_provided_file
+from zimscraperlib.inputs import handle_user_provided_file, compute_descriptions
 from zimscraperlib.image.convertion import convert_image
 from zimscraperlib.image.transformation import resize_image
 
@@ -77,9 +77,12 @@ class StackExchangeToZim:
             self.conf.title = Global.site["LongName"]
         self.conf.title = self.conf.title.strip()
 
-        if not self.conf.description:
-            self.conf.description = Global.site["Tagline"]
-        self.conf.description = self.conf.description.strip()
+        default_description = Global.site["Tagline"].strip()
+        if self.conf.description:
+            user_description = self.conf.description.strip()
+        else:
+            user_description = None
+        self.conf.description, self.conf.long_description = compute_descriptions(default_description, user_description, self.conf.long_description)
 
         if not self.conf.author:
             self.conf.author = "Stack Exchange"
@@ -90,23 +93,6 @@ class StackExchangeToZim:
         self.conf.publisher = self.conf.publisher.strip()
 
     def add_illustrations(self):
-        src_illus_fpath = self.build_dir / "illustration"
-
-        # if user provided a custom favicon, retrieve that
-        if not self.conf.favicon:
-            self.conf.favicon = Global.site["BadgeIconUrl"]
-        handle_user_provided_file(source=self.conf.favicon, dest=src_illus_fpath)
-
-        # convert to PNG (might already be PNG but it's OK)
-        illus_fpath = src_illus_fpath.with_suffix(".png")
-        convert_image(src_illus_fpath, illus_fpath)
-
-        # resize to appropriate size (ZIM uses 48x48 so we double for retina)
-        for size in (96, 48):
-            resize_image(illus_fpath, width=size, height=size, method="thumbnail")
-            with open(illus_fpath, "rb") as fh:
-                Global.creator.add_illustration(size, fh.read())
-
         # download and add actual favicon (ICO file)
         favicon_fpath = self.build_dir / "favicon.ico"
         handle_user_provided_file(source=Global.site["IconUrl"], dest=favicon_fpath)
