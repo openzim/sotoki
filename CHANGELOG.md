@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (as of version 2.0.1).
 
-## [Unreleased]
+## [2.1.0] - 2024-03-28
 
 ## Added
 
@@ -19,8 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Language` metadata to be set to `eng,xxx` (xxx being the second language)
   - `Name` metadata to be like "{domain}_mul_{variant}"
   - Filename metadata to match `Name`
-- Using zimscraperlib 2.1
+- Using zimscraperlib 3.3
 - Changed default publisher metadata from 'Kiwix' to 'openZIM'
+- `description` metadata is now limited to 80 chars, full description goes to the `long_description` (#290)
+
+## Fixed
+
+- Multilanguage ZIM are not perfectly handled (#259)
+- Incorrect image displayed (#284) 
+- Markdown text formatting is not rendered (#286)
+- Harmonize default publisher to openZIM (#291)
+- Docker image: align redis binaries with Python distribution (#294)
+- Issue with xml.sax.saxutils (#298)
 
 ## [2.0.2] - 2022-10-31
 
