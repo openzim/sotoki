@@ -13,6 +13,7 @@ Archive](https://archive.org/download/stackexchange/).
 [![Docker](https://ghcr-badge.deta.dev/openzim/sotoki/latest_tag?label=docker)](https://ghcr.io/openzim/sotoki)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![PyPI version shields.io](https://img.shields.io/pypi/v/sotoki.svg)](https://pypi.org/project/sotoki/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/sotoki.svg)](https://pypi.org/project/sotoki)
 
 ## Usage
 
