@@ -16,10 +16,31 @@ from typing import Union
 
 from .shared import logger
 from .misc import has_binary, get_available_memory
-from ..constants import UTF8
+from ..constants import UTF8, UTF16LE
 
 has_gnusort = has_binary("sort")
 
+
+def reencode_file(src: pathlib.Path):
+    """Reencode a file from dump format (UTF-16-LE as of March 2024) to expected format (UTF8)
+
+    This is based on a streaming on-the-fly reencoding of file chunks to limit memory pressure.
+
+    Content is read line-by-line to ensure it is not split in the middle of a grapheme cluster.
+
+    During reencoding, there will be two versions of the same content on the filesystem, one in
+    previous encoding and one in target encoding, filesystem needs enough space for that.
+    """
+    tmp = src.with_suffix(src.suffix + ".tmp")
+    with open(src, "r", encoding=UTF16LE) as sourceFile:
+        with open(tmp, "w", encoding=UTF8) as targetFile:
+            while True:
+                contents = sourceFile.readline()
+                if not contents:
+                    break
+                targetFile.write(contents)
+    src.unlink()
+    tmp.rename(src)
 
 def get_within_chars(nb_chars_glue: int, nb_ids: int) -> int:
     """nb of chars to combine `nb_ids`'s values with `nb_chars_glue`
@@ -212,8 +233,8 @@ def merge_two_xml_files(
         for main_line in mainfh:
             main_id = get_id_in(main_line, field_index_in_main)
 
-            # write main line to dest; removing tag end (/> -> >) and CRLF
-            dsth.write(main_line[:-4])
+            # write main line to dest; removing tag end (/>) and LF
+            dsth.write(main_line[:-3])
             dsth.write(b">")
 
             # fetch subs matching this ID (IDs are sorted so it's continuous)
@@ -226,9 +247,9 @@ def merge_two_xml_files(
                     has_subs = True
 
                 dsth.write(node_start)
-                # write the sub line removing the 2 heading spaces, node name (<row)
-                # removing trailing CRLF as well. node already self closed in source
-                dsth.write(current_sub[1][6:-2])
+                # write the sub line removing node name (<row) and trailing LF as well. node already
+                # self closed in source
+                dsth.write(current_sub[1][4:-1])
                 current_sub = read_sub()
 
             if has_subs:
@@ -313,9 +334,9 @@ def split_posts_by_posttypeid(
             except IndexError:
                 break
             try:
-                # rewrite with new name replacing `  <row` and `row>`
+                # rewrite with new name replacing `<row` and `row>LF`
                 fhs[found_id].write(starts[found_id])
-                fhs[found_id].write(line[6:-5])
+                fhs[found_id].write(line[4:-5])
                 fhs[found_id].write(ends[found_id])
             except KeyError:
                 continue
@@ -382,9 +403,9 @@ def add_post_names_to_links(
                 break
 
             if current_csv[0] == post_id:
-                # write user line to dest; removing tag end and CRLF
+                # write user line to dest; removing tag open (<row), tag end (/>) and LF
                 dsth.write(b"<link")
-                dsth.write(line[6:-4])
+                dsth.write(line[4:-3])
                 # CSV title already includes appropriate quoting
                 dsth.write(b" PostName=")
                 dsth.write(current_csv[1])
