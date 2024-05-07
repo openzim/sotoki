@@ -21,9 +21,11 @@ jobs:
           architecture: x64
 
       - name: Build packages
+        # zimscraperlib is needed in build since its a requirement for dependencies.py
+        # + we do not build in isolated env for simplicity before moving to Python bootstrap
         run: |
-          pip install -U pip build
-          python -m build --sdist --wheel
+          pip install -U pip build zimscraperlib wheel setuptools
+          python -m build -n --sdist --wheel
 
       - name: Upload to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1.8

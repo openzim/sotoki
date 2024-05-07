@@ -4,7 +4,7 @@
 
 import sys
 import pathlib
-from setuptools import setup, find_packages
+from setuptools import setup, find_namespace_packages
 
 root_dir = pathlib.Path(__file__).parent
 
@@ -31,7 +31,7 @@ setup(
     url="https://github.com/openzim/sotoki",
     keywords="kiwix zim offline stackechange stackoverflow",
     license="GPLv3+",
-    packages=find_packages("src"),
+    packages=find_namespace_packages(where="src"),
     package_dir={"": "src"},
     install_requires=[
         line.strip()
