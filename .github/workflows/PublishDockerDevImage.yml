@@ -1,29 +1,27 @@
-name: Docker
+name: Publish Docker dev image
 
 on:
   push:
     branches:
       - main
-    tags:
-      - v*
 
 jobs:
-  build-and-push:
-    name: Deploy Docker Image
+  publish:
     runs-on: ubuntu-22.04
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Build and push
+      - uses: actions/checkout@v3
+
+      - name: Build and push Docker image
         uses: openzim/docker-publish-action@v10
         with:
           image-name: openzim/sotoki
-          on-master: dev
-          tag-pattern: /^v([0-9.]+)$/
-          latest-on-tag: true
+          manual-tag: dev
+          latest-on-tag: false
           restrict-to: openzim/sotoki
-          repo_description: auto
-          repo_overview: auto
           registries: ghcr.io
           credentials:
             GHCRIO_USERNAME=${{ secrets.GHCR_USERNAME }}
             GHCRIO_TOKEN=${{ secrets.GHCR_TOKEN }}
+          repo_description: auto
+          repo_overview: auto

@@ -1,0 +1,43 @@
+name: Build and upload to PyPI
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-22.04
+    permissions:
+      id-token: write  # mandatory for PyPI trusted publishing
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8' # manual configuration until Python bootstrap is implemented
+          # python-version-file: pyproject.toml
+          architecture: x64
+
+      - name: Build packages
+        run: |
+          pip install -U pip build
+          python -m build --sdist --wheel
+
+      - name: Upload to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1.8
+
+      - name: Build and push Docker image
+        uses: openzim/docker-publish-action@v10
+        with:
+          image-name: openzim/sotoki
+          tag-pattern: /^v([0-9.]+)$/
+          latest-on-tag: true
+          restrict-to: openzim/sotoki
+          registries: ghcr.io
+          credentials:
+            GHCRIO_USERNAME=${{ secrets.GHCR_USERNAME }}
+            GHCRIO_TOKEN=${{ secrets.GHCR_TOKEN }}
+          repo_description: auto
+          repo_overview: auto
