@@ -90,13 +90,12 @@ class ArchiveManager:
 
             # remove other files from ark that we won't need
             for fp in self.build_dir.iterdir():
-                if fp.suffix == ".xml":
-                    if fp.stem not in self.dump_parts:
-                        fp.unlink()
-                    else:
-                        reencode_file(fp)
-                else:
+                if fp.suffix != ".xml" or fp.stem not in self.dump_parts:
                     fp.unlink()
+
+            # reencode xml files
+            for fp in self.build_dir.iterdir():
+                reencode_file(fp)
 
         futures = {}
         executor = cf.ThreadPoolExecutor(max_workers=len(self.archives))

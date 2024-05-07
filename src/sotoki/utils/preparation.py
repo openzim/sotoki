@@ -26,15 +26,16 @@ def reencode_file(src: pathlib.Path):
 
     This is based on a streaming on-the-fly reencoding of file chunks to limit memory pressure.
 
-    During few instants, there will be two versions of the same content on the filesystem, one
-    in previous encoding and one in target encoding, filesystem needs enough space for that.
+    Content is read line-by-line to ensure it is not split in the middle of a grapheme cluster.
+
+    During reencoding, there will be two versions of the same content on the filesystem, one in
+    previous encoding and one in target encoding, filesystem needs enough space for that.
     """
-    BLOCKSIZE = 1048576
     tmp = src.with_suffix(src.suffix + ".tmp")
     with open(src, "r", encoding=UTF16LE) as sourceFile:
         with open(tmp, "w", encoding=UTF8) as targetFile:
             while True:
-                contents = sourceFile.read(BLOCKSIZE)
+                contents = sourceFile.readline()
                 if not contents:
                     break
                 targetFile.write(contents)
