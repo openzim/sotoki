@@ -15,6 +15,7 @@ from .utils.sevenzip import extract_7z
 from .utils.preparation import (
     merge_users_with_badges,
     merge_posts_with_answers_comments,
+    reencode_file,
 )
 
 
@@ -89,8 +90,12 @@ class ArchiveManager:
 
             # remove other files from ark that we won't need
             for fp in self.build_dir.iterdir():
-                if fp.suffix == ".xml" and fp.stem not in self.dump_parts:
+                if fp.suffix != ".xml" or fp.stem not in self.dump_parts:
                     fp.unlink()
+
+            # reencode xml files
+            for fp in self.build_dir.iterdir():
+                reencode_file(fp)
 
         futures = {}
         executor = cf.ThreadPoolExecutor(max_workers=len(self.archives))
