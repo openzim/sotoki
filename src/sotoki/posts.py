@@ -55,6 +55,9 @@ class FirstPassWalker(WalkerWithTrigger):
 
         # opening answers of a question
         if name == "answer":  # a answer
+            # ignore deleted answers
+            if "DeletionDate" in attrs:
+                return
             _user_to_set(self.post["users_ids"], "OwnerUserId")
             _user_to_set(self.post["users_ids"], "LastEditorUserId")
             self.post["nb_answers"] += 1
@@ -91,6 +94,10 @@ class PostFirstPasser(Generator):
         )
 
     def processor(self, item):
+        # ignore deleted posts
+        if "DeletionDate" in item:
+            self.release()
+            return
         # skip post without answers ; maybe?
         if self.conf.without_unanswered and not item["nb_answers"]:
             self.release()
@@ -165,6 +172,8 @@ class PostsWalker(WalkerWithTrigger):
 
         # an answer
         if name == "answer":
+            if "DeletionDate" in attrs:
+                return
             self.answers.append(dict(attrs.items()))
             return
 
@@ -239,6 +248,10 @@ class PostGenerator(Generator):
     def processor(self, item):
         post = item
         if self.conf.without_unanswered and not post["answers"]:
+            self.release()
+            return
+        # ignore deleted posts
+        if "DeletionDate" in item:
             self.release()
             return
         harmonize_post(post)
