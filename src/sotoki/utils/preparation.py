@@ -233,8 +233,8 @@ def merge_two_xml_files(
         for main_line in mainfh:
             main_id = get_id_in(main_line, field_index_in_main)
 
-            # write main line to dest; removing tag end (/> -> >) and CRLF
-            dsth.write(main_line[:-4])
+            # write main line to dest; removing tag end (/>) and LF
+            dsth.write(main_line[:-3])
             dsth.write(b">")
 
             # fetch subs matching this ID (IDs are sorted so it's continuous)
@@ -247,9 +247,9 @@ def merge_two_xml_files(
                     has_subs = True
 
                 dsth.write(node_start)
-                # write the sub line removing the 2 heading spaces, node name (<row)
-                # removing trailing CRLF as well. node already self closed in source
-                dsth.write(current_sub[1][6:-2])
+                # write the sub line removing node name (<row) and trailing LF as well. node already
+                # self closed in source
+                dsth.write(current_sub[1][4:-1])
                 current_sub = read_sub()
 
             if has_subs:
@@ -334,9 +334,9 @@ def split_posts_by_posttypeid(
             except IndexError:
                 break
             try:
-                # rewrite with new name replacing `  <row` and `row>`
+                # rewrite with new name replacing `<row` and `row>LF`
                 fhs[found_id].write(starts[found_id])
-                fhs[found_id].write(line[6:-5])
+                fhs[found_id].write(line[4:-5])
                 fhs[found_id].write(ends[found_id])
             except KeyError:
                 continue
@@ -403,9 +403,9 @@ def add_post_names_to_links(
                 break
 
             if current_csv[0] == post_id:
-                # write user line to dest; removing tag end and CRLF
+                # write user line to dest; removing tag open (<row), tag end (/>) and LF
                 dsth.write(b"<link")
-                dsth.write(line[6:-4])
+                dsth.write(line[4:-3])
                 # CSV title already includes appropriate quoting
                 dsth.write(b" PostName=")
                 dsth.write(current_csv[1])
