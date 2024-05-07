@@ -16,10 +16,30 @@ from typing import Union
 
 from .shared import logger
 from .misc import has_binary, get_available_memory
-from ..constants import UTF8
+from ..constants import UTF8, UTF16LE
 
 has_gnusort = has_binary("sort")
 
+
+def reencode_file(src: pathlib.Path):
+    """Reencode a file from dump format (UTF-16-LE as of March 2024) to expected format (UTF8)
+
+    This is based on a streaming on-the-fly reencoding of file chunks to limit memory pressure.
+
+    During few instants, there will be two versions of the same content on the filesystem, one
+    in previous encoding and one in target encoding, filesystem needs enough space for that.
+    """
+    BLOCKSIZE = 1048576
+    tmp = src.with_suffix(src.suffix + ".tmp")
+    with open(src, "r", encoding=UTF16LE) as sourceFile:
+        with open(tmp, "w", encoding=UTF8) as targetFile:
+            while True:
+                contents = sourceFile.read(BLOCKSIZE)
+                if not contents:
+                    break
+                targetFile.write(contents)
+    src.unlink()
+    tmp.rename(src)
 
 def get_within_chars(nb_chars_glue: int, nb_ids: int) -> int:
     """nb of chars to combine `nb_ids`'s values with `nb_chars_glue`
