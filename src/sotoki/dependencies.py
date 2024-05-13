@@ -22,7 +22,7 @@ ASSETS = [
     ("static/js/moment.min.js", "https://momentjs.com/downloads/moment.min.js"),
     (
         "static/js/jdenticon.min.js",
-        "https://raw.githubusercontent.com/dmester/jdenticon/3.1.0"
+        "https://raw.githubusercontent.com/dmester/jdenticon/3.3.0"
         "/dist/jdenticon.min.js",
     ),
     (

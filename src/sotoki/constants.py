@@ -21,7 +21,6 @@ with open(ROOT_DIR.joinpath("VERSION"), "r") as fh:
     VERSION = fh.read().strip()
 
 UTF8 = "utf-8"
-UTF16LE = "utf-16-le"
 SCRAPER = f"{NAME} {VERSION}"
 USER_AGENT = (
     f"{NAME}/{VERSION} (https://github.com/openzim/sotoki; "
