@@ -10,7 +10,7 @@ It is based on Stack Exchange's Data Dumps hosted by [The Internet
 Archive](https://archive.org/download/stackexchange/).
 
 [![CodeFactor](https://www.codefactor.io/repository/github/openzim/sotoki/badge)](https://www.codefactor.io/repository/github/openzim/sotoki)
-[![Docker](https://ghcr-badge.deta.dev/openzim/sotoki/latest_tag?label=docker)](https://ghcr.io/openzim/sotoki)
+[![Docker](https://ghcr-badge.egpl.dev/openzim/sotoki/latest_tag?label=docker)](https://ghcr.io/openzim/sotoki)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![PyPI version shields.io](https://img.shields.io/pypi/v/sotoki.svg)](https://pypi.org/project/sotoki/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/sotoki.svg)](https://pypi.org/project/sotoki)
