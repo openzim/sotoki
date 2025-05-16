@@ -21,8 +21,7 @@ from .utils.preparation import (
 class ArchiveManager:
     """Handle retrieval and processing of StackExchange dump files
 
-    Each website is available as a single 7z archive
-    except stackoverflow which is split in multiple ones
+    Each website is available as a single 7z archive.
 
     7z files extracts to a number of XML files. We are interested in a few
     that we need to read and combine (and thus sort).
@@ -55,10 +54,13 @@ class ArchiveManager:
 
     @property
     def archives(self):
-        """list of 7z archive files"""
-        if self.domain != "stackoverflow.com":
-            return [self.build_dir / f"{self.domain}.7z"]
-        return [self.build_dir / f"{self.domain}-{part}.7z" for part in self.dump_parts]
+        """list of 7z archive files
+
+        Scraper is capable to download multiple archives per domain. This was used for
+        stackoverflow.com which was split with one 7z per dump part. This is not the
+        case anymore but scraper capability has not been removed for now.
+        """
+        return [self.build_dir / f"{self.domain}.7z"]
 
     def get_dump_date(self):
         """date indicating the month and year the dump ark was produced"""
