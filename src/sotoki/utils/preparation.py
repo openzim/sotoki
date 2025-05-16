@@ -63,6 +63,13 @@ def remove_xml_headers(src: pathlib.Path, dst: pathlib.Path, delete_src: bool = 
 
         # xml root node opening
         root_open = srch.readline().decode(UTF8).strip()
+        if ("<!--" in root_open):
+            while True:
+                next_comment = srch.readline().decode(UTF8).strip()
+                if "-->" in next_comment:
+                    break
+            root_open = srch.readline().decode(UTF8).strip()
+
         # guess expected ending
         root_end = f"{root_open[0]}/{root_open[1:]}".encode(UTF8)
         root_end_len = len(root_end)
