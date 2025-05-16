@@ -580,11 +580,6 @@ def merge_posts_with_answers_comments(
     logger.info("split Posts-Comments by PostType")
     del posts_comments
 
-    # generate a post_id,title CSV file for all questions
-    posts_titles = workdir / "posts_titles.csv"
-    extract_posts_titles(src=posts_com_questions, dst=posts_titles)
-    logger.info("Extracted Post IDs and titles into CSV")
-
     posts_com_questions_sorted = workdir / "posts_com_questions_sorted.xml"
     posts_com_answers_sorted = workdir / "posts_com_answers_sorted.xml"
     sort_dump_by_id(
@@ -594,6 +589,11 @@ def merge_posts_with_answers_comments(
         delete_src=delete_src,
     )
     logger.info("sorted Posts-Comments (questions) by Id")
+
+    # generate a post_id,title CSV file for all questions
+    posts_titles = workdir / "posts_titles.csv"
+    extract_posts_titles(src=posts_com_questions_sorted, dst=posts_titles)
+    logger.info("Extracted Post IDs and titles into CSV")
 
     sort_dump_by_id(
         src=posts_com_answers,
