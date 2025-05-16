@@ -13,31 +13,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.1.3] - 2024-10-29
 
-## Fixed
+### Fixed
 
 - Fix Mathjax equations not displayed properly (#283)
 
 ## [2.1.2] - 2024-05-13
 
-## Fixed
+### Fixed
 
 - User icons don't load properly (#301)
 - Revert adaptations to upstream XML format changes (#313)
 
 ## [2.1.1] - 2024-05-07
 
-## Fixed
+### Fixed
 
 - Adapt to upstream XML format changes (#305)
 - Add continuous delivery to Pypi (#303)
 
 ## [2.1.0] - 2024-03-28
 
-## Added
+### Added
 
 - Redirection from `/questions/{questionId}` to the question page (#277)
 
-## Changed
+### Changed
 
 - ZIM Tags now include `_videos:no;_details:no` and conditionaly include `_pictures:no` (#278)
 - Default filename now uses `nopic` instead of `all` if using `--without-images` (#278)
@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed default publisher metadata from 'Kiwix' to 'openZIM'
 - `description` metadata is now limited to 80 chars, full description goes to the `long_description` (#290)
 
-## Fixed
+### Fixed
 
 - Multilanguage ZIM are not perfectly handled (#259)
 - Incorrect image displayed (#284) 
