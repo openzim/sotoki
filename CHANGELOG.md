@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Change image processing order to save memory (#325)
+
 ## [2.1.3] - 2024-10-29
 
 ## Fixed

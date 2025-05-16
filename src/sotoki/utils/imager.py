@@ -128,18 +128,19 @@ class Imager:
         """Bytes stream of an optimized, resized WebP of the source image"""
         src, webp = io.BytesIO(), io.BytesIO()
         stream_file(url=url, byte_stream=src)
-        with Image.open(src) as img:
-            img.save(webp, format="WEBP")
-        del src
+        # first resize then convert to webp and optimize, because conversion to webp
+        # proved to consume lots of memory ; a smaller image obviously consumes less
         resize_args = resize_args or {}
         try:
             resize_image(
-                src=webp,
+                src,
                 **resize_args,
                 allow_upscaling=False,
             )
         except ImageSizeError as exc:
             logger.debug(f"Resize Error for {url}: {exc}")
+        with Image.open(src) as img:
+            img.save(webp, format="WEBP")
         return optimize_webp(
             src=webp,
             lossless=False,
