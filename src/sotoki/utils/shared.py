@@ -39,6 +39,9 @@ class Global:
     imager = None
     renderer = None
     rewriter = None
+    total_tags = 0
+    total_questions = 0
+    total_users = 0
     lock = threading.Lock()
 
     @staticmethod
@@ -58,7 +61,7 @@ class Global:
         from .progress import Progresser
 
         Global.site = site
-        Global.progresser = Progresser(int(site["TotalQuestions"]))
+        Global.progresser = Progresser(Global.total_questions)
 
     @staticmethod
     def setup():

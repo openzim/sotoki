@@ -262,7 +262,7 @@ class StackExchangeToZim:
         logger.info("Recording Tag metadata to Database")
         Global.progresser.start(
             Global.progresser.TAGS_METADATA_STEP,
-            nb_total=int(Global.site["TotalTags"]) * 3,
+            nb_total=Global.total_tags * 3,
         )
         if not self.conf.skip_tags_meta:
             TagFinder().run()
@@ -282,7 +282,7 @@ class StackExchangeToZim:
         logger.info("Recording questions metadata to Database")
         Global.progresser.start(
             Global.progresser.QUESTIONS_METADATA_STEP,
-            nb_total=int(Global.site["TotalQuestions"]),
+            nb_total=Global.total_questions,
         )
         if not self.conf.skip_questions_meta:
             PostFirstPasser().run()
@@ -298,7 +298,7 @@ class StackExchangeToZim:
         logger.info("Generating individual Users pages")
         Global.progresser.start(
             Global.progresser.USERS_STEP,
-            nb_total=int(Global.site["TotalUsers"]),
+            nb_total=Global.total_users,
         )
         if not self.conf.skip_users:
             UserGenerator().run()
@@ -314,7 +314,7 @@ class StackExchangeToZim:
         logger.info("Generating Questions pages")
         Global.progresser.start(
             Global.progresser.QUESTIONS_STEP,
-            nb_total=int(Global.site["TotalQuestions"]),
+            nb_total=Global.total_questions,
         )
         PostGenerator().run()
         Global.database.purge()
@@ -324,7 +324,7 @@ class StackExchangeToZim:
         # Each tag is actually a number of paginated pages with a list of questions
         logger.info("Generating Tags pages")
         Global.progresser.start(
-            Global.progresser.TAGS_STEP, nb_total=int(Global.site["TotalTags"])
+            Global.progresser.TAGS_STEP, nb_total=Global.total_tags
         )
         TagGenerator().run()
 

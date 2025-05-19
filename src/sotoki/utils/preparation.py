@@ -538,6 +538,34 @@ def merge_users_with_badges(
     logger.info("merged both sets")
     return users_with_badges
 
+def count_xml_rows(
+    src: pathlib.Path,
+    tag: str
+): 
+    """Count number of rows in an XML file having a given tag"""
+    args1= ["/usr/bin/env",
+        "sed",
+        "-n",
+        f"/<{tag}/p",
+        str(src)
+        ]
+    cmd1 = subprocess.Popen(
+        args1, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env={"LC_ALL": "C"}
+    )
+
+    args2 = ["wc", "-l"]
+    cmd2 = subprocess.run(
+        args2, stdin=cmd1.stdout, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env={"LC_ALL": "C"}
+    )
+
+    cmd1.stdout.close()
+
+    if not cmd2.returncode == 0:
+        logger.error(f"Error running {args1} | {args2}: returned {cmd2.returncode}\n{cmd2.stdout}")
+        raise subprocess.CalledProcessError(cmd2.returncode, args2)
+
+    return int(cmd2.stdout.decode())
+
 
 def merge_posts_with_answers_comments(
     workdir: pathlib.Path, delete_src: bool = False

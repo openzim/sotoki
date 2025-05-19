@@ -13,6 +13,7 @@ from .utils.shared import Global, logger
 from .utils.misc import has_binary
 from .utils.sevenzip import extract_7z
 from .utils.preparation import (
+    count_xml_rows,
     merge_users_with_badges,
     merge_posts_with_answers_comments,
 )
@@ -153,6 +154,7 @@ class ArchiveManager:
                 logger.info("Extracted parts present; reusing")
         else:
             logger.info("Prepared dumps already present; reusing.")
+            self.count_items(users, posts, tags)
             Global.progresser.update(nb_done=1, nb_total=1)
             return
 
@@ -171,4 +173,16 @@ class ArchiveManager:
             raise IOError(f"Missing {posts.name} while we should not.")
         Global.progresser.update(incr=5)
 
+        self.count_items(users, posts, tags)
         logger.info("Prepared dumps completed.")
+
+    def count_items(self, users, questions, tags):
+
+        Global.total_tags = count_xml_rows(tags, "row")
+        logger.info(f"{Global.total_tags} tags found")
+
+        Global.total_users = count_xml_rows(users, "row")
+        logger.info(f"{Global.total_users} users found")
+
+        Global.total_questions = count_xml_rows(questions, "post")
+        logger.info(f"{Global.total_questions} questions found")
