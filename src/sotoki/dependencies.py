@@ -114,14 +114,6 @@ ASSETS = [
     # we may consider parsing those CSS to extract and include exact list should
     # this prove to be difficult to maintain
     (
-        "Img/icon-envelope-fill-gray.png",
-        "https://cdn.sstatic.net/Img/icon-envelope-fill-gray.png",
-    ),
-    (
-        "Img/icon-envelope-fill-gray.svg",
-        "https://cdn.sstatic.net/Img/icon-envelope-fill-gray.svg",
-    ),
-    (
         "Img/forms/icon-disabled.svg",
         "https://cdn.sstatic.net/Img/forms/icon-disabled.svg",
     ),
