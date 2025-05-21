@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Breaking changes: adapt to new StackExchange dumps
+  - Only working on recent dumps (June 2024 and later)
+  - `--title` and `--description` CLI parameters are now mandatory
+  - New required `--primary-css` and `--secondary-css` CLI parameters to specify these StackExchange stylesheets locations
+  - New optional `--illustration`, `--small-favicon` and `--big-favicon` CLI parameters to configure ZIM and HTML illustrations
+  - Dropped `-l`/`--list-all` CLI action to list all SE sites (not working anymore)
+
 ### Fixed
 
 - Change image processing order to save memory (#325)

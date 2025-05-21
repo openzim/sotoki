@@ -17,9 +17,22 @@ Archive](https://archive.org/download/stackexchange/).
 
 ## Usage
 
-`Sotoki` works off a `domain` that you must provide. That is the
-domain-name of the stackexchange website you want to scrape. Run
-`sotoki --list-all` to get a list of those
+`Sotoki` works off a dump of a StackExchange website, as regularly created by StackExchange team. You must provide
+a `--mirror` to use to download this dump and the `--domain` you want to scrape.
+
+For instance, to download Sports StackExchange website as of August 2024 and based on dump hosted on archive.org,
+you have to use `--mirror https://archive.org/download/stackexchange_20240829 --domain sports.stackexchange.com`.
+Value of mirror is hence continuously updated as new dumps are published by StackExchange team.
+
+Other CLI parameters are mandatory:
+- `--title`: Title of the ZIM, must be less than 30 chars
+- `--description`: Description of the ZIM, mist be less than 80 chars
+- `--primary-css` and `--secondary-css`:
+  - URL (or path) to primary and secondary stylesheets of domain being dumped
+  - Can be found by opening website online and using your browser developer tools to find their URLs
+  - For sports.stackexchange, proper values are:
+    - `--primary-css https://cdn.sstatic.net/Sites/sports/primary.css`
+    - `--secondary-css https://cdn.sstatic.net/Sites/sports/secondary.css`
 
 ### Docker
 

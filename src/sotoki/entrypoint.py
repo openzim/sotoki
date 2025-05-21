@@ -206,8 +206,8 @@ def main():
     advanced.add_argument(
         "--mirror",
         help="URL from which to download compressed XML dumps",
-        default="https://archive.org/download/stackexchange/",
         dest="mirror",
+        required=True
     )
 
     advanced.add_argument(
