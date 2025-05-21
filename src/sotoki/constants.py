@@ -100,6 +100,8 @@ class Sotoconf:
     description: str = ""
     long_description: Optional[str] = ""
     illustration: str = ""
+    primary_css: str = ""
+    secondary_css: str = ""
     big_favicon: Optional[str] = ""
     small_favicon: Optional[str] = ""
     author: Optional[str] = ""
