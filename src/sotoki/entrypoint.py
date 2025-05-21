@@ -3,6 +3,7 @@
 # vim: ai ts=4 sts=4 et sw=4 nu
 
 import os
+from pathlib import Path
 import sys
 import argparse
 
@@ -107,8 +108,19 @@ def main():
     )
 
     metadata.add_argument(
-        "--favicon",
-        help="URL/path for Zim Illustration. Site square logo otherwise",
+        "--small-favicon",
+        help="URL/path to small 16x16 illustration used as HTML favicon ; fallbacks to --illustration if not provided",
+    )
+
+    metadata.add_argument(
+        "--big-favicon",
+        help="URL/path to 'big' illustration used as HTML icon for apple devices ; fallbacks to --illustration if not provided",
+    )
+
+    metadata.add_argument(
+        "--illustration",
+        help="URL/path to ZIM illustration ; fallbacks to a default StackExchange icon if not provided",
+        default=Path(__file__).parent / "illustration.png"
     )
 
     metadata.add_argument(

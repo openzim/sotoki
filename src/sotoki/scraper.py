@@ -88,14 +88,16 @@ class StackExchangeToZim:
 
     def add_illustrations(self):
         # download and add actual favicon (ICO file)
-        favicon_fpath = self.build_dir / "favicon.ico"
-        handle_user_provided_file(source=Global.site["IconUrl"], dest=favicon_fpath)
-        Global.creator.add_item_for("favicon.ico", fpath=favicon_fpath, is_front=False)
+        small_favicon_fpath = self.build_dir / "favicon.ico"
+        small_favicon_source = Global.conf.small_favicon if Global.conf.small_favicon else Global.conf.illustration
+        handle_user_provided_file(source=small_favicon_source, dest=small_favicon_fpath)
+        Global.creator.add_item_for("favicon.ico", fpath=small_favicon_fpath, is_front=False)
 
         # download apple-touch-icon
-        Global.creator.add_item(
-            URLItem(url=Global.site["BadgeIconUrl"], path="apple-touch-icon.png")
-        )
+        big_favicon_fpath = self.build_dir / "apple-touch-icon.png"
+        big_favicon_source = Global.conf.big_favicon if Global.conf.big_favicon else Global.conf.illustration
+        handle_user_provided_file(source=big_favicon_source, dest=big_favicon_fpath)
+        Global.creator.add_item_for("apple-touch-icon.png", fpath=big_favicon_fpath, is_front=False)
 
     def add_assets(self):
         assets_root = ROOT_DIR.joinpath("assets")
