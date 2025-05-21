@@ -14,56 +14,6 @@ from .utils.sites import get_all_sites
 from .utils.shared import Global, logger
 
 
-class ListAllAction(argparse.Action):
-    """argparse Action to list StackExchange domains and exit"""
-
-    def __init__(
-        self,
-        option_strings,
-        dest=argparse.SUPPRESS,
-        default=argparse.SUPPRESS,
-    ):
-        super().__init__(
-            option_strings=option_strings,
-            dest=dest,
-            default=default,
-            nargs=0,
-            help="Simply print the list of available domains and exit",
-        )
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        def to_row(site):
-            url = site.get("@Url", "").replace("https://", "")
-            nb_questions = int(site.get("@TotalQuestions", 0))
-            return (url, site.get("@Name"), "{:,}".format(nb_questions))
-
-        # not sure what's most useful: order by domain or by Nb of question?
-        order_by_questions = True
-        order_desc = True
-
-        def _sort_key(item):
-            if order_by_questions:
-                return int(item[2].replace(",", ""))
-            else:
-                return item[0]
-
-        builder = TableBuilderClassic()
-        formatter = parser._get_formatter()
-
-        formatter.add_text(
-            builder.build_table(
-                header=["Domain", "Name", "Nb. Questions"],
-                data=sorted(
-                    [to_row(site) for site in get_all_sites()],
-                    key=_sort_key,
-                    reverse=order_desc,
-                ),
-            ),
-        )
-        parser._print_message(formatter.format_help(), sys.stdout)
-        parser.exit()
-
-
 def main():
     parser = argparse.ArgumentParser(
         prog=NAME,
@@ -76,9 +26,6 @@ def main():
         help="Domain name from StackExchange to scrape. Use --list-all for values",
         required=True,
     )
-
-    parser.add_argument("-l", "--list-all", action=ListAllAction)
-    # parser.add_argument("--sorted-by")
 
     metadata = parser.add_argument_group("Metadata")
 
