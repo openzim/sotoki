@@ -73,16 +73,10 @@ class StackExchangeToZim:
         else:
             self.conf.fname = f"{self.conf.name}_{period}.zim"
 
-        if not self.conf.title:
-            self.conf.title = Global.site["LongName"]
         self.conf.title = self.conf.title.strip()
-
-        default_description = Global.site["Tagline"].strip()
-        if self.conf.description:
-            user_description = self.conf.description.strip()
-        else:
-            user_description = None
-        self.conf.description, self.conf.long_description = compute_descriptions(default_description, user_description, self.conf.long_description)
+        self.conf.description = self.conf.description.strip()
+        if self.conf.long_description:
+            self.conf.long_description = self.conf.long_description.strip()
 
         if not self.conf.author:
             self.conf.author = "Stack Exchange"

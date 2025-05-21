@@ -87,6 +87,8 @@ class Sotoconf:
         "output_dir",
         "keep_build_dir",
         "nb_threads",
+        "title",
+        "description"
     ]
 
     domain: str
@@ -94,8 +96,8 @@ class Sotoconf:
 
     # zim params
     name: str
-    title: Optional[str] = ""
-    description: Optional[str] = ""
+    title: str = ""
+    description: str = ""
     long_description: Optional[str] = ""
     author: Optional[str] = ""
     publisher: Optional[str] = ""

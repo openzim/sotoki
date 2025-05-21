@@ -90,16 +90,19 @@ def main():
 
     metadata.add_argument(
         "--title",
-        help="Custom title for your ZIM. Site name otherwise",
+        help="Title for your ZIM, no longer than 30 chars",
+        required=True,
     )
 
     metadata.add_argument(
         "--description",
-        help="Custom description for your ZIM. Site tagline otherwise",
+        help="Description for your ZIM, no longer than 80 chars",
+        required=True,
     )
+
     metadata.add_argument(
         "--long-description",
-        help="Custom long description for your ZIM, defaults to description if description is too long",
+        help="Long description for your ZIM, no longer than 4000 chars",
         required=False,
     )
 
