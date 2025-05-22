@@ -133,8 +133,6 @@ class Renderer(GlobalMixin):
             "site_mathjax": self.site.get("mathjax", False),
             "site_highlight": self.site.get("highlight", False),
             "is_meta": is_meta,
-            # meta sites (with a ParentId) don't use custom CSS
-            "site_css": "" if self.site.get("ParentId") else self.site.get("TagCss"),
             "conf": self.conf,
         }
 
