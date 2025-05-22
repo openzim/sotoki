@@ -146,7 +146,6 @@ class Sotoconf:
     stats_filename: Optional[str] = None
     build_dir_is_tmp_dir: Optional[bool] = False
     defrag_redis: Optional[str] = ""
-    dump_date: Optional[datetime.date] = datetime.date.today()
     open_shell: Optional[bool] = False
     skip_tags_meta: Optional[bool] = False
     skip_questions_meta: Optional[bool] = False

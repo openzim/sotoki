@@ -84,6 +84,7 @@ class PostFirstPasser(Generator):
         self.nb_answers = 0
         self.nb_answered = 0
         self.nb_accepted = 0
+        self.most_recent_ts = 0
 
     def run(self):
         super().run()
@@ -91,6 +92,7 @@ class PostFirstPasser(Generator):
             nb_answers=self.nb_answers,
             nb_answered=self.nb_answered,
             nb_accepted=self.nb_accepted,
+            most_recent_ts=self.most_recent_ts,
         )
 
     def processor(self, item):
@@ -111,6 +113,9 @@ class PostFirstPasser(Generator):
             self.nb_accepted += 1
         if item["nb_answers"]:
             self.nb_answered += 1
+
+        if item["CreationTimestamp"] > self.most_recent_ts:
+            self.most_recent_ts = item["CreationTimestamp"]
 
         self.database.record_question(post=item)
 

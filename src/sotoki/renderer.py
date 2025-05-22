@@ -232,7 +232,7 @@ class Renderer(GlobalMixin):
             whereis="about",
             to_root="./",
             title="About",
-            dump_date=self.conf.dump_date.strftime("%B %Y"),
+            most_recent_date=datetime.datetime.fromtimestamp(stats["most_recent_ts"]).strftime("%B %-d %Y"),
             total_questions=total_questions,
             nb_answers=stats["nb_answers"],
             nb_answered=stats["nb_answered"],

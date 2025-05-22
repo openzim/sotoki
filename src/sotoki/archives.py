@@ -63,17 +63,6 @@ class ArchiveManager:
         """
         return [self.build_dir / f"{self.domain}.7z"]
 
-    def get_dump_date(self):
-        """date indicating the month and year the dump ark was produced"""
-        resp = requests.head(url=f"{self.mirror}/{self.archives[0].name}")
-        header = resp.headers.get("Last-Modified")
-        if header:
-            try:
-                return dateutil.parser.parse(header)
-            except Exception:
-                ...
-        return datetime.datetime.now()  # default to today
-
     def download_and_extract_archives(self):
         logger.info("Downloading archive(s)…")
 

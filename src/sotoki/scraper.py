@@ -157,7 +157,6 @@ class StackExchangeToZim:
         logger.info("XML Dumps preparation")
         ark_manager = ArchiveManager()
         ark_manager.check_and_prepare_dumps()
-        self.conf.dump_date = ark_manager.get_dump_date()
         del ark_manager
 
         if self.conf.prepare_only:
