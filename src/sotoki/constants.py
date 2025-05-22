@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 
 import requests
 from zimscraperlib.i18n import get_language_details, NotFound
+from urllib.parse import urlparse
 
 ROOT_DIR = pathlib.Path(__file__).parent
 NAME = ROOT_DIR.name
@@ -26,13 +27,6 @@ USER_AGENT = (
     f"{NAME}/{VERSION} (https://github.com/openzim/sotoki; "
     f"contact+crawl@kiwix.org) requests/{requests.__version__}"
 )
-DOWNLOAD_ROOT = "https://archive.org/download/stackexchange"
-# some domains have changed names overtime but SE's Sites.xml still reference old Url
-FIXED_DOMAINS = {
-    "avp.meta.stackexchange.com": "video.meta.stackexchange.com",
-    "moderators.meta.stackexchange.com": "communitybuilding.meta.stackexchange.com",
-    "beer.meta.stackexchange.com": "alcohol.meta.stackexchange.com",
-}
 PROFILE_IMAGE_SIZE = 128
 POSTS_IMAGE_SIZE = 540
 IMAGES_ENCODER_VERSION = 1
@@ -160,10 +154,6 @@ class Sotoconf:
         return self.s3_url_with_credentials
 
     @property
-    def is_stackO(self):
-        return self.domain == "stackoverflow.com"
-
-    @property
     def with_user_identicons(self):
         return not self.without_images and not self.without_user_identicons
 
@@ -197,9 +187,19 @@ class Sotoconf:
             )
         )
 
+    def _get_site_details(self):
+        resp = requests.get(f"https://{self.domain}")
+        resp.raise_for_status()
+        self.site_details = {
+            "mathjax": '<script type="text/x-mathjax-config">' in resp.text,
+            "highlight": '"styleCodeWithHighlightjs":true' in resp.text,
+            "domain": urlparse(resp.url).netloc
+        }
+
     def __post_init__(self):
         self.dump_domain = self.domain  # dumps are named after unfixed domains
-        self.domain = FIXED_DOMAINS.get(self.domain, self.domain)
+        self._get_site_details()
+        self.domain =  self.site_details["domain"]
         self.iso_langs_1, self.iso_langs_3 = langs_for_domain(self.domain)
         self.flavour = "nopic" if self.without_images else "all"
         lang_in_name = self.iso_langs_1[0] if len(self.iso_langs_1) == 1 else "mul"

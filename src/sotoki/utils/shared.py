@@ -57,10 +57,9 @@ class Global:
             handler.setLevel(level)
 
     @staticmethod
-    def init(site=None):
+    def init():
         from .progress import Progresser
 
-        Global.site = site
         Global.progresser = Progresser(Global.total_questions)
 
     @staticmethod
@@ -149,7 +148,7 @@ class GlobalMixin:
 
     @property
     def site(self):
-        return Global.site
+        return Global.conf.site_details
 
     @property
     def database(self):

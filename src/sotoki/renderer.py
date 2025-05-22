@@ -102,12 +102,6 @@ class ListPaginator(Paginator):
 
 class Renderer(GlobalMixin):
     def __init__(self):
-        is_meta = bool(self.site.get("ParentId"))
-        subtitle = (
-            self.site.get("LongName")
-            if self.conf.is_stackO
-            else f"{self.site.get('LongName')} Stack Exchange"
-        )
         # disabling autoescape as we are mosty inputing HTML content from SE dumps
         # that we trust already (should not include any XSS)
         self.env = Environment(  # nosec
@@ -126,13 +120,8 @@ class Renderer(GlobalMixin):
         self.env.filters["rewrote_string"] = self.rewriter.rewrite_string
         self.env.filters["slugify"] = get_slug_for
         self.global_context = {
-            "site_subtitle": subtitle,
-            "site_title": self.site.get("LongName").replace(" Meta", "")
-            if is_meta
-            else subtitle,
             "site_mathjax": self.site.get("mathjax", False),
             "site_highlight": self.site.get("highlight", False),
-            "is_meta": is_meta,
             "conf": self.conf,
         }
 

@@ -6,6 +6,7 @@ import shutil
 import pathlib
 import datetime
 
+import requests
 from zimscraperlib.zim.items import URLItem
 from zimscraperlib.inputs import handle_user_provided_file, compute_descriptions
 from zimscraperlib.image.convertion import convert_image
@@ -22,7 +23,6 @@ from .constants import (
 )
 from .archives import ArchiveManager
 from .utils.s3 import setup_s3_and_check_credentials
-from .utils.sites import get_site
 from .utils.shared import Global, logger
 from .users import UserGenerator
 from .posts import PostGenerator, PostFirstPasser
@@ -143,14 +143,7 @@ class StackExchangeToZim:
             f"{s3_msg}"
         )
 
-        logger.debug("Fetching site details…")
-        Global.init(get_site(self.domain))
-        if not Global.site:
-            logger.critical(
-                f"Couldn't fetch detail for {self.domain}. Please check "
-                "that it's a supported domain using --list-all."
-            )
-            return 1
+        Global.init()
 
         self.sanitize_inputs()
 

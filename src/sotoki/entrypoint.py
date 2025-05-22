@@ -10,7 +10,6 @@ import argparse
 from cli_formatter.table_builder import TableBuilderClassic
 
 from .constants import NAME, SCRAPER
-from .utils.sites import get_all_sites
 from .utils.shared import Global, logger
 
 
