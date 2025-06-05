@@ -147,7 +147,7 @@ class GlobalMixin:
         return Global.conf
 
     @property
-    def site(self):
+    def site_details(self):
         return Global.conf.site_details
 
     @property

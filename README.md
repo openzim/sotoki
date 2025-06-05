@@ -25,8 +25,8 @@ you have to use `--mirror https://archive.org/download/stackexchange_20240829 --
 Value of mirror is hence continuously updated as new dumps are published by StackExchange team.
 
 Other CLI parameters are mandatory:
-- `--title`: Title of the ZIM, must be less than 30 chars
-- `--description`: Description of the ZIM, mist be less than 80 chars
+- `--title`: ZIM title, must be less than 30 chars. E.g. `Gardening and Landscaping`
+- `--description`: ZIM description, must be less than 80 chars
 - `--primary-css` and `--secondary-css`:
   - URL (or path) to primary and secondary stylesheets of domain being dumped
   - Can be found by opening website online and using your browser developer tools to find their URLs

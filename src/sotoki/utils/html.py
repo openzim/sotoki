@@ -185,7 +185,7 @@ class Rewriter(GlobalMixin):
             except AttributeError:
                 pass
 
-        if self.site.get("highlight", False):
+        if self.site_details.get("highlight"):
             self.rewrite_code(soup)
 
         self.rewrite_links(soup, to_root)

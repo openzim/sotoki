@@ -11,6 +11,7 @@ import urllib.parse
 from typing import Optional, List, Tuple
 from dataclasses import dataclass, field
 
+import bs4
 import requests
 from zimscraperlib.i18n import get_language_details, NotFound
 from urllib.parse import urlparse
@@ -190,16 +191,18 @@ class Sotoconf:
     def _get_site_details(self):
         resp = requests.get(f"https://{self.domain}")
         resp.raise_for_status()
+        soup = bs4.BeautifulSoup(resp.text, "lxml")
         self.site_details = {
             "mathjax": '<script type="text/x-mathjax-config">' in resp.text,
             "highlight": '"styleCodeWithHighlightjs":true' in resp.text,
-            "domain": urlparse(resp.url).netloc
+            "domain": urlparse(resp.url).netloc,
+            "site_title": soup.title.string
         }
 
     def __post_init__(self):
         self.dump_domain = self.domain  # dumps are named after unfixed domains
         self._get_site_details()
-        self.domain =  self.site_details["domain"]
+        self.domain =  self.site_details.get("domain") # real domain as found online after potential redirection for fixed domains
         self.iso_langs_1, self.iso_langs_3 = langs_for_domain(self.domain)
         self.flavour = "nopic" if self.without_images else "all"
         lang_in_name = self.iso_langs_1[0] if len(self.iso_langs_1) == 1 else "mul"

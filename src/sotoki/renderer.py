@@ -120,8 +120,8 @@ class Renderer(GlobalMixin):
         self.env.filters["rewrote_string"] = self.rewriter.rewrite_string
         self.env.filters["slugify"] = get_slug_for
         self.global_context = {
-            "site_mathjax": self.site.get("mathjax", False),
-            "site_highlight": self.site.get("highlight", False),
+            "site_mathjax": self.site_details.get("mathjax"),
+            "site_highlight": self.site_details.get("highlight"),
             "conf": self.conf,
         }
 
