@@ -210,9 +210,9 @@ class Sotoconf:
         self._get_site_details()
         self.domain =  self.site_details.get("domain") # real domain as found online after potential redirection for fixed domains
         self.iso_langs_1, self.iso_langs_3 = langs_for_domain(self.domain)
-        self.flavour = "nopic" if self.without_images else "all"
+        self.flavour = "nopic" if self.without_images else ""
         lang_in_name = self.iso_langs_1[0] if len(self.iso_langs_1) == 1 else "mul"
-        self.name = self.name or f"{self.domain}_{lang_in_name}_{self.flavour}"
+        self.name = self.name or f"{self.domain}_{lang_in_name}_all_{self.flavour}" if self.flavour else f"{self.domain}_{lang_in_name}_all"
         self.output_dir = pathlib.Path(self._output_dir).expanduser().resolve()
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.tmp_dir = pathlib.Path(self._tmp_dir).expanduser().resolve()
