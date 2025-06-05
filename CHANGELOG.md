@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Breaking changes: adapt to new StackExchange dumps
+- Breaking changes: adapt to new StackExchange dumps and missing Sites.xml (#322)
   - Only working on recent dumps (June 2024 and later)
   - `--title` and `--description` CLI parameters are now mandatory to specify ZIM metadata
   - New optional `--illustration`, `--small-favicon` and `--big-favicon` CLI parameters to configure ZIM and HTML illustrations
@@ -17,7 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix duplicate english Language metadata (#321)
 - Change image processing order to save memory (#325)
+- Fix confusion between selection and flavour in ZIM name (#327)
 - New XML dump files have changed (#329)
 
 ## [2.1.3] - 2024-10-29
