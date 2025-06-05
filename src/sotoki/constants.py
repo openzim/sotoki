@@ -67,8 +67,10 @@ def langs_for_domain(domain: str) -> Tuple[List[str], List[str]]:
                 lang = get_language_details(so_code)
                 if not lang["iso-639-1"] or not lang["iso-639-3"]:
                     raise NotFound("Might be an abbreviation")
-                iso_langs_1.append(lang["iso-639-1"])
-                iso_langs_3.append(lang["iso-639-3"])
+                if lang["iso-639-1"] not in iso_langs_1:
+                    iso_langs_1.append(lang["iso-639-1"])
+                if lang["iso-639-3"] not in iso_langs_3:
+                    iso_langs_3.append(lang["iso-639-3"])
             except NotFound:
                 ...
     return iso_langs_1, iso_langs_3
