@@ -95,8 +95,6 @@ class Sotoconf:
     description: str = ""
     long_description: Optional[str] = ""
     illustration: str = ""
-    primary_css: str = ""
-    secondary_css: str = ""
     big_favicon: Optional[str] = ""
     small_favicon: Optional[str] = ""
     author: Optional[str] = ""
@@ -192,11 +190,19 @@ class Sotoconf:
         resp = requests.get(f"https://{self.domain}")
         resp.raise_for_status()
         soup = bs4.BeautifulSoup(resp.text, "lxml")
+        site_title = soup.title.string
+        if not site_title:
+            raise Exception("Failed to extract site title from homepage")
+        primary_css = str(soup.find('link', href=lambda href: href and 'primary.css' in href)["href"])
+        if not primary_css:
+            raise Exception("Failed to extract primary CSS from homepage")
         self.site_details = {
             "mathjax": '<script type="text/x-mathjax-config">' in resp.text,
             "highlight": '"styleCodeWithHighlightjs":true' in resp.text,
             "domain": urlparse(resp.url).netloc,
-            "site_title": soup.title.string
+            "site_title": site_title,
+            "primary_css": primary_css,
+            "secondary_css": primary_css.replace("primary", "secondary")
         }
 
     def __post_init__(self):

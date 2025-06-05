@@ -84,18 +84,6 @@ def main():
     )
 
     styling.add_argument(
-        "--primary-css",
-        help="Path or URL to primary SE CSS stylesheet (usually something like https://cdn.sstatic.net/Sites/<domain>/primary.css)",
-        required=True
-    )
-
-    styling.add_argument(
-        "--secondary-css",
-        help="Path or URL to secondary SE CSS stylesheet (usually something like https://cdn.sstatic.net/Sites/<domain>/secondary.css)",
-        required=True
-    )
-
-    styling.add_argument(
         "--small-favicon",
         help="URL/path to small 16x16 illustration used as HTML favicon ; fallbacks to --illustration if not provided",
     )

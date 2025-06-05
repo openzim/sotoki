@@ -114,11 +114,11 @@ class StackExchangeToZim:
 
         # download primary|secondary.css from target
         primary_css_fpath = self.build_dir / "primary.css"
-        handle_user_provided_file(source=Global.conf.primary_css, dest=primary_css_fpath)
+        handle_user_provided_file(source=Global.conf.site_details["primary_css"], dest=primary_css_fpath)
         Global.creator.add_item_for("static/css/primary.css", fpath=primary_css_fpath, is_front=False)
 
         secondary_css_fpath = self.build_dir / "secondary.css"
-        handle_user_provided_file(source=Global.conf.secondary_css, dest=secondary_css_fpath)
+        handle_user_provided_file(source=Global.conf.site_details["secondary_css"], dest=secondary_css_fpath)
         Global.creator.add_item_for("static/css/secondary.css", fpath=secondary_css_fpath, is_front=False)
 
     def run(self):
