@@ -210,7 +210,7 @@ class Sotoconf:
     def __post_init__(self):
         self.dump_domain = self.domain  # dumps are named after unfixed domains
         self._get_site_details()
-        self.domain =  self.site_details.get("domain") # real domain as found online after potential redirection for fixed domains
+        self.domain = self.site_details.get("domain") # real domain as found online after potential redirection for fixed domains
         self.iso_langs_1, self.iso_langs_3 = langs_for_domain(self.domain)
         self.flavour = "nopic" if self.without_images else ""
         lang_in_name = self.iso_langs_1[0] if len(self.iso_langs_1) == 1 else "mul"
