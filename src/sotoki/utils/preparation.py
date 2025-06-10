@@ -543,28 +543,23 @@ def count_xml_rows(
     tag: str
 ): 
     """Count number of rows in an XML file having a given tag"""
-    args1= ["/usr/bin/env",
-        "sed",
-        "-n",
-        f"/<{tag}/p",
+    args = ["/usr/bin/env",
+        "grep",
+        "-F",
+        "-c",
+        f"<{tag}",
         str(src)
         ]
-    cmd1 = subprocess.Popen(
-        args1, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env={"LC_ALL": "C"}
+
+    cmd = subprocess.run(
+        args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env={"LC_ALL": "C"}
     )
 
-    args2 = ["wc", "-l"]
-    cmd2 = subprocess.run(
-        args2, stdin=cmd1.stdout, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env={"LC_ALL": "C"}
-    )
+    if not cmd.returncode == 0:
+        logger.error(f"Error running {args}: returned {cmd.returncode}\n{cmd.stdout}")
+        raise subprocess.CalledProcessError(cmd.returncode, args)
 
-    cmd1.stdout.close()
-
-    if not cmd2.returncode == 0:
-        logger.error(f"Error running {args1} | {args2}: returned {cmd2.returncode}\n{cmd2.stdout}")
-        raise subprocess.CalledProcessError(cmd2.returncode, args2)
-
-    return int(cmd2.stdout.decode())
+    return int(cmd.stdout.decode())
 
 
 def merge_posts_with_answers_comments(
