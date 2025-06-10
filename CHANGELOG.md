@@ -5,9 +5,9 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (as of version 2.0.1).
 
-## [Unreleased]
+## [2.2.0] - 2025-06-10
 
-### Changed
+### Changed
 
 - Breaking changes: adapt to new StackExchange dumps and missing Sites.xml (#322)
   - Only working on recent dumps (June 2024 and later)
