@@ -72,6 +72,7 @@ chmod +x /usr/local/bin/start-redis-daemon
 
 RUN mkdir -p /output
 
+ENV REDIS_URL=unix:///var/run/redis.sock
 EXPOSE 6379
 ENTRYPOINT ["start-redis-daemon"]
 
