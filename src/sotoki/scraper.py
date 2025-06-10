@@ -6,6 +6,7 @@ import shutil
 import pathlib
 import datetime
 
+import requests
 from zimscraperlib.zim.items import URLItem
 from zimscraperlib.inputs import handle_user_provided_file, compute_descriptions
 from zimscraperlib.image.convertion import convert_image
@@ -22,7 +23,6 @@ from .constants import (
 )
 from .archives import ArchiveManager
 from .utils.s3 import setup_s3_and_check_credentials
-from .utils.sites import get_site
 from .utils.shared import Global, logger
 from .users import UserGenerator
 from .posts import PostGenerator, PostFirstPasser
@@ -73,16 +73,10 @@ class StackExchangeToZim:
         else:
             self.conf.fname = f"{self.conf.name}_{period}.zim"
 
-        if not self.conf.title:
-            self.conf.title = Global.site["LongName"]
         self.conf.title = self.conf.title.strip()
-
-        default_description = Global.site["Tagline"].strip()
-        if self.conf.description:
-            user_description = self.conf.description.strip()
-        else:
-            user_description = None
-        self.conf.description, self.conf.long_description = compute_descriptions(default_description, user_description, self.conf.long_description)
+        self.conf.description = self.conf.description.strip()
+        if self.conf.long_description:
+            self.conf.long_description = self.conf.long_description.strip()
 
         if not self.conf.author:
             self.conf.author = "Stack Exchange"
@@ -94,14 +88,16 @@ class StackExchangeToZim:
 
     def add_illustrations(self):
         # download and add actual favicon (ICO file)
-        favicon_fpath = self.build_dir / "favicon.ico"
-        handle_user_provided_file(source=Global.site["IconUrl"], dest=favicon_fpath)
-        Global.creator.add_item_for("favicon.ico", fpath=favicon_fpath, is_front=False)
+        small_favicon_fpath = self.build_dir / "favicon.ico"
+        small_favicon_source = Global.conf.site_details.get("small_favicon")
+        handle_user_provided_file(source=small_favicon_source, dest=small_favicon_fpath)
+        Global.creator.add_item_for("favicon.ico", fpath=small_favicon_fpath, is_front=False)
 
         # download apple-touch-icon
-        Global.creator.add_item(
-            URLItem(url=Global.site["BadgeIconUrl"], path="apple-touch-icon.png")
-        )
+        big_favicon_fpath = self.build_dir / "apple-touch-icon.png"
+        big_favicon_source = Global.conf.site_details.get("big_favicon")
+        handle_user_provided_file(source=big_favicon_source, dest=big_favicon_fpath)
+        Global.creator.add_item_for("apple-touch-icon.png", fpath=big_favicon_fpath, is_front=False)
 
     def add_assets(self):
         assets_root = ROOT_DIR.joinpath("assets")
@@ -117,14 +113,13 @@ class StackExchangeToZim:
                 )
 
         # download primary|secondary.css from target
-        assets_base = Global.site["IconUrl"].rsplit("/", 2)[0]
-        for css_fname in ("primary.css", "secondary.css"):
-            logger.debug(f"adding {css_fname}")
-            Global.creator.add_item(
-                URLItem(
-                    url=f"{assets_base}/{css_fname}", path=f"static/css/{css_fname}"
-                )
-            )
+        primary_css_fpath = self.build_dir / "primary.css"
+        handle_user_provided_file(source=Global.conf.site_details["primary_css"], dest=primary_css_fpath)
+        Global.creator.add_item_for("static/css/primary.css", fpath=primary_css_fpath, is_front=False)
+
+        secondary_css_fpath = self.build_dir / "secondary.css"
+        handle_user_provided_file(source=Global.conf.site_details["secondary_css"], dest=secondary_css_fpath)
+        Global.creator.add_item_for("static/css/secondary.css", fpath=secondary_css_fpath, is_front=False)
 
     def run(self):
         s3_storage = (
@@ -148,21 +143,13 @@ class StackExchangeToZim:
             f"{s3_msg}"
         )
 
-        logger.debug("Fetching site details…")
-        Global.init(get_site(self.domain))
-        if not Global.site:
-            logger.critical(
-                f"Couldn't fetch detail for {self.domain}. Please check "
-                "that it's a supported domain using --list-all."
-            )
-            return 1
+        Global.init()
 
         self.sanitize_inputs()
 
         logger.info("XML Dumps preparation")
         ark_manager = ArchiveManager()
         ark_manager.check_and_prepare_dumps()
-        self.conf.dump_date = ark_manager.get_dump_date()
         del ark_manager
 
         if self.conf.prepare_only:
@@ -262,7 +249,7 @@ class StackExchangeToZim:
         logger.info("Recording Tag metadata to Database")
         Global.progresser.start(
             Global.progresser.TAGS_METADATA_STEP,
-            nb_total=int(Global.site["TotalTags"]) * 3,
+            nb_total=Global.total_tags * 3,
         )
         if not self.conf.skip_tags_meta:
             TagFinder().run()
@@ -282,7 +269,7 @@ class StackExchangeToZim:
         logger.info("Recording questions metadata to Database")
         Global.progresser.start(
             Global.progresser.QUESTIONS_METADATA_STEP,
-            nb_total=int(Global.site["TotalQuestions"]),
+            nb_total=Global.total_questions,
         )
         if not self.conf.skip_questions_meta:
             PostFirstPasser().run()
@@ -298,7 +285,7 @@ class StackExchangeToZim:
         logger.info("Generating individual Users pages")
         Global.progresser.start(
             Global.progresser.USERS_STEP,
-            nb_total=int(Global.site["TotalUsers"]),
+            nb_total=Global.total_users,
         )
         if not self.conf.skip_users:
             UserGenerator().run()
@@ -314,7 +301,7 @@ class StackExchangeToZim:
         logger.info("Generating Questions pages")
         Global.progresser.start(
             Global.progresser.QUESTIONS_STEP,
-            nb_total=int(Global.site["TotalQuestions"]),
+            nb_total=Global.total_questions,
         )
         PostGenerator().run()
         Global.database.purge()
@@ -324,7 +311,7 @@ class StackExchangeToZim:
         # Each tag is actually a number of paginated pages with a list of questions
         logger.info("Generating Tags pages")
         Global.progresser.start(
-            Global.progresser.TAGS_STEP, nb_total=int(Global.site["TotalTags"])
+            Global.progresser.TAGS_STEP, nb_total=Global.total_tags
         )
         TagGenerator().run()
 

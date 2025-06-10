@@ -3,64 +3,14 @@
 # vim: ai ts=4 sts=4 et sw=4 nu
 
 import os
+from pathlib import Path
 import sys
 import argparse
 
 from cli_formatter.table_builder import TableBuilderClassic
 
 from .constants import NAME, SCRAPER
-from .utils.sites import get_all_sites
 from .utils.shared import Global, logger
-
-
-class ListAllAction(argparse.Action):
-    """argparse Action to list StackExchange domains and exit"""
-
-    def __init__(
-        self,
-        option_strings,
-        dest=argparse.SUPPRESS,
-        default=argparse.SUPPRESS,
-    ):
-        super().__init__(
-            option_strings=option_strings,
-            dest=dest,
-            default=default,
-            nargs=0,
-            help="Simply print the list of available domains and exit",
-        )
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        def to_row(site):
-            url = site.get("@Url", "").replace("https://", "")
-            nb_questions = int(site.get("@TotalQuestions", 0))
-            return (url, site.get("@Name"), "{:,}".format(nb_questions))
-
-        # not sure what's most useful: order by domain or by Nb of question?
-        order_by_questions = True
-        order_desc = True
-
-        def _sort_key(item):
-            if order_by_questions:
-                return int(item[2].replace(",", ""))
-            else:
-                return item[0]
-
-        builder = TableBuilderClassic()
-        formatter = parser._get_formatter()
-
-        formatter.add_text(
-            builder.build_table(
-                header=["Domain", "Name", "Nb. Questions"],
-                data=sorted(
-                    [to_row(site) for site in get_all_sites()],
-                    key=_sort_key,
-                    reverse=order_desc,
-                ),
-            ),
-        )
-        parser._print_message(formatter.format_help(), sys.stdout)
-        parser.exit()
 
 
 def main():
@@ -76,9 +26,6 @@ def main():
         required=True,
     )
 
-    parser.add_argument("-l", "--list-all", action=ListAllAction)
-    # parser.add_argument("--sorted-by")
-
     metadata = parser.add_argument_group("Metadata")
 
     parser.add_argument(
@@ -90,22 +37,25 @@ def main():
 
     metadata.add_argument(
         "--title",
-        help="Custom title for your ZIM. Site name otherwise",
+        help="Title for your ZIM, no longer than 30 chars",
+        required=True,
     )
 
     metadata.add_argument(
         "--description",
-        help="Custom description for your ZIM. Site tagline otherwise",
+        help="Description for your ZIM, no longer than 80 chars",
+        required=True,
     )
+
     metadata.add_argument(
         "--long-description",
-        help="Custom long description for your ZIM, defaults to description if description is too long",
+        help="Long description for your ZIM, no longer than 4000 chars",
         required=False,
     )
 
     metadata.add_argument(
         "--favicon",
-        help="URL/path for Zim Illustration. Site square logo otherwise",
+        help="URL/path to ZIM illustration ; fallbacks to a online icon if not provided",
     )
 
     metadata.add_argument(
@@ -227,8 +177,8 @@ def main():
     advanced.add_argument(
         "--mirror",
         help="URL from which to download compressed XML dumps",
-        default="https://archive.org/download/stackexchange/",
         dest="mirror",
+        required=True
     )
 
     advanced.add_argument(

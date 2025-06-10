@@ -13,6 +13,7 @@ from .utils.shared import Global, logger
 from .utils.misc import has_binary
 from .utils.sevenzip import extract_7z
 from .utils.preparation import (
+    count_xml_rows,
     merge_users_with_badges,
     merge_posts_with_answers_comments,
 )
@@ -21,8 +22,7 @@ from .utils.preparation import (
 class ArchiveManager:
     """Handle retrieval and processing of StackExchange dump files
 
-    Each website is available as a single 7z archive
-    except stackoverflow which is split in multiple ones
+    Each website is available as a single 7z archive.
 
     7z files extracts to a number of XML files. We are interested in a few
     that we need to read and combine (and thus sort).
@@ -55,21 +55,13 @@ class ArchiveManager:
 
     @property
     def archives(self):
-        """list of 7z archive files"""
-        if self.domain != "stackoverflow.com":
-            return [self.build_dir / f"{self.domain}.7z"]
-        return [self.build_dir / f"{self.domain}-{part}.7z" for part in self.dump_parts]
+        """list of 7z archive files
 
-    def get_dump_date(self):
-        """date indicating the month and year the dump ark was produced"""
-        resp = requests.head(url=f"{self.mirror}/{self.archives[0].name}")
-        header = resp.headers.get("Last-Modified")
-        if header:
-            try:
-                return dateutil.parser.parse(header)
-            except Exception:
-                ...
-        return datetime.datetime.now()  # default to today
+        Scraper is capable to download multiple archives per domain. This was used for
+        stackoverflow.com which was split with one 7z per dump part. This is not the
+        case anymore but scraper capability has not been removed for now.
+        """
+        return [self.build_dir / f"{self.domain}.7z"]
 
     def download_and_extract_archives(self):
         logger.info("Downloading archive(s)…")
@@ -151,6 +143,7 @@ class ArchiveManager:
                 logger.info("Extracted parts present; reusing")
         else:
             logger.info("Prepared dumps already present; reusing.")
+            self.count_items(users, posts, tags)
             Global.progresser.update(nb_done=1, nb_total=1)
             return
 
@@ -169,4 +162,16 @@ class ArchiveManager:
             raise IOError(f"Missing {posts.name} while we should not.")
         Global.progresser.update(incr=5)
 
+        self.count_items(users, posts, tags)
         logger.info("Prepared dumps completed.")
+
+    def count_items(self, users, questions, tags):
+
+        Global.total_tags = count_xml_rows(tags, "row")
+        logger.info(f"{Global.total_tags} tags found")
+
+        Global.total_users = count_xml_rows(users, "row")
+        logger.info(f"{Global.total_users} users found")
+
+        Global.total_questions = count_xml_rows(questions, "post")
+        logger.info(f"{Global.total_questions} questions found")

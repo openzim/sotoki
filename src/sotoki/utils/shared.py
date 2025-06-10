@@ -39,6 +39,9 @@ class Global:
     imager = None
     renderer = None
     rewriter = None
+    total_tags = 0
+    total_questions = 0
+    total_users = 0
     lock = threading.Lock()
 
     @staticmethod
@@ -54,11 +57,10 @@ class Global:
             handler.setLevel(level)
 
     @staticmethod
-    def init(site=None):
+    def init():
         from .progress import Progresser
 
-        Global.site = site
-        Global.progresser = Progresser(int(site["TotalQuestions"]))
+        Global.progresser = Progresser(Global.total_questions)
 
     @staticmethod
     def setup():
@@ -104,15 +106,12 @@ class Global:
         Global.renderer = Renderer()
 
         # load illustration data, required for creator metadata setup
-        # the following code section is taken from sotoki.scraper.add_illustrations()
-        src_illus_fpath = Global.conf.build_dir / "illustration"
-        if not Global.conf.favicon:
-            Global.conf.favicon = Global.site["BadgeIconUrl"]
-        handle_user_provided_file(source=Global.conf.favicon, dest=src_illus_fpath)
+        illus_nosuffix_fpath = Global.conf.build_dir / "illustration"
+        handle_user_provided_file(source=Global.conf.favicon or Global.conf.site_details.get("big_favicon"), dest=illus_nosuffix_fpath)
 
         # convert to PNG (might already be PNG but it's OK)
-        illus_fpath = src_illus_fpath.with_suffix(".png")
-        convert_image(src_illus_fpath, illus_fpath)
+        illus_fpath = illus_nosuffix_fpath.with_suffix(".png")
+        convert_image(illus_nosuffix_fpath, illus_fpath)
 
         # resize to appropriate size
         resize_image(illus_fpath, width=48, height=48, method="thumbnail")
@@ -147,8 +146,8 @@ class GlobalMixin:
         return Global.conf
 
     @property
-    def site(self):
-        return Global.site
+    def site_details(self):
+        return Global.conf.site_details
 
     @property
     def database(self):

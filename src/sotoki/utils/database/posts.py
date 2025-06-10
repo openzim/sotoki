@@ -49,7 +49,7 @@ class PostsDatabaseMixin:
 
     @staticmethod
     def questions_stats_key():
-        return "nb_answers"
+        return "questions_stats"
 
     def record_question(self, post: dict):
 
@@ -110,12 +110,12 @@ class PostsDatabaseMixin:
         self.commit_maybe()
 
     def record_questions_stats(
-        self, nb_answers: int, nb_answered: int, nb_accepted: int
+        self, nb_answers: int, nb_answered: int, nb_accepted: int, most_recent_ts: int
     ):
         """store total number of answers through dump"""
         self.pipe.set(
             self.questions_stats_key(),
-            json.dumps((nb_answers, nb_answered, nb_accepted)),
+            json.dumps((nb_answers, nb_answered, nb_accepted, most_recent_ts)),
         )
 
         self.bump_seen()
@@ -176,5 +176,5 @@ class PostsDatabaseMixin:
         try:
             item = json.loads(self.safe_get(self.questions_stats_key()))
         except Exception:
-            item = [0, 0, 0]
-        return {"nb_answers": item[0], "nb_answered": item[1], "nb_accepted": item[2]}
+            item = [0, 0, 0, 0]
+        return {"nb_answers": item[0], "nb_answered": item[1], "nb_accepted": item[2], "most_recent_ts": item[3]}

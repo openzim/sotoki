@@ -102,12 +102,6 @@ class ListPaginator(Paginator):
 
 class Renderer(GlobalMixin):
     def __init__(self):
-        is_meta = bool(self.site.get("ParentId"))
-        subtitle = (
-            self.site.get("LongName")
-            if self.conf.is_stackO
-            else f"{self.site.get('LongName')} Stack Exchange"
-        )
         # disabling autoescape as we are mosty inputing HTML content from SE dumps
         # that we trust already (should not include any XSS)
         self.env = Environment(  # nosec
@@ -126,15 +120,8 @@ class Renderer(GlobalMixin):
         self.env.filters["rewrote_string"] = self.rewriter.rewrite_string
         self.env.filters["slugify"] = get_slug_for
         self.global_context = {
-            "site_subtitle": subtitle,
-            "site_title": self.site.get("LongName").replace(" Meta", "")
-            if is_meta
-            else subtitle,
-            "site_mathjax": self.site.get("mathjax", False),
-            "site_highlight": self.site.get("highlight", False),
-            "is_meta": is_meta,
-            # meta sites (with a ParentId) don't use custom CSS
-            "site_css": "" if self.site.get("ParentId") else self.site.get("TagCss"),
+            "site_mathjax": self.site_details.get("mathjax"),
+            "site_highlight": self.site_details.get("highlight"),
             "conf": self.conf,
         }
 
@@ -232,7 +219,7 @@ class Renderer(GlobalMixin):
             whereis="about",
             to_root="./",
             title="About",
-            dump_date=self.conf.dump_date.strftime("%B %Y"),
+            most_recent_date=datetime.datetime.fromtimestamp(stats["most_recent_ts"]).strftime("%B %-d %Y"),
             total_questions=total_questions,
             nb_answers=stats["nb_answers"],
             nb_answered=stats["nb_answered"],

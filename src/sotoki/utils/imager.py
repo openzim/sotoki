@@ -128,18 +128,22 @@ class Imager:
         """Bytes stream of an optimized, resized WebP of the source image"""
         src, webp = io.BytesIO(), io.BytesIO()
         stream_file(url=url, byte_stream=src)
-        with Image.open(src) as img:
-            img.save(webp, format="WEBP")
-        del src
+        # first resize then convert to webp and optimize, because conversion to webp
+        # proved to consume lots of memory ; a smaller image obviously consumes less
         resize_args = resize_args or {}
         try:
             resize_image(
-                src=webp,
+                src,
                 **resize_args,
                 allow_upscaling=False,
             )
         except ImageSizeError as exc:
-            logger.debug(f"Resize Error for {url}: {exc}")
+            # ignore issues about image being too small, this is not an issue but a
+            # expected behavior (rather than querying for image size and resizing
+            # only if needed on our own, we let the library do it better than we would do)
+            pass
+        with Image.open(src) as img:
+            img.save(webp, format="WEBP")
         return optimize_webp(
             src=webp,
             lossless=False,
@@ -191,7 +195,6 @@ class Imager:
         """request full processing of url, returning in-zim path immediately"""
 
         # find actual URL should it be from a provider
-        logger.debug(f"deferring {url=} {path=} {is_profile=}")
         try:
             url = urllib.parse.urlparse(url)
             url = self.get_source_url(url, for_profile=is_profile)

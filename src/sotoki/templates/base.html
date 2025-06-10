@@ -2,7 +2,7 @@
 <html class="html__responsive  html__fixed-top-bar">
     <head>
         <meta charset="utf-8">
-        <title>{% block title %}{{ title }} - {{ site_subtitle }}{% endblock %}</title>
+        <title>{% block title %}{{ title }} - {{ conf.site_details.site_title }}{% endblock %}</title>
         <link rel="shortcut icon" href="{{ to_root }}favicon.ico" />
         <link rel="apple-touch-icon" href="{{ to_root }}apple-touch-icon.png" />
         <link rel="image_src" href="{{ to_root }}apple-touch-icon.png" />
@@ -14,8 +14,7 @@
         <link rel="stylesheet" type="text/css" href="{{ to_root }}static/css/sotoki.css" />
         {% if site_highlight %}<link rel="stylesheet" href="{{ to_root }}static/css/highlight.default.min.css">{% endif %}
         <style type="text/css">
-            a.external-link { background-image: url('{{ to_root }}static/img/external-link-ltr-icon.svg'); }{% if site_css %}
-            {{ site_css }}{% endif %}
+            a.external-link { background-image: url('{{ to_root }}static/img/external-link-ltr-icon.svg'); }
         </style>
         <script type="text/javascript" src="{{ to_root }}static/js/jdenticon.min.js"></script>
         <script type="text/javascript" src="{{ to_root }}static/js/webp-hero.polyfill.js"></script>
@@ -48,7 +47,7 @@
         <div class="topbar mobile-only">
             <div class="network-items">
                 <a class="s-btn s-btn__unset topbar-icon js-site-switcher-button icon-site-switcher-bubble" aria-expanded="false"><span class="hidden">Stack Exchange</span></a>
-                <div class="site-name"><a href="{{ to_root }}">{{ site_title }}{% if is_meta %}<small class="-subtitle">meta</small>{% endif %}</a></div>
+                <div class="site-name"><a href="{{ to_root }}">{{ conf.site_details.site_title }}</a></div>
                 <div class="-actions ai-center"></div>
             </div>
         </div>
@@ -62,7 +61,7 @@
         </nav>
         <header class="site-header desktop-only">
             <div class="site-header--container">
-                <a class="site-header--link fs-headline1 fw-bold" href="{{ to_root }}">{{ site_title }}{% if is_meta %}<span class="ml4 o60 fw-normal">Meta</span>{% endif %}</a>
+                <a class="site-header--link fs-headline1 fw-bold" href="{{ to_root }}">{{ conf.site_details.site_title }}</a>
             </div>
         </header>
         {% block fullwidth %}{% endblock %}

@@ -63,6 +63,13 @@ def remove_xml_headers(src: pathlib.Path, dst: pathlib.Path, delete_src: bool = 
 
         # xml root node opening
         root_open = srch.readline().decode(UTF8).strip()
+        if ("<!--" in root_open):
+            while True:
+                next_comment = srch.readline().decode(UTF8).strip()
+                if "-->" in next_comment:
+                    break
+            root_open = srch.readline().decode(UTF8).strip()
+
         # guess expected ending
         root_end = f"{root_open[0]}/{root_open[1:]}".encode(UTF8)
         root_end_len = len(root_end)
@@ -531,6 +538,29 @@ def merge_users_with_badges(
     logger.info("merged both sets")
     return users_with_badges
 
+def count_xml_rows(
+    src: pathlib.Path,
+    tag: str
+): 
+    """Count number of rows in an XML file having a given tag"""
+    args = ["/usr/bin/env",
+        "grep",
+        "-F",
+        "-c",
+        f"<{tag}",
+        str(src)
+        ]
+
+    cmd = subprocess.run(
+        args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env={"LC_ALL": "C"}
+    )
+
+    if not cmd.returncode == 0:
+        logger.error(f"Error running {args}: returned {cmd.returncode}\n{cmd.stdout}")
+        raise subprocess.CalledProcessError(cmd.returncode, args)
+
+    return int(cmd.stdout.decode())
+
 
 def merge_posts_with_answers_comments(
     workdir: pathlib.Path, delete_src: bool = False
@@ -573,11 +603,6 @@ def merge_posts_with_answers_comments(
     logger.info("split Posts-Comments by PostType")
     del posts_comments
 
-    # generate a post_id,title CSV file for all questions
-    posts_titles = workdir / "posts_titles.csv"
-    extract_posts_titles(src=posts_com_questions, dst=posts_titles)
-    logger.info("Extracted Post IDs and titles into CSV")
-
     posts_com_questions_sorted = workdir / "posts_com_questions_sorted.xml"
     posts_com_answers_sorted = workdir / "posts_com_answers_sorted.xml"
     sort_dump_by_id(
@@ -587,6 +612,11 @@ def merge_posts_with_answers_comments(
         delete_src=delete_src,
     )
     logger.info("sorted Posts-Comments (questions) by Id")
+
+    # generate a post_id,title CSV file for all questions
+    posts_titles = workdir / "posts_titles.csv"
+    extract_posts_titles(src=posts_com_questions_sorted, dst=posts_titles)
+    logger.info("Extracted Post IDs and titles into CSV")
 
     sort_dump_by_id(
         src=posts_com_answers,

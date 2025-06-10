@@ -11,8 +11,10 @@ import urllib.parse
 from typing import Optional, List, Tuple
 from dataclasses import dataclass, field
 
+import bs4
 import requests
 from zimscraperlib.i18n import get_language_details, NotFound
+from urllib.parse import urlparse
 
 ROOT_DIR = pathlib.Path(__file__).parent
 NAME = ROOT_DIR.name
@@ -26,13 +28,6 @@ USER_AGENT = (
     f"{NAME}/{VERSION} (https://github.com/openzim/sotoki; "
     f"contact+crawl@kiwix.org) requests/{requests.__version__}"
 )
-DOWNLOAD_ROOT = "https://archive.org/download/stackexchange"
-# some domains have changed names overtime but SE's Sites.xml still reference old Url
-FIXED_DOMAINS = {
-    "avp.meta.stackexchange.com": "video.meta.stackexchange.com",
-    "moderators.meta.stackexchange.com": "communitybuilding.meta.stackexchange.com",
-    "beer.meta.stackexchange.com": "alcohol.meta.stackexchange.com",
-}
 PROFILE_IMAGE_SIZE = 128
 POSTS_IMAGE_SIZE = 540
 IMAGES_ENCODER_VERSION = 1
@@ -72,8 +67,10 @@ def langs_for_domain(domain: str) -> Tuple[List[str], List[str]]:
                 lang = get_language_details(so_code)
                 if not lang["iso-639-1"] or not lang["iso-639-3"]:
                     raise NotFound("Might be an abbreviation")
-                iso_langs_1.append(lang["iso-639-1"])
-                iso_langs_3.append(lang["iso-639-3"])
+                if lang["iso-639-1"] not in iso_langs_1:
+                    iso_langs_1.append(lang["iso-639-1"])
+                if lang["iso-639-3"] not in iso_langs_3:
+                    iso_langs_3.append(lang["iso-639-3"])
             except NotFound:
                 ...
     return iso_langs_1, iso_langs_3
@@ -87,6 +84,8 @@ class Sotoconf:
         "output_dir",
         "keep_build_dir",
         "nb_threads",
+        "title",
+        "description"
     ]
 
     domain: str
@@ -94,9 +93,10 @@ class Sotoconf:
 
     # zim params
     name: str
-    title: Optional[str] = ""
-    description: Optional[str] = ""
+    title: str = ""
+    description: str = ""
     long_description: Optional[str] = ""
+    favicon: str = ""
     author: Optional[str] = ""
     publisher: Optional[str] = ""
     fname: Optional[str] = ""
@@ -139,7 +139,6 @@ class Sotoconf:
     stats_filename: Optional[str] = None
     build_dir_is_tmp_dir: Optional[bool] = False
     defrag_redis: Optional[str] = ""
-    dump_date: Optional[datetime.date] = datetime.date.today()
     open_shell: Optional[bool] = False
     skip_tags_meta: Optional[bool] = False
     skip_questions_meta: Optional[bool] = False
@@ -152,10 +151,6 @@ class Sotoconf:
     @property
     def s3_url(self):
         return self.s3_url_with_credentials
-
-    @property
-    def is_stackO(self):
-        return self.domain == "stackoverflow.com"
 
     @property
     def with_user_identicons(self):
@@ -191,13 +186,41 @@ class Sotoconf:
             )
         )
 
+    def _get_site_details(self):
+        resp = requests.get(f"https://{self.domain}")
+        resp.raise_for_status()
+        soup = bs4.BeautifulSoup(resp.text, "lxml")
+        site_title = soup.title.string
+        if not site_title:
+            raise Exception("Failed to extract site title from homepage")
+        primary_css = str(soup.find('link', href=lambda href: href and 'primary.css' in href)["href"])
+        if not primary_css:
+            raise Exception("Failed to extract primary CSS from homepage")
+        small_favicon = soup.find('link', rel='icon')['href']
+        if not small_favicon:
+            raise Exception("Failed to extract small favicon URL from homepage")
+        big_favicon = soup.find('link', rel='apple-touch-icon')['href']
+        if not big_favicon:
+            raise Exception("Failed to extract big favicon URL from homepage")
+        self.site_details = {
+            "mathjax": '<script type="text/x-mathjax-config">' in resp.text,
+            "highlight": '"styleCodeWithHighlightjs":true' in resp.text,
+            "domain": urlparse(resp.url).netloc,
+            "site_title": site_title,
+            "primary_css": primary_css,
+            "secondary_css": primary_css.replace("primary", "secondary"),
+            "small_favicon": small_favicon,
+            "big_favicon": big_favicon
+        }
+
     def __post_init__(self):
         self.dump_domain = self.domain  # dumps are named after unfixed domains
-        self.domain = FIXED_DOMAINS.get(self.domain, self.domain)
+        self._get_site_details()
+        self.domain = self.site_details.get("domain") # real domain as found online after potential redirection for fixed domains
         self.iso_langs_1, self.iso_langs_3 = langs_for_domain(self.domain)
-        self.flavour = "nopic" if self.without_images else "all"
+        self.flavour = "nopic" if self.without_images else ""
         lang_in_name = self.iso_langs_1[0] if len(self.iso_langs_1) == 1 else "mul"
-        self.name = self.name or f"{self.domain}_{lang_in_name}_{self.flavour}"
+        self.name = self.name or f"{self.domain}_{lang_in_name}_all_{self.flavour}" if self.flavour else f"{self.domain}_{lang_in_name}_all"
         self.output_dir = pathlib.Path(self._output_dir).expanduser().resolve()
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.tmp_dir = pathlib.Path(self._tmp_dir).expanduser().resolve()
