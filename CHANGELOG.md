@@ -12,7 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Breaking changes: adapt to new StackExchange dumps and missing Sites.xml (#322)
   - Only working on recent dumps (June 2024 and later)
   - `--title` and `--description` CLI parameters are now mandatory to specify ZIM metadata
-  - New optional `--illustration`, `--small-favicon` and `--big-favicon` CLI parameters to configure ZIM and HTML illustrations
   - Dropped `-l`/`--list-all` CLI action to list all SE sites (not working anymore)
 
 ### Fixed

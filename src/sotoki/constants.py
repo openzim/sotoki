@@ -96,9 +96,7 @@ class Sotoconf:
     title: str = ""
     description: str = ""
     long_description: Optional[str] = ""
-    illustration: str = ""
-    big_favicon: Optional[str] = ""
-    small_favicon: Optional[str] = ""
+    favicon: str = ""
     author: Optional[str] = ""
     publisher: Optional[str] = ""
     fname: Optional[str] = ""
@@ -198,13 +196,21 @@ class Sotoconf:
         primary_css = str(soup.find('link', href=lambda href: href and 'primary.css' in href)["href"])
         if not primary_css:
             raise Exception("Failed to extract primary CSS from homepage")
+        small_favicon = soup.find('link', rel='icon')['href']
+        if not small_favicon:
+            raise Exception("Failed to extract small favicon URL from homepage")
+        big_favicon = soup.find('link', rel='apple-touch-icon')['href']
+        if not big_favicon:
+            raise Exception("Failed to extract big favicon URL from homepage")
         self.site_details = {
             "mathjax": '<script type="text/x-mathjax-config">' in resp.text,
             "highlight": '"styleCodeWithHighlightjs":true' in resp.text,
             "domain": urlparse(resp.url).netloc,
             "site_title": site_title,
             "primary_css": primary_css,
-            "secondary_css": primary_css.replace("primary", "secondary")
+            "secondary_css": primary_css.replace("primary", "secondary"),
+            "small_favicon": small_favicon,
+            "big_favicon": big_favicon
         }
 
     def __post_init__(self):

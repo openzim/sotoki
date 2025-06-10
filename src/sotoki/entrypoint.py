@@ -54,9 +54,8 @@ def main():
     )
 
     metadata.add_argument(
-        "--illustration",
-        help="URL/path to ZIM illustration ; fallbacks to a default StackExchange icon if not provided",
-        default=Path(__file__).parent / "illustration.png"
+        "--favicon",
+        help="URL/path to ZIM illustration ; fallbacks to a online icon if not provided",
     )
 
     metadata.add_argument(
@@ -76,21 +75,6 @@ def main():
         "category:stack_exchange and stack_exchange added automatically",
         default=["_category:stack_exchange", "stack_exchange"],
         action="append",
-    )
-
-    styling = parser.add_argument_group(
-        "Styling",
-        "Options to control content style",
-    )
-
-    styling.add_argument(
-        "--small-favicon",
-        help="URL/path to small 16x16 illustration used as HTML favicon ; fallbacks to --illustration if not provided",
-    )
-
-    styling.add_argument(
-        "--big-favicon",
-        help="URL/path to 'big' illustration used as HTML icon for apple devices ; fallbacks to --illustration if not provided",
     )
 
     censored = parser.add_argument_group(

@@ -106,9 +106,8 @@ class Global:
         Global.renderer = Renderer()
 
         # load illustration data, required for creator metadata setup
-        # the following code section is taken from sotoki.scraper.add_illustrations()
         illus_nosuffix_fpath = Global.conf.build_dir / "illustration"
-        handle_user_provided_file(source=Global.conf.illustration, dest=illus_nosuffix_fpath)
+        handle_user_provided_file(source=Global.conf.favicon or Global.conf.site_details.get("big_favicon"), dest=illus_nosuffix_fpath)
 
         # convert to PNG (might already be PNG but it's OK)
         illus_fpath = illus_nosuffix_fpath.with_suffix(".png")
