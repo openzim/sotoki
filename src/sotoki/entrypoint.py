@@ -184,9 +184,10 @@ def main():
     advanced.add_argument(
         "--redis-url",
         help="Redis URL to use as database. "
-        "Must be redis://user?:pass?@host:port/dbnum. "
-        "Use unix:///path/to/redis.sock?db=dbnum for sockets",
-        default="redis://localhost:6379",
+        "Defaults to the REDIS_URL environment variable if set, otherwise to redis://localhost:6379. "
+        "Use redis://user:pass@host:port/db for TCP connections, or "
+        "unix:///path/to/redis.sock?db=dbnum for Unix socket connections.",
+        default=os.getenv("REDIS_URL","redis://localhost:6379"),
         dest="redis_url",
     )
 

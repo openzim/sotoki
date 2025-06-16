@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Changed default `--redis-url` behavior (#333)
+  - It now uses the `REDIS_URL` environment variable if set, falling back to `redis://localhost:6379`.
+  - Docker image sets `REDIS_URL` to `unix:///var/run/redis.sock` by default.
 
 ## [2.2.0] - 2025-06-10
 
@@ -65,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Multilanguage ZIM are not perfectly handled (#259)
-- Incorrect image displayed (#284) 
+- Incorrect image displayed (#284)
 - Markdown text formatting is not rendered (#286)
 - Harmonize default publisher to openZIM (#291)
 - Docker image: align redis binaries with Python distribution (#294)
