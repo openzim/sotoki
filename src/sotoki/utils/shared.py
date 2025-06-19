@@ -89,7 +89,7 @@ class Global:
         # we should consider using coroutines instead of threads
         Global.img_executor = SotokiExecutor(
             queue_size=200,
-            nb_workers=100,
+            nb_workers=10,
             prefix="IMG-T-",
         )
 
