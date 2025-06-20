@@ -8,6 +8,7 @@ import hashlib
 import urllib.parse
 from typing import Optional
 
+import backoff
 import requests
 from PIL import Image
 from resizeimage.imageexceptions import ImageSizeError
@@ -22,7 +23,7 @@ from ..constants import (
     IMAGES_ENCODER_VERSION,
     USER_AGENT,
 )
-from .misc import rebuild_uri
+from .misc import rebuild_uri, web_backoff
 from .shared import Global
 
 logger = Global.logger
@@ -124,6 +125,7 @@ class Imager:
         # no provider
         return url
 
+    @web_backoff
     def get_image_data(self, url: str, **resize_args: dict) -> io.BytesIO:
         """Bytes stream of an optimized, resized WebP of the source image"""
         src, webp = io.BytesIO(), io.BytesIO()
@@ -160,6 +162,7 @@ class Imager:
         return hashlib.md5(url.encode("UTF-8")).hexdigest()  # nosec
 
 
+    @web_backoff
     def get_version_ident_for(self, url: str) -> str:
         """~version~ of the URL data to use for comparisons. Built from headers"""
         try:

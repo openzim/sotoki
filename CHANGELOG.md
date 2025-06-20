@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Reduce number of workers and add backoff on 429 and non-HTTP (network, ...) errors
+
 ### Changed
 
 - Changed default `--redis-url` behavior (#333)

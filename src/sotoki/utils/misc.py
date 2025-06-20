@@ -7,9 +7,12 @@ import pathlib
 import platform
 import subprocess
 import urllib.parse
-from typing import Union, Iterable
+from typing import Any, Union, Iterable
+from functools import partial
 
 import psutil
+import backoff
+import requests
 
 from .shared import logger
 
@@ -132,3 +135,25 @@ def restart_redis_at(pid: Union[str, int]):
     subprocess.run(
         ["/usr/bin/env", "redis-restart", str(pid)], cwd=ps.cwd(), check=True
     )
+
+def web_backoff(func):
+
+    def backoff_hdlr(details: Any):
+        """Default backoff handler to log something when backoff occurs"""
+        logger.debug(
+            "Request error, starting backoff of {wait:0.1f} seconds after {tries} "
+            "tries. Exception: {exception}".format(**details)
+        )
+
+    def should_giveup(exc):
+        if isinstance(exc, requests.HTTPError):
+            return exc.response is not None and exc.response.status_code != 429
+        return False  # Retry for all other RequestException types
+
+    return backoff.on_exception(
+        partial(backoff.expo, base=3, factor=2),
+        requests.RequestException,
+        max_time=60,  # secs
+        on_backoff=backoff_hdlr,
+        giveup=should_giveup,
+    )(func)
