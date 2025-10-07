@@ -1,0 +1,187 @@
+{
+  "offliner_id": "sotoki",
+  "stdOutput": true,
+  "stdStats": true,
+  "flags": {
+    "domain": {
+      "type": "string",
+      "required": true,
+      "title": "Domain",
+      "description": "Domain name from StackExchange to scrape."
+    },
+    "name": {
+      "type": "string",
+      "required": false,
+      "title": "Name",
+      "description": "ZIM name. Used as identifier and filename (date will be appended). Constructed from domain if not supplied",
+      "pattern": "^([a-z0-9\\-\\.]+_)([a-z\\-]+_)([a-z0-9\\-\\.]+)$"
+    },
+    "title": {
+      "type": "string",
+      "required": false,
+      "title": "Title",
+      "description": "Custom title for your ZIM. Site name otherwise",
+      "minLength": 1,
+      "maxLength": 30
+    },
+    "description": {
+      "type": "string",
+      "required": false,
+      "title": "Description",
+      "description": "Custom description for your ZIM. Site tagline otherwise",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "favicon": {
+      "type": "url",
+      "required": false,
+      "title": "Favicon",
+      "description": "URL for Favicon. Site square logo otherwise"
+    },
+    "creator": {
+      "type": "string",
+      "required": false,
+      "title": "Creator",
+      "description": "Name of content creator. Stack Exchange otherwise"
+    },
+    "publisher": {
+      "type": "string",
+      "required": false,
+      "title": "Publisher",
+      "isPublisher": true,
+      "description": "Custom publisher name (ZIM metadata). openZIM otherwise"
+    },
+    "tag": {
+      "type": "string",
+      "required": false,
+      "title": "ZIM Tag",
+      "description": "Single additional tag for the ZIM file. Scraper generic flags (category:stack_exchange, stack_exchange, ... are always added automatically)"
+    },
+    "without_images": {
+      "type": "boolean",
+      "required": false,
+      "title": "Without Images",
+      "description": "Don't include images (in-post images, user icons). Faster."
+    },
+    "without_user_profiles": {
+      "type": "boolean",
+      "required": false,
+      "title": "Without User Profiles",
+      "description": "Don't include user profile pages. Faster"
+    },
+    "without_user_identicons": {
+      "type": "boolean",
+      "required": false,
+      "title": "Without Identicons",
+      "description": "Don't include user's profile pictures. Replaced by generated ones. Faster"
+    },
+    "without_external_links": {
+      "type": "boolean",
+      "required": false,
+      "title": "Without External links",
+      "description": "Remove all external links from posts and user profiles. Link text is kept but not the address. Slower"
+    },
+    "without_unanswered": {
+      "type": "boolean",
+      "required": false,
+      "title": "Without Unanswered",
+      "description": "Don't include posts that have zero answer. Faster"
+    },
+    "without_users_links": {
+      "type": "boolean",
+      "required": false,
+      "title": "Without Users Links",
+      "description": "Remove \"user links\" completely. Remove both url and text for a selected list of \"social\" websites. Slower"
+    },
+    "without_names": {
+      "type": "boolean",
+      "required": false,
+      "title": "Without Names",
+      "description": "Replace usernames in posts with generated ones"
+    },
+    "censor_words_list": {
+      "type": "url",
+      "required": false,
+      "title": "Words black list",
+      "description": "URL to a text file containing one word per line. Each of them to be removed from all content. Very slow."
+    },
+    "output": {
+      "type": "string",
+      "required": false,
+      "title": "Output folder",
+      "description": "Output folder for ZIM file(s). Leave it as `/output`",
+      "pattern": "^/output$"
+    },
+    "threads": {
+      "type": "integer",
+      "required": false,
+      "title": "Threads",
+      "description": "Number of threads to use to handle tasks concurrently. Increase to speed-up I/O operations (disk, network). Default: 1",
+      "min": 1
+    },
+    "tmp_dir": {
+      "type": "string",
+      "required": false,
+      "title": "Temp folder",
+      "description": "Where to create temporay build folder. Leave it as `/output`",
+      "pattern": "^/output$"
+    },
+    "zim_file": {
+      "type": "string",
+      "required": false,
+      "title": "ZIM filename",
+      "description": "ZIM file name (based on --name if not provided). Include {period} to insert date period dynamically",
+      "pattern": "^([a-z0-9\\-\\.]+_)([a-z\\-]+_)([a-z0-9\\-\\.]+_)([a-z0-9\\-\\.]+_|)([\\d]{4}-[\\d]{2}|\\{period\\}).zim$"
+    },
+    "optimization_cache": {
+      "type": "url",
+      "required": false,
+      "title": "Optimization Cache URL",
+      "description": "S3 Storage URL including credentials and bucket",
+      "secret": true
+    },
+    "mirror": {
+      "type": "url",
+      "required": false,
+      "title": "Mirror",
+      "description": "URL from which to download compressed XML dumps",
+      "secret": true,
+      "default": "https://s3.us-west-1.wasabisys.com/org-kiwix-stackexchange"
+    },
+    "stats_filename": {
+      "type": "string",
+      "required": false,
+      "title": "Stats filename",
+      "description": "Scraping progress file. Leave it as `/output/task_progress.json`",
+      "pattern": "^/output/task_progress\\.json$"
+    },
+    "redis_url": {
+      "type": "string",
+      "required": false,
+      "title": "Redis URL",
+      "description": "Redis URL to use as database. Keep it as unix:///var/run/redis.sock",
+      "frozen": true,
+      "default": "unix:///var/run/redis.sock"
+    },
+    "defrag_redis": {
+      "type": "string",
+      "required": false,
+      "title": "Defrag redis",
+      "description": "Keep it as ENV:REDIS_PID"
+    },
+    "debug": {
+      "type": "boolean",
+      "required": false,
+      "title": "Debug",
+      "description": "Enable verbose output"
+    },
+    "keep_redis": {
+      "type": "boolean",
+      "required": false,
+      "title": "Keep redis",
+      "description": "Don't flush redis DB on exit. Keep it enabled.",
+      "frozen": true,
+      "default": true
+    }
+  }
+}
