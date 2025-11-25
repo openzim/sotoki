@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Docker image does not build anymore on `main` branch (#346)
+
 ## [2.2.1] - 2025-06-26
 
 ### Fixed
