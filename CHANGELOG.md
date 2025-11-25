@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Docker image does not build anymore on `main` branch (#346)
+- Scraper fails while processing posts tags (#338)
 
 ## [2.2.1] - 2025-06-26
 
