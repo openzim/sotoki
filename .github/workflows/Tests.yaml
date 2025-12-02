@@ -1,0 +1,73 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test-scraper:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: pyproject.toml
+          architecture: x64
+
+      - name: Install dependencies (and project)
+        run: |
+          pip install -U pip
+          pip install -e .[test,scripts]
+
+      - name: Run the tests
+        run: inv coverage --args "-vvv"
+
+      - name: Upload coverage report to codecov
+        uses: codecov/codecov-action@v5
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: openzim/sotoki
+
+  build-scraper:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: pyproject.toml
+          architecture: x64
+
+      - name: Ensure we can build Python targets
+        run: |
+          pip install -U pip build
+          python3 -m build --sdist --wheel
+
+  # this job replaces the standard "build_docker" job since it builds the docker image
+  run-integration-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Ensure we can build the Docker image
+        run: |
+          docker build -t testimage .
+
+      - name: Run scraper for beer meta
+        run: mkdir -p output && docker run -v $(pwd)/output:/output testimage sotoki --domain "beer.meta.stackexchange.com" --threads 20 --output /output/ --zim-file beer_meta.zim --mirror "https://org-kiwix-stackexchange.s3.us-west-1.wasabisys.com" --redis-url "unix:///var/run/redis.sock" --debug --title "Alcohol StackExchange Meta" --description "Meta for StackExchange questions about beer, wine & spirits" && ls -alh $(pwd)/output
+
+      - name: pull zim-tools
+        run: docker pull ghcr.io/openzim/zim-tools:latest
+
+      - name: run zimcheck
+        # not using --redundant as user profile pics can be duplicates
+        # not using --url_internal as zimcheck doesn't account for <base/> https://github.com/openzim/zim-tools/issues/250
+        # not using --url_external as zimcheck doesn't account for <blockquote />, <script />, etc. https://github.com/openzim/zim-tools/issues/149
+        run: docker run -v $(pwd)/output:/data:ro ghcr.io/openzim/zim-tools:latest zimcheck --empty --checksum --integrity --metadata --favicon --main --details /data/beer_meta.zim

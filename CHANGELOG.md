@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Upgrade to Python 3.14 + Debian bookworm (#351)
+- **BREAKING**: Replace usage of multiple `--tag` with single CSV `--tags` for Zimfarm integration (#351)
+
 ### Fixed
 
 - Docker image does not build anymore on `main` branch (#346)

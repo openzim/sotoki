@@ -1,19 +1,17 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4 nu
 
 import datetime
-from typing import Union
+from typing import Any
 
 from jinja2 import Environment, PackageLoader
 from jinja2_pluralize import pluralize_dj
 
-from .utils.shared import Global, GlobalMixin
-from .utils.html import get_slug_for
-from .utils.paginator import Paginator
+from sotoki.utils.html import get_slug_for
+from sotoki.utils.paginator import Paginator
+from sotoki.utils.shared import context, shared
 
 
-def number_format(number: int, short: bool = False):
+def number_format(number: int, *, short: bool = False):
     try:
         number = int(number)
     except Exception:
@@ -23,15 +21,15 @@ def number_format(number: int, short: bool = False):
         return f"{number:,}"
 
     try:
-        suffix = ""
+        fnumber = None
         for step, step_suff in ((1000000, "M"), (10000, "k")):
             if number > step:
-                number = number / step
+                fnumber = round(number / step, 2)
                 suffix = step_suff
                 break
-        if isinstance(number, int):
-            return f"{number:,}"
-        return f"{number:,.2}{suffix}"
+        if fnumber:
+            return f"{fnumber:,.2}{suffix}"
+        return f"{number:,}"
     except Exception:
         return number
 
@@ -40,7 +38,7 @@ def number_format_short(number: int):
     return number_format(number, short=True)
 
 
-def date_format(adate: Union[datetime.datetime, str], fmt: str = "%b %d '%y at %H:%M"):
+def date_format(adate: datetime.datetime | str, fmt: str = "%b %d '%y at %H:%M"):
     if adate:
         try:
             if not isinstance(adate, datetime.datetime):
@@ -54,11 +52,11 @@ def date_format(adate: Union[datetime.datetime, str], fmt: str = "%b %d '%y at %
 
 def extend_questions(questions):
     for post_id, score in questions:
-        yield Global.database.get_question_details(post_id=post_id, score=score)
+        yield shared.postsdatabase.get_question_details(post_id=post_id, score=score)
 
 
 def get_user_details(user_id):
-    user = Global.database.get_user_full(user_id)
+    user = shared.usersdatabase.get_user_full(user_id)
     if not user:
         return {"deleted": True, "name": user_id}
     user["slug"] = get_slug_for(user["name"])
@@ -67,25 +65,25 @@ def get_user_details(user_id):
 
 
 class SortedSetPaginator(Paginator):
-    def __init__(self, set_name: str, per_page: int = 10, at_most: int = None):
+    def __init__(self, set_name: str, per_page: int = 10, at_most: int | None = None):
         self.set_name = set_name
         self.at_most = at_most
         super().__init__(per_page=per_page)
 
     def get_count(self):
-        total = Global.database.get_set_count(self.set_name)
+        total = shared.database.get_set_count(self.set_name)
         if self.at_most:
             return min([self.at_most, total])
         return total
 
-    def query(self, bottom: int, top: int):
-        return Global.database.query_set(
+    def query(self, bottom: int, _: int):
+        return shared.database.query_set(
             self.set_name, start=bottom, num=self.per_page, scored=True
         )
 
 
 class ListPaginator(Paginator):
-    def __init__(self, src: list, per_page: int = 10, at_most: int = None):
+    def __init__(self, src: list, per_page: int = 10, at_most: int | None = None):
         self.src = src
         self.at_most = at_most
         super().__init__(per_page=per_page)
@@ -100,12 +98,12 @@ class ListPaginator(Paginator):
         return self.src[bottom:top]
 
 
-class Renderer(GlobalMixin):
+class Renderer:
     def __init__(self):
         # disabling autoescape as we are mosty inputing HTML content from SE dumps
         # that we trust already (should not include any XSS)
         self.env = Environment(  # nosec
-            loader=PackageLoader("sotoki"), autoescape=False
+            loader=PackageLoader("sotoki"), autoescape=False  # noqa: S701
         )
         self.env.filters["int"] = int
         self.env.filters["user"] = get_user_details
@@ -114,15 +112,16 @@ class Renderer(GlobalMixin):
         self.env.filters["datetime"] = date_format
         self.env.filters["datetime"] = date_format
         self.env.filters["pluralize"] = pluralize_dj
-        self.env.filters["question_score"] = self.database.get_question_score
-        self.env.filters["has_accepted"] = self.database.question_has_accepted_answer
-        self.env.filters["rewrote"] = self.rewriter.rewrite
-        self.env.filters["rewrote_string"] = self.rewriter.rewrite_string
+        self.env.filters["question_score"] = shared.postsdatabase.get_question_score
+        self.env.filters["has_accepted"] = (
+            shared.postsdatabase.question_has_accepted_answer
+        )
+        self.env.filters["rewrote"] = shared.rewriter.rewrite
+        self.env.filters["rewrote_string"] = shared.rewriter.rewrite_string
         self.env.filters["slugify"] = get_slug_for
         self.global_context = {
-            "site_mathjax": self.site_details.get("mathjax"),
-            "site_highlight": self.site_details.get("highlight"),
-            "conf": self.conf,
+            "shared": shared,
+            "context": context,
         }
 
     def get_question(self, post: dict):
@@ -132,7 +131,7 @@ class Renderer(GlobalMixin):
             whereis="questions",
             post=post,
             to_root="../../",
-            title=self.rewriter.rewrite_string(post["Title"]),
+            title=shared.rewriter.rewrite_string(post["Title"]),
             **self.global_context,
         )
 
@@ -142,8 +141,8 @@ class Renderer(GlobalMixin):
             body_class="questions-page",
             whereis="questions",
             title="Highest Voted Questions",
-            popular_tags=self.database.query_set(
-                self.database.tags_key(), num=10, scored=False
+            popular_tags=shared.database.query_set(
+                shared.tagsdatabase.tags_key(), num=10, scored=False
             ),
             questions=extend_questions(page),
             to_root="./",
@@ -156,7 +155,11 @@ class Renderer(GlobalMixin):
 
         def extend_tags(tags):
             for tag in tags:
-                yield (tag[0], tag[1], self.database.get_tag_detail(tag[0], "excerpt"))
+                yield (
+                    tag[0],
+                    tag[1],
+                    shared.tagsdatabase.get_tag_detail(tag[0], "excerpt"),
+                )
 
         return self.env.get_template("tags.html").render(
             body_class="tags-page",
@@ -177,12 +180,12 @@ class Renderer(GlobalMixin):
             title=f"Highest Voted '{tag}' Questions",
             questions=extend_questions(page),
             page_obj=page,
-            nb_questions=self.database.get_numquestions_for_tag(tag),
+            nb_questions=shared.tagsdatabase.get_numquestions_for_tag(tag),
             **self.global_context,
-            **self.database.get_tag_full(tag),
+            **shared.tagsdatabase.get_tag_full(tag),
         )
 
-    def get_user(self, user):
+    def get_user(self, user: dict[str, Any]):
         """User profile HTML for ZIM"""
         return self.env.get_template("user.html").render(
             body_class="user-page",
@@ -211,20 +214,24 @@ class Renderer(GlobalMixin):
         )
 
     def get_about_page(self):
-        total_questions = self.database.get_set_count(self.database.questions_key())
-        stats = self.database.get_questions_stats()
+        total_questions = shared.database.get_set_count(
+            shared.postsdatabase.questions_key()
+        )
+        stats = shared.postsdatabase.get_questions_stats()
         percent_answered = stats["nb_answered"] / total_questions
         return self.env.get_template("about.html").render(
             body_class="about-page",
             whereis="about",
             to_root="./",
             title="About",
-            most_recent_date=datetime.datetime.fromtimestamp(stats["most_recent_ts"]).strftime("%B %-d %Y"),
+            most_recent_date=datetime.datetime.fromtimestamp(
+                stats["most_recent_ts"], datetime.UTC
+            ).strftime("%B %-d %Y"),
             total_questions=total_questions,
             nb_answers=stats["nb_answers"],
             nb_answered=stats["nb_answered"],
             percent_answered=percent_answered * 100,
-            total_users=self.database.nb_users,
-            total_tags=self.database.get_set_count(self.database.tags_key()),
+            total_users=shared.usersdatabase.nb_users,
+            total_tags=shared.database.get_set_count(shared.tagsdatabase.tags_key()),
             **self.global_context,
         )

@@ -1,20 +1,16 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4 nu
 
 import re
 import urllib.parse
 import warnings
 
 import bs4
-
 import mistune
-from mistune.plugins import plugin_strikethrough, plugin_table, plugin_footnotes
-from tld import get_fld
 from slugify import slugify
+from tld import get_fld
 
-from .shared import logger, GlobalMixin
-from .misc import rebuild_uri
+from sotoki.utils.misc import rebuild_uri
+from sotoki.utils.shared import context, logger, shared
 
 
 def get_text(content: str, strip_at: int = -1):
@@ -77,11 +73,11 @@ class BeautifulSoup(bs4.BeautifulSoup):
             return []
 
 
-class Rewriter(GlobalMixin):
+class Rewriter:
     redacted_text = "[redacted]"
 
     def __init__(self):
-        self.domain_re = re.compile(rf"(https?:)?//{self.domain}(?P<path>/.+)")
+        self.domain_re = re.compile(rf"(https?:)?//{shared.online_domain}(?P<path>/.+)")
         self.qid_slug_answer_re = re.compile(
             r"^(q|questions)/(?P<post_id>[0-9]+)/[^/]+/(?P<answer_id>[0-9]+)"
         )
@@ -109,13 +105,13 @@ class Rewriter(GlobalMixin):
             re.compile(r"images/[0-9]+.webp$"),
         )
 
-        self.redacted_string = bs4.NavigableString(self.redacted_text)
+        self.redacted_string = bs4.element.NavigableString(self.redacted_text)
         self.markdown = mistune.create_markdown(
             escape=False,
-            plugins=[plugin_strikethrough, plugin_table, plugin_footnotes],
+            plugins=["strikethrough", "table", "footnotes"],
         )
-        if self.conf.censor_words_list:
-            with open(self.conf.build_dir.joinpath("words.list"), "r") as fh:
+        if context.censor_words_list:
+            with open(shared.build_dir.joinpath("words.list")) as fh:
                 # this will actually replace occurences of ~strings matching
                 # words in the list but those can be part of actual words or whole.
                 self.words_re = re.compile(
@@ -127,17 +123,13 @@ class Rewriter(GlobalMixin):
                 #     "|".join(map(re.escape,
                 # [line.strip() for line in fh.readlines()])))
 
-    @property
-    def domain(self):
-        return self.conf.domain
-
     def redact_link(self, link):
         for attr in ("href", "title"):
             if attr in link.attrs:
                 del link.attrs[attr]
-        link.contents = [bs4.NavigableString("[redacted]")]
+        link.contents = [bs4.element.NavigableString("[redacted]")]
 
-    def rewrite(self, content: str, to_root: str = "", unwrap: bool = False):
+    def rewrite(self, content: str, to_root: str = "", *, unwrap: bool = False):
         """rewrite a stackexchange HTML markup to comply with ZIM and options
 
         SE's content is usually inputed as Markdown but the SE dumps we use
@@ -162,7 +154,12 @@ class Rewriter(GlobalMixin):
             return ""
 
         try:
-            soup = bs4.BeautifulSoup(self.markdown(content), "lxml")
+            gen_markdown = self.markdown(content)
+            if not isinstance(gen_markdown, str):
+                raise Exception(
+                    f"Unexpected gen_markdown type: {gen_markdown.__class__}"
+                )
+            soup = bs4.BeautifulSoup(gen_markdown, "lxml")
             # soup = BeautifulSoup(content, "lxml")
         except Exception as exc:
             logger.error(f"Unable to init soup or markdown for {content}: {exc}")
@@ -174,7 +171,11 @@ class Rewriter(GlobalMixin):
         # remove makrdown wrapping for single-line if requested
         if unwrap:
             try:
-                soup.body.find().unwrap()
+                tag = soup.body
+                if tag is not None:
+                    ftag = tag.find()
+                    if ftag is not None:
+                        ftag.unwrap()
             except AttributeError:
                 pass
 
@@ -185,7 +186,7 @@ class Rewriter(GlobalMixin):
             except AttributeError:
                 pass
 
-        if self.site_details.get("highlight"):
+        if shared.site_details.highlight:
             self.rewrite_code(soup)
 
         self.rewrite_links(soup, to_root)
@@ -193,7 +194,7 @@ class Rewriter(GlobalMixin):
         self.rewrite_images(soup, to_root)
 
         # apply censorship rewriting
-        if self.conf.censor_words_list:
+        if context.censor_words_list:
             self.censor_words(soup)
 
         result = str(soup)
@@ -202,7 +203,7 @@ class Rewriter(GlobalMixin):
 
     def rewrite_string(self, content: str) -> str:
         """rewritten single-string using non-markup-related rules"""
-        if self.conf.censor_words_list:
+        if context.censor_words_list:
             return self.words_re.sub(self.redacted_text, content)
         return content
 
@@ -235,7 +236,10 @@ class Rewriter(GlobalMixin):
                 if match:
                     is_relative = True
                     # make the link relative and remove / so it's Zim compat
-                    link["href"] = match.groupdict().get("path")[1:]
+                    path = match.groupdict().get("path")
+                    if not isinstance(path, str):
+                        raise Exception(f"Unexpected path type: {path.__class__}")
+                    link["href"] = path[1:]
 
             # rewrite relative links to match our in-zim URIs
             if is_relative:
@@ -253,7 +257,7 @@ class Rewriter(GlobalMixin):
 
     def rewrite_user_link(self, link):
         try:
-            if self.conf.without_users_links and (
+            if context.without_users_links and (
                 link["href"].startswith("mailto:")
                 or get_fld(link["href"]) in SOCIAL_DOMAINS
             ):
@@ -264,8 +268,8 @@ class Rewriter(GlobalMixin):
             return 0
 
     def rewrite_external_link(self, link):
-        link["class"] = " ".join(link.get("class", []) + ["external-link"])
-        if self.conf.without_external_links:
+        link["class"] = " ".join([*link.get("class", []), "external-link"])
+        if context.without_external_links:
             del link.attrs["href"]
 
     def rewrite_relative_link(self, link, to_root):
@@ -295,7 +299,9 @@ class Rewriter(GlobalMixin):
         if qid_answer_m:
             qid = qid_answer_m.groupdict().get("post_id")
             aid = qid_answer_m.groupdict().get("answer_id")
-            title = self.database.get_question_title_desc(qid)["title"]
+            if not isinstance(qid, str):
+                raise Exception(f"Unexpected qid type: {qid.__class__}")
+            title = shared.postsdatabase.get_question_title_desc(int(qid))["title"]
             if not title:
                 del link.attrs["href"]
             else:
@@ -318,7 +324,9 @@ class Rewriter(GlobalMixin):
         qid_m = self.qid_re.match(uri_path)
         if qid_m:
             qid = qid_m.groupdict().get("post_id")
-            title = self.database.get_question_title_desc(qid)["title"]
+            if not isinstance(qid, str):
+                raise Exception(f"Unexpected qid type: {qid.__class__}")
+            title = shared.postsdatabase.get_question_title_desc(int(qid))["title"]
             if not title:
                 del link.attrs["href"]
             else:
@@ -357,8 +365,13 @@ class Rewriter(GlobalMixin):
         uid_slug_m = self.uid_re.match(uri_path)
         if uid_slug_m:
             uid = uid_slug_m.groupdict().get("user_id")
+            if not isinstance(uid, str):
+                raise Exception(f"Unexpected uid type: {uid.__class__}")
             try:
-                name = self.database.get_user_full(uid)["name"]
+                user = shared.usersdatabase.get_user_full(int(uid))
+                if user is None:
+                    raise TypeError()
+                name = user["name"]
             except TypeError:
                 # we might not get a response from database for that user_id:
                 # - link to be to an invalid user_id
@@ -378,10 +391,11 @@ class Rewriter(GlobalMixin):
         # > rewrite to questions/tagged/{tName}
         tid_m = self.tid_re.match(uri_path)
         if tid_m:
+            tag_id = tid_m.groupdict().get("tag_id")
+            if not isinstance(tag_id, str):
+                raise Exception(f"Unexpected tag_id type: {tag_id.__class__}")
             try:
-                tag = self.database.get_tag_name_for(
-                    int(tid_m.groupdict().get("tag_id"))
-                )
+                tag = shared.tagsdatabase.get_tag_name_for(int(tag_id))
             except KeyError:
                 del link.attrs["href"]
             else:
@@ -395,12 +409,17 @@ class Rewriter(GlobalMixin):
         # we did not rewrite this link. could be because it was already OK.
         # must check whether it has to be considered non-internal (not offlined)
         # ie: if it points to a path that is not being offlined
-        if not any(filter(lambda reg: reg.match(uri_path), self.supported_res)):
+        if not any(
+            filter(
+                lambda reg: isinstance(reg, re.Pattern) and reg.match(uri_path),
+                self.supported_res,
+            )
+        ):
             # doesn't match support route, rewrite to fqdn and report to caller
             link["href"] = rebuild_uri(
                 uri=uri,
                 scheme="http",
-                hostname=self.conf.domain,
+                hostname=shared.online_domain,
                 failsafe=True,
             ).geturl()
             return True
@@ -418,7 +437,7 @@ class Rewriter(GlobalMixin):
                 continue
 
             # remove all images
-            if self.conf.without_images:
+            if context.without_images:
                 del img.attrs["src"]
             # process all images
             else:
@@ -427,7 +446,7 @@ class Rewriter(GlobalMixin):
                 if is_in_code(img):
                     continue
 
-                path = self.imager.defer(img["src"], is_profile=False)
+                path = shared.imager.defer(img["src"], is_profile=False)
                 if path is None:
                     del img.attrs["src"]
                 else:
@@ -440,7 +459,7 @@ class Rewriter(GlobalMixin):
     #     return self.words_as_char_re.sub(self.redacted_text, str(soup))
 
     def censor_words(self, soup):
-        if not self.conf.censor_words_list:
+        if not context.censor_words_list:
             return
 
         # BeautifulSoup doesn't allow editing NavigableString in place. We have to
@@ -453,14 +472,18 @@ class Rewriter(GlobalMixin):
             # BS returns NavigableString but also its parent if it contains a single NS
             # make sure we don't apply this to code-related elements
             # should we apply it to <code/> and <pre /> ?
-            return isinstance(tag, bs4.NavigableString) and tag.parent.name not in (
-                "script",
-                "body",
-                "html",
-                "[document]",
-                "style",
-                "code",
-                "pre",
+            return isinstance(tag, bs4.element.NavigableString) and (
+                tag.parent is None
+                or tag.parent.name
+                not in (
+                    "script",
+                    "body",
+                    "html",
+                    "[document]",
+                    "style",
+                    "code",
+                    "pre",
+                )
             )
 
         for tag in filter(only_bare_strings, soup.find_all(string=True)):
@@ -487,4 +510,4 @@ class Rewriter(GlobalMixin):
             pre_class = code.parent.attrs.get("class", [])
             if not isinstance(pre_class, list):
                 pre_class = list(pre_class)
-            code.parent.attrs["class"] = list(set(pre_class + ["s-code-block"]))
+            code.parent.attrs["class"] = list({*pre_class, "s-code-block"})

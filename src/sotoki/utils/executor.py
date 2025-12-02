@@ -1,13 +1,11 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4 nu
 
 import datetime
 import queue
 import threading
-from typing import Callable
+from collections.abc import Callable
 
-from .shared import logger
+from sotoki.utils.shared import logger
 
 _shutdown = False
 # Lock that ensures that new workers are not created while the interpreter is
@@ -60,7 +58,7 @@ class SotokiExecutor(queue.Queue):
             if not self.alive:
                 raise RuntimeError("cannot submit task to dead executor")
             if _shutdown:
-                raise RuntimeError("cannot submit task after " "interpreter shutdown")
+                raise RuntimeError("cannot submit task after interpreter shutdown")
 
         while True:
             try:
@@ -132,12 +130,12 @@ class SotokiExecutor(queue.Queue):
         logger.debug(f"joining all threads for {self.prefix}")
         self.no_more = True
         for num, t in enumerate(self._workers):
-            deadline = datetime.datetime.now() + datetime.timedelta(
+            deadline = datetime.datetime.now(datetime.UTC) + datetime.timedelta(
                 seconds=thread_deadline_sec
             )
             logger.debug(f"Giving {self.prefix}{num} {thread_deadline_sec}s to join")
             e = threading.Event()
-            while t.is_alive() and datetime.datetime.now() < deadline:
+            while t.is_alive() and datetime.datetime.now(datetime.UTC) < deadline:
                 t.join(1)
                 e.wait(timeout=2)
             if t.is_alive():
@@ -150,7 +148,7 @@ class SotokiExecutor(queue.Queue):
         """release the `no_more` flag preventing workers from taking up tasks"""
         self.no_more = False
 
-    def shutdown(self, wait=True):
+    def shutdown(self, *, wait=True):
         """stop the executor, either somewhat immediately or awaiting completion"""
         logger.debug(f"shutting down executor {self.prefix} with {wait=}")
         with self._shutdown_lock:

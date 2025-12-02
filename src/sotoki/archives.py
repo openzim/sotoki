@@ -1,22 +1,17 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4 nu
 
-import datetime
 import concurrent.futures as cf
 
-import requests
-import dateutil.parser
-from zimscraperlib.download import stream_file, save_large_file
+from zimscraperlib.download import save_large_file, stream_file
 
-from .utils.shared import Global, logger
-from .utils.misc import has_binary
-from .utils.sevenzip import extract_7z
-from .utils.preparation import (
+from sotoki.utils.misc import has_binary
+from sotoki.utils.preparation import (
     count_xml_rows,
-    merge_users_with_badges,
     merge_posts_with_answers_comments,
+    merge_users_with_badges,
 )
+from sotoki.utils.sevenzip import extract_7z
+from sotoki.utils.shared import context, logger, shared
 
 
 class ArchiveManager:
@@ -33,22 +28,6 @@ class ArchiveManager:
     change until next dump (twice a year), this handles reusing existing files"""
 
     @property
-    def build_dir(self):
-        return Global.conf.build_dir
-
-    @property
-    def domain(self):
-        return Global.conf.dump_domain
-
-    @property
-    def mirror(self):
-        return Global.conf.mirror
-
-    @property
-    def delete_src(self):
-        return not Global.conf.keep_intermediate_files
-
-    @property
     def dump_parts(self):
         """XML Dump files we're interested in"""
         return ("Badges", "Comments", "PostLinks", "Posts", "Tags", "Users")
@@ -61,7 +40,7 @@ class ArchiveManager:
         stackoverflow.com which was split with one 7z per dump part. This is not the
         case anymore but scraper capability has not been removed for now.
         """
-        return [self.build_dir / f"{self.domain}.7z"]
+        return [shared.build_dir / f"{shared.dump_domain}.7z"]
 
     def download_and_extract_archives(self):
         logger.info("Downloading archive(s)…")
@@ -73,14 +52,16 @@ class ArchiveManager:
             if not fpath.exists():
                 logger.info(f"Downloading {fpath.name}")
                 download(url, fpath)
-            Global.progresser.update(incr=1)
+            shared.progresser.update(incr=1)
 
             logger.info(f"Extracting {fpath.name}")
-            extract_7z(fpath, self.build_dir, delete_src=self.delete_src)
-            Global.progresser.update(incr=1)
+            extract_7z(
+                fpath, shared.build_dir, delete_src=not context.keep_intermediate_files
+            )
+            shared.progresser.update(incr=1)
 
             # remove other files from ark that we won't need
-            for fp in self.build_dir.iterdir():
+            for fp in shared.build_dir.iterdir():
                 if fp.suffix != ".xml" or fp.stem not in self.dump_parts:
                     fp.unlink()
 
@@ -88,7 +69,7 @@ class ArchiveManager:
         executor = cf.ThreadPoolExecutor(max_workers=len(self.archives))
 
         for ark in self.archives:
-            url = f"{self.mirror}/{ark.name}"
+            url = f"{context.mirror}/{ark.name}"
             kwargs = {"url": url, "fpath": ark}
             future = executor.submit(_run, **kwargs)
             futures.update({future: kwargs})
@@ -101,14 +82,20 @@ class ArchiveManager:
             exc = future.exception()
             if exc:
                 item = futures.get(future)
-                logger.error(f"Error processing {item['fpath'].name}: {exc}")
+                logger.error(
+                    f"Error processing {item['fpath'].name}: {exc}" if item else ""
+                )
                 logger.exception(exc)
                 failed = True
 
         if not failed and result.not_done:
             logger.error(
-                "Some not_done futrues: \n - "
-                + "\n - ".join([futures.get(future) for future in result.not_done])
+                "Some not_done futures: \n - "
+                + "\n - ".join(
+                    [
+                        futures.get(future) for future in result.not_done
+                    ]  # pyright: ignore[reportCallIssue, reportArgumentType]
+                )
             )
             failed = True
 
@@ -122,21 +109,19 @@ class ArchiveManager:
         # 1pt for 7z extraction
         # 3pt for users XML computation
         # 5pt for posts XML computation
-        Global.progresser.start(
-            Global.progresser.PREPARATION_STEP, nb_total=len(self.archives) * 2 + 3 + 5
+        shared.progresser.start(
+            shared.progresser.PREPARATION_STEP, nb_total=len(self.archives) * 2 + 3 + 5
         )
 
-        tags = self.build_dir / "Tags.xml"
-        users = self.build_dir / "users_with_badges.xml"
-        posts = self.build_dir / "posts_complete.xml"
+        tags = shared.build_dir / "Tags.xml"
+        users = shared.build_dir / "users_with_badges.xml"
+        posts = shared.build_dir / "posts_complete.xml"
 
         # check what needs to be done for each substep in order to reuse existing files
         if not tags.exists() or not users.exists() or not posts.exists():
             if not all(
-                [
-                    self.build_dir.joinpath(f"{part}.xml").exists()
-                    for part in self.dump_parts
-                ]
+                shared.build_dir.joinpath(f"{part}.xml").exists()
+                for part in self.dump_parts
             ):
                 self.download_and_extract_archives()
             else:
@@ -144,34 +129,36 @@ class ArchiveManager:
         else:
             logger.info("Prepared dumps already present; reusing.")
             self.count_items(users, posts, tags)
-            Global.progresser.update(nb_done=1, nb_total=1)
+            shared.progresser.update(nb_done=1, nb_total=1)
             return
 
         if not tags.exists():
-            raise IOError(f"Missing {tags.name} while we should not.")
+            raise OSError(f"Missing {tags.name} while we should not.")
 
-        merge_users_with_badges(workdir=self.build_dir, delete_src=self.delete_src)
+        merge_users_with_badges(
+            workdir=shared.build_dir, delete_src=not context.keep_intermediate_files
+        )
         if not users.exists():
-            raise IOError(f"Missing {users.name} while we should not.")
-        Global.progresser.update(incr=3)
+            raise OSError(f"Missing {users.name} while we should not.")
+        shared.progresser.update(incr=3)
 
         merge_posts_with_answers_comments(
-            workdir=self.build_dir, delete_src=self.delete_src
+            workdir=shared.build_dir, delete_src=not context.keep_intermediate_files
         )
         if not posts.exists():
-            raise IOError(f"Missing {posts.name} while we should not.")
-        Global.progresser.update(incr=5)
+            raise OSError(f"Missing {posts.name} while we should not.")
+        shared.progresser.update(incr=5)
 
         self.count_items(users, posts, tags)
         logger.info("Prepared dumps completed.")
 
     def count_items(self, users, questions, tags):
 
-        Global.total_tags = count_xml_rows(tags, "row")
-        logger.info(f"{Global.total_tags} tags found")
+        shared.total_tags = count_xml_rows(tags, "row")
+        logger.info(f"{shared.total_tags} tags found")
 
-        Global.total_users = count_xml_rows(users, "row")
-        logger.info(f"{Global.total_users} users found")
+        shared.total_users = count_xml_rows(users, "row")
+        logger.info(f"{shared.total_users} users found")
 
-        Global.total_questions = count_xml_rows(questions, "post")
-        logger.info(f"{Global.total_questions} questions found")
+        shared.total_questions = count_xml_rows(questions, "post")
+        logger.info(f"{shared.total_questions} questions found")

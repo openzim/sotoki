@@ -1,30 +1,28 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4 nu
 
 
-""" Adapted Django Paginator
+"""Adapted Django Paginator
 
-    Paginator must be subclassed to work:
-    - get_count() should return total number of items
-    - query(bottom: int, top: int) should yield appropriate items
+Paginator must be subclassed to work:
+- get_count() should return total number of items
+- query(bottom: int, top: int) should yield appropriate items
 
-    Usage is similar to Django's one otherwise. """
+Usage is similar to Django's one otherwise."""
 
 
 import math
-from typing import Optional
+from abc import abstractmethod
 
 
-class InvalidPage(Exception):
+class InvalidPageError(Exception):
     pass
 
 
-class PageNotAnInteger(InvalidPage):
+class PageNotAnIntegerError(InvalidPageError):
     pass
 
 
-class EmptyPage(InvalidPage):
+class EmptyPageError(InvalidPageError):
     pass
 
 
@@ -35,7 +33,7 @@ class Page:
         self.paginator = paginator
 
     def __repr__(self):
-        return "<Page %s of %s>" % (self.number, self.paginator.num_pages)
+        return f"<Page {self.number} of {self.paginator.num_pages}>"
 
     def __len__(self):
         return len(self.object_list)
@@ -43,8 +41,7 @@ class Page:
     def __getitem__(self, index):
         if not isinstance(index, (int, slice)):
             raise TypeError(
-                "Page indices must be integers or slices, not %s."
-                % type(index).__name__
+                f"Page indices must be integers or slices, not {type(index).__name__}."
             )
         # The object_list is converted to a list so that if it was a QuerySet
         # it won't be a database hit per __getitem__.
@@ -91,11 +88,15 @@ class Page:
 class Paginator:
     ELLIPSIS = "…"
 
-    def __init__(self, per_page: int = 10, count: Optional[int] = None):
+    def __init__(self, per_page: int = 10, count: int | None = None):
         self.per_page = int(per_page)
         self.count = count if count is not None else self.get_count()
         self.num_pages = math.ceil(max(1, self.count) / self.per_page)
         self.page_range = range(1, self.num_pages + 1)
+
+    @abstractmethod
+    def get_count(self) -> int:
+        pass
 
     def __iter__(self):
         for page_number in self.page_range:
@@ -107,15 +108,15 @@ class Paginator:
             if isinstance(number, float) and not number.is_integer():
                 raise ValueError
             number = int(number)
-        except (TypeError, ValueError):
-            raise PageNotAnInteger("That page number is not an integer")
+        except (TypeError, ValueError) as exc:
+            raise PageNotAnIntegerError("That page number is not an integer") from exc
         if number < 1:
-            raise EmptyPage("That page number is less than 1")
+            raise EmptyPageError("That page number is less than 1")
         if number > self.num_pages:
             if number == 1:
                 pass
             else:
-                raise EmptyPage("That page contains no results")
+                raise EmptyPageError("That page contains no results")
         return number
 
     def get_page(self, number):
@@ -125,9 +126,9 @@ class Paginator:
         """
         try:
             number = self.validate_number(number)
-        except PageNotAnInteger:
+        except PageNotAnIntegerError:
             number = 1
-        except EmptyPage:
+        except EmptyPageError:
             number = self.num_pages
         return self.page(number)
 
@@ -136,8 +137,7 @@ class Paginator:
         number = self.validate_number(number)
         bottom = (number - 1) * self.per_page
         top = bottom + self.per_page
-        if top >= self.count:
-            top = self.count
+        top = min(self.count, top)
         return self._get_page(self.query(bottom, top), number, self)
 
     def _get_page(self, *args, **kwargs):
