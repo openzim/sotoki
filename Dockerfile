@@ -1,6 +1,7 @@
-FROM redis:6.2.21-bookworm AS redis
+FROM redis:8.4.0-bookworm AS redis
 
-FROM python:3.8-bookworm
+FROM python:3.14-bookworm
+LABEL org.opencontainers.image.source=https://github.com/openzim/sotoki
 
 RUN groupadd -r -g 999 redis && useradd -r -g redis -u 999 redis
 COPY --from=redis /usr/local/bin/redis-server /usr/local/bin/redis-server
@@ -12,24 +13,7 @@ RUN mkdir /data && chown redis:redis /data
 VOLUME /data
 
 RUN echo "UTC" >  /etc/timezone
-ENV TZ "UTC"
-
-RUN apt-get update -y \
-    && apt-get install -y --no-install-recommends unzip p7zip tzdata libmagic1 wget locales \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# setup locale
-RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
-ENV LC_ALL en_US.UTF-8
-
-COPY requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -U pip ipython==7.25.0 && pip install --no-cache-dir -r /tmp/requirements.txt
-COPY setup.py LICENSE MANIFEST.in README.md requirements.txt /app/
-COPY src /app/src
-RUN cd /app && python setup.py install && cd - && rm -rf /app
+ENV TZ="UTC"
 
 # redis-restart script is use to start redis initally (redis-restart 0)
 # but also to restart it later-on using --defrag-redis param.
@@ -75,5 +59,44 @@ RUN mkdir -p /output
 ENV REDIS_URL=unix:///var/run/redis.sock
 EXPOSE 6379
 ENTRYPOINT ["start-redis-daemon"]
+
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends \
+    unzip \
+    p7zip \
+    tzdata \
+    libmagic1 \
+    wget \
+    locales \
+    && rm -rf /var/lib/apt/lists/* \
+    && python -m pip install --no-cache-dir -U \
+    pip
+
+# setup locale
+RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
+
+# COPY requirements.txt /tmp/requirements.txt
+# RUN pip install --no-cache-dir -U pip ipython==7.25.0 && pip install --no-cache-dir -r /tmp/requirements.txt
+# COPY setup.py LICENSE MANIFEST.in README.md requirements.txt /app/
+# COPY src /app/src
+# RUN cd /app && python setup.py install && cd - && rm -rf /app
+
+# Copy pyproject.toml and its dependencies
+COPY README.md pyproject.toml openzim.toml /app/
+COPY src/sotoki/__about__.py /app/src/sotoki/__about__.py
+
+# Install Python dependencies (+ static assets from openzim.toml)
+RUN pip install --no-cache-dir /app
+
+# Copy code + associated artifacts
+COPY src /app/src
+COPY *.md LICENSE /app/
+
+# Install + cleanup
+RUN pip install --no-cache-dir /app \
+ && rm -rf /app
 
 CMD ["sotoki", "--help"]

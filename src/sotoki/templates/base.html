@@ -2,7 +2,7 @@
 <html class="html__responsive  html__fixed-top-bar">
     <head>
         <meta charset="utf-8">
-        <title>{% block title %}{{ title }} - {{ conf.site_details.site_title }}{% endblock %}</title>
+        <title>{% block title %}{{ title }} - {{ shared.site_details.site_title }}{% endblock %}</title>
         <link rel="shortcut icon" href="{{ to_root }}favicon.ico" />
         <link rel="apple-touch-icon" href="{{ to_root }}apple-touch-icon.png" />
         <link rel="image_src" href="{{ to_root }}apple-touch-icon.png" />
@@ -12,7 +12,7 @@
         <link id="primary_css" rel="stylesheet" type="text/css" href="{{ to_root }}static/css/primary.css" />
         <link id="secondary_css" rel="stylesheet" type="text/css" href="{{ to_root }}static/css/secondary.css" />
         <link rel="stylesheet" type="text/css" href="{{ to_root }}static/css/sotoki.css" />
-        {% if site_highlight %}<link rel="stylesheet" href="{{ to_root }}static/css/highlight.default.min.css">{% endif %}
+        {% if shared.site_details.highlight %}<link rel="stylesheet" href="{{ to_root }}static/css/highlight.default.min.css">{% endif %}
         <style type="text/css">
             a.external-link { background-image: url('{{ to_root }}static/img/external-link-ltr-icon.svg'); }
         </style>
@@ -22,11 +22,11 @@
         <script type="text/javascript" src="{{ to_root }}static/js/webp-handler.js"></script>
         <script type="text/javascript" src="{{ to_root }}static/js/identicons.js"></script>
         <script src="{{ to_root }}static/js/moment.min.js"></script>
-        {% if site_highlight %}
+        {% if shared.site_details.highlight %}
         <script src="{{ to_root }}static/js/highlight.min.js"></script>
         <script src="{{ to_root }}static/js/hljs-trigger.js"></script>
         {% endif %}
-        {% if site_mathjax %}
+        {% if shared.site_details.mathjax %}
         <script type="text/x-mathjax-config">
             MathJax.Hub.Config({"HTML-CSS": { preferredFont: "TeX", availableFonts: ["STIX","TeX"], linebreaks: { automatic:true }, EqnChunk: (MathJax.Hub.Browser.isMobile ? 10 : 50) },
                     tex2jax: { inlineMath: [ ["$", "$"], ["\\\\(","\\\\)"] ], displayMath: [ ["$$","$$"], ["\\[", "\\]"] ], processEscapes: true, ignoreClass: "tex2jax_ignore|dno" },
@@ -47,7 +47,7 @@
         <div class="topbar mobile-only">
             <div class="network-items">
                 <a class="s-btn s-btn__unset topbar-icon js-site-switcher-button icon-site-switcher-bubble" aria-expanded="false"><span class="hidden">Stack Exchange</span></a>
-                <div class="site-name"><a href="{{ to_root }}">{{ conf.site_details.site_title }}</a></div>
+                <div class="site-name"><a href="{{ to_root }}">{{ shared.site_details.site_title }}</a></div>
                 <div class="-actions ai-center"></div>
             </div>
         </div>
@@ -55,13 +55,13 @@
             <ul>
                 <li {% if whereis == 'questions' %}class="current"{% endif %}><a href="{{ to_root }}questions" title="Questions">Questions</a></li>
                 <li {% if whereis == 'tags' %}class="current"{% endif %}><a href="{{ to_root }}tags" title="Tags">Tags</a></li>
-                {% if not conf.without_user_profiles %}<li {% if whereis == 'users' %}class="current"{% endif %}><a href="{{ to_root }}users" title="Users">Users</a></li>{% endif %}
+                {% if not context.without_user_profiles %}<li {% if whereis == 'users' %}class="current"{% endif %}><a href="{{ to_root }}users" title="Users">Users</a></li>{% endif %}
                 <li {% if whereis == 'about' %}class="current"{% endif %}><a href="{{ to_root }}about" title="About">About</a></li>
             </ul>
         </nav>
         <header class="site-header desktop-only">
             <div class="site-header--container">
-                <a class="site-header--link fs-headline1 fw-bold" href="{{ to_root }}">{{ conf.site_details.site_title }}</a>
+                <a class="site-header--link fs-headline1 fw-bold" href="{{ to_root }}">{{ shared.site_details.site_title }}</a>
             </div>
         </header>
         {% block fullwidth %}{% endblock %}
@@ -86,7 +86,7 @@
                                             <div class="grid ai-center"><div class="grid--cell truncate">Tags</div></div>
                                         </a>
                                     </li>
-                                    {% if not conf.without_user_profiles %}
+                                    {% if not context.without_user_profiles %}
                                     <li class="{% if whereis == 'users' %}youarehere{% endif %}">
                                         <a href="{{ to_root }}users" id="nav-users" class=" js-gps-track nav-links--link">
                                             <div class="grid ai-center"><div class="grid--cell truncate">Users</div></div>

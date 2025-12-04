@@ -5,7 +5,7 @@
                 <div class="grid fl1 mb24"><h1 class="grid--cell fs-headline1 mb0">About</h1></div>
             </div>
             <div class="pb16">
-                <p>This content is an offline <em>copy</em> of the “<em>{{ conf.site_details.site_title }}</em>” website at <a class="external-link" href="https://{{ conf.domain }}">{{ conf.domain }}</a> as of {{ most_recent_date }} (date of most recent question in Stack Exchange Dump file used to produce this ZIM).</p>
+                <p>This content is an offline <em>copy</em> of the “<em>{{ shared.site_details.site_title }}</em>” website at <a class="external-link" href="https://{{ context.domain }}">{{ context.domain }}</a> as of {{ most_recent_date }} (date of most recent question in Stack Exchange Dump file used to produce this ZIM).</p>
 
                 <h2>Basic Stack Exchange's knowledge</h2>
                 <p>Stack Exchange's websites are social platforms where anybody can post a question related to the site's topic and anybody can write answers or comments to it. Users can <em>Up-vote</em> or <em>Down-vote</em> answers and comments in order to distinguish those that are most useful.</p>
@@ -23,32 +23,32 @@
                     <li>Only Users with interactions with the platform are included and thus have profile pages.</li>
                 </ul>
 
-                {% if conf.any_restriction %}
+                {% if context.any_restriction %}
                 <h3>Restrictions</h3>
                 <p>Additionnaly, the following restrictions have been applied to this specific copy:</p>
                 <ul>
-                    {% if conf.without_unanswered %}
+                    {% if context.without_unanswered %}
                         <li>All questions without answers have been removed.</li>
                     {% endif %}
-                    {% if conf.without_images %}
+                    {% if context.without_images %}
                         <li>All images have been removed from content. User profile pictures have also been replaced with generated ones.</li>
                     {% endif %}
-                    {% if conf.without_user_profiles %}
+                    {% if context.without_user_profiles %}
                         <li>All User's profile pages have been removed.</li>
                     {% endif %}
-                    {% if conf.without_user_identicons and not conf.without_images %}
+                    {% if context.without_user_identicons and not context.without_images %}
                         <li>All User's profile pictures have been removed. You'll see generated ones instead.</li>
                     {% endif %}
-                    {% if conf.without_external_links %}
+                    {% if context.without_external_links %}
                         <li>All external links have been edited and points nowhere.</li>
                     {% endif %}
-                    {% if conf.without_users_links %}
+                    {% if context.without_users_links %}
                         <li>All links to social-media websites have been removed and their content replaced with <em>[redacted]</em>.</li>
                     {% endif %}
-                    {% if conf.without_names %}
+                    {% if context.without_names %}
                         <li>All Usernames have been replaced with generated ones.</li>
                     {% endif %}
-                    {% if conf.censor_words_list %}
+                    {% if context.censor_words_list %}
                         <li>A list of unwanted words have been removed from the content. Those have been replaced with <em>[redacted]</em>.</li>
                     {% endif %}
                 </ul>

@@ -51,11 +51,11 @@
       "isPublisher": true,
       "description": "Custom publisher name (ZIM metadata). openZIM otherwise"
     },
-    "tag": {
+    "tags": {
       "type": "string",
       "required": false,
-      "title": "ZIM Tag",
-      "description": "Single additional tag for the ZIM file. Scraper generic flags (category:stack_exchange, stack_exchange, ... are always added automatically)"
+      "title": "ZIM Tags",
+      "description": "A semicolon (;) delimited list of tags to add to the ZIM. Scraper generic flags (category:stack_exchange, stack_exchange, ... are always added automatically)"
     },
     "without_images": {
       "type": "boolean",

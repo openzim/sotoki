@@ -1,15 +1,43 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4 nu
 
+import collections
 import json
+import threading
+from typing import Any
 
 import snappy
 
-from ..shared import Global, logger
+from sotoki.constants import NB_PAGINATED_USERS
+from sotoki.utils.shared import logger, shared
 
 
-class UsersDatabaseMixin:
+class TopDict(collections.UserDict):
+    """A fixed-sized dict that keeps only the highest values"""
+
+    def __init__(self, maxlen: int):
+        super().__init__()
+        self.maxlen = maxlen
+        self.lock = threading.Lock()
+
+    def __setitem__(self, key, value):
+        with self.lock:
+            # we're full, might not accept value
+            if len(self) >= self.maxlen:
+                # value is bellow our min, don't care
+                min_val = min(self.values())
+                if value < min_val:
+                    return
+
+                # value should be in top, let's remove our min to allow it
+                min_key = list(self.keys())[list(self.values()).index(min_val)]
+                del self[min_key]
+            super().__setitem__(key, value)
+
+    def sorted(self):
+        return [k for k, _ in sorted(self.items(), key=lambda x: x[1], reverse=True)]
+
+
+class UsersDatabase:
     """Users related Database operations
 
     We mainly store some basic profile-details for each user so that we can display
@@ -36,11 +64,20 @@ class UsersDatabaseMixin:
     Note: we don't track User's profile image URL as we store images in-Zim at a fixed
     location based on UserId."""
 
+    def __init__(self):
+        self._top_users = TopDict(NB_PAGINATED_USERS)
+
+        # temp set to hold all active users' IDs
+        self._all_users_ids = set()
+
+        # total number of active users
+        self.nb_users = 0
+
     @staticmethod
     def user_key(user_id):
         return f"U:{user_id}"
 
-    def record_user(self, user: dict):
+    def record_user(self, user: dict[str, Any]):
         """record basic user details to MEM at U:{id} key
 
         Name, Reputation, NbGoldBages, NbSilverBadges, NbBronzeBadges"""
@@ -49,7 +86,7 @@ class UsersDatabaseMixin:
         self._top_users[user["Id"]] = user["Reputation"]
 
         # record profile details into individual key
-        self.pipe.set(
+        shared.database.pipe.set(
             self.user_key(user["Id"]),
             snappy.compress(
                 json.dumps(
@@ -64,15 +101,15 @@ class UsersDatabaseMixin:
             ),
         )
 
-        self.bump_seen()
-        self.commit_maybe()
+        shared.database.bump_seen()
+        shared.database.commit_maybe()
 
     def ack_users_ids(self):
         """dump or load users_ids"""
-        all_users_ids_fpath = Global.conf.build_dir / "all_users_ids.json"
+        all_users_ids_fpath = shared.build_dir / "all_users_ids.json"
         if not self._all_users_ids and all_users_ids_fpath.exists():
             logger.debug(f"loading all_users_ids from {all_users_ids_fpath.name}")
-            with open(all_users_ids_fpath, "r") as fh:
+            with open(all_users_ids_fpath) as fh:
                 self._all_users_ids = set(json.load(fh))
         else:
             with open(all_users_ids_fpath, "w") as fh:
@@ -87,20 +124,20 @@ class UsersDatabaseMixin:
         self.top_users = self._top_users.sorted()
         del self._top_users
 
-        top_users_fpath = Global.conf.build_dir / "top_users.json"
+        top_users_fpath = shared.build_dir / "top_users.json"
         if not self.top_users and top_users_fpath.exists():
             logger.debug(f"loading top_users from {top_users_fpath.name}")
-            with open(top_users_fpath, "r") as fh:
+            with open(top_users_fpath) as fh:
                 self.top_users = json.load(fh)
         else:
             with open(top_users_fpath, "w") as fh:
                 json.dump(self.top_users, fh, indent=4)
 
-    def get_user_full(self, user_id: int) -> str:
+    def get_user_full(self, user_id: int) -> dict[str, Any] | None:
         """All recorded information for a UserId
 
         id, name, rep, nb_gold, nb_silver, nb_bronze"""
-        user = self.safe_get(self.user_key(user_id))
+        user = shared.database.safe_get(self.user_key(user_id))
         if not user:
             return None
         user = json.loads(snappy.decompress(user))

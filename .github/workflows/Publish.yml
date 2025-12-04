@@ -6,29 +6,26 @@ on:
 
 jobs:
   publish:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       id-token: write  # mandatory for PyPI trusted publishing
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
-          python-version: '3.8' # manual configuration until Python bootstrap is implemented
-          # python-version-file: pyproject.toml
+          python-version-file: pyproject.toml
           architecture: x64
 
       - name: Build packages
-        # zimscraperlib is needed in build since its a requirement for dependencies.py
-        # + we do not build in isolated env for simplicity before moving to Python bootstrap
         run: |
-          pip install -U pip build zimscraperlib wheel setuptools
-          python -m build -n --sdist --wheel
+          pip install -U pip build
+          python -m build --sdist --wheel
 
       - name: Upload to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1.8
+        uses: pypa/gh-action-pypi-publish@release/v1.13
 
       - name: Build and push Docker image
         uses: openzim/docker-publish-action@v10

@@ -1,22 +1,19 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4 nu
 
-""" StackExchange Dumps preparation utils
+"""StackExchange Dumps preparation utils
 
-    Main goal is to prepare combined XML dumps that gets all required data on a
-    single node when traversing the document using SAX """
+Main goal is to prepare combined XML dumps that gets all required data on a
+single node when traversing the document using SAX"""
 
 import os
-import re
 import pathlib
-import xml.sax.saxutils
+import re
 import subprocess
-from typing import Union
+import xml.sax.saxutils
 
-from .shared import logger
-from .misc import has_binary, get_available_memory
-from ..constants import UTF8
+from sotoki.constants import UTF8
+from sotoki.utils.misc import get_available_memory, has_binary
+from sotoki.utils.shared import logger
 
 has_gnusort = has_binary("sort")
 
@@ -30,10 +27,10 @@ def get_within_chars(nb_chars_glue: int, nb_ids: int) -> int:
 
 
 def get_id_in(
-    line: Union[bytes, str],
+    line: bytes | str,
     index: int,
-    sep: Union[bytes, str] = b'"',
-    within: int = 30,
+    sep: bytes | str = b'"',
+    within: int | None = 30,
 ) -> int:
     """ID from an attribute on a line, based on ~field's index
 
@@ -41,7 +38,12 @@ def get_id_in(
     most of the line out of memory and the split.
 
     IDs can take up to 8 chars (99M entries) usually."""
-    return int(line[0:within].split(sep, index + 2)[index])
+    if isinstance(line, str) and isinstance(sep, str):
+        return int(line[0:within].split(sep, index + 2)[index])
+    elif isinstance(line, bytes) and isinstance(sep, bytes):
+        return int(line[0:within].split(sep, index + 2)[index])
+    else:
+        raise Exception("mistach between line and sep types")
 
 
 def get_index_in(src: pathlib.Path, id_attr: str) -> int:
@@ -51,7 +53,9 @@ def get_index_in(src: pathlib.Path, id_attr: str) -> int:
         return re.split(rb'\s([a-zA-Z]+)="', line).index(id_attr.encode(UTF8))
 
 
-def remove_xml_headers(src: pathlib.Path, dst: pathlib.Path, delete_src: bool = True):
+def remove_xml_headers(
+    *, src: pathlib.Path, dst: pathlib.Path, delete_src: bool = True
+):
     """removes XML header (<?xml />) and root tag of a dump
 
     Consists in removing first two and last line of XML file
@@ -63,7 +67,7 @@ def remove_xml_headers(src: pathlib.Path, dst: pathlib.Path, delete_src: bool = 
 
         # xml root node opening
         root_open = srch.readline().decode(UTF8).strip()
-        if ("<!--" in root_open):
+        if "<!--" in root_open:
             while True:
                 next_comment = srch.readline().decode(UTF8).strip()
                 if "-->" in next_comment:
@@ -88,6 +92,7 @@ def remove_xml_headers(src: pathlib.Path, dst: pathlib.Path, delete_src: bool = 
 
 
 def sort_dump_by_id(
+    *,
     src: pathlib.Path,
     dst: pathlib.Path,
     id_attr: str,
@@ -102,7 +107,7 @@ def sort_dump_by_id(
 
 
 def sort_dump_by_id_gnusort(
-    src: pathlib.Path, dst: pathlib.Path, field_num: int, delete_src: bool
+    *, src: pathlib.Path, dst: pathlib.Path, field_num: int, delete_src: bool
 ):
     """Sort an header-stripped XML dump by a node ID using GNU sort
 
@@ -119,7 +124,11 @@ def sort_dump_by_id_gnusort(
         str(src),
     ]
     sort = subprocess.run(
-        args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env={"LC_ALL": "C"}
+        args,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        env={"LC_ALL": "C"},
     )
     if not sort.returncode == 0:
         logger.error(f"Error running {args}: returned {sort.returncode}\n{sort.stdout}")
@@ -130,7 +139,7 @@ def sort_dump_by_id_gnusort(
 
 
 def sort_dump_by_id_nodep(
-    src: pathlib.Path, dst: pathlib.Path, field_num: int, delete_src: bool
+    *, src: pathlib.Path, dst: pathlib.Path, field_num: int, delete_src: bool
 ):
     """Sort an header-stripped XML dump by a node ID using a naive pure-python impl.
 
@@ -166,6 +175,7 @@ def sort_dump_by_id_nodep(
 
 
 def merge_two_xml_files(
+    *,
     main_src: pathlib.Path,
     sub_src: pathlib.Path,
     dst: pathlib.Path,
@@ -193,9 +203,11 @@ def merge_two_xml_files(
             </nodeA>
     """
 
-    with open(main_src, "rb") as mainfh, open(sub_src, "rb") as subfh, open(
-        dst, "wb"
-    ) as dsth:
+    with (
+        open(main_src, "rb") as mainfh,
+        open(sub_src, "rb") as subfh,
+        open(dst, "wb") as dsth,
+    ):
 
         def read_sub():
             line = subfh.readline()
@@ -233,8 +245,8 @@ def merge_two_xml_files(
                     has_subs = True
 
                 dsth.write(node_start)
-                # write the sub line removing the 2 heading spaces, node name (<row) and trailing
-                # CRLF as well. node already self closed in source
+                # write the sub line removing the 2 heading spaces, node name (<row)
+                # and trailing CRLF as well. node already self closed in source
                 dsth.write(current_sub[1][6:-2])
                 current_sub = read_sub()
 
@@ -252,7 +264,7 @@ def merge_two_xml_files(
 
 
 def create_sorted_comments(
-    workdir: pathlib.Path, delete_src: bool = False
+    workdir: pathlib.Path, *, delete_src: bool = False
 ) -> pathlib.Path:
     """prepare comments by removing headers and sorting by PostId"""
 
@@ -274,7 +286,7 @@ def create_sorted_comments(
 
 
 def merge_posts_with_comments(
-    workdir: pathlib.Path, delete_src: bool = False
+    workdir: pathlib.Path, *, delete_src: bool = False
 ) -> pathlib.Path:
     """prepare posts+comments by removing post headers and merging with sorted comm"""
     comments_sorted = workdir / "comments_sorted.xml"
@@ -298,7 +310,7 @@ def merge_posts_with_comments(
 
 
 def split_posts_by_posttypeid(
-    src: pathlib.Path, dst_map: dict, delete_src: bool = False
+    src: pathlib.Path, dst_map: dict, *, delete_src: bool = False
 ):
     """explode posts file into files based on PostTypeId
 
@@ -320,7 +332,8 @@ def split_posts_by_posttypeid(
             except IndexError:
                 break
             try:
-                # rewrite with new name, removing 2 spaces, tag open (<row), tag end (/>) and CRLF
+                # rewrite with new name, removing 2 spaces, tag open (<row), tag end
+                # (/>) and CRLF
                 fhs[found_id].write(starts[found_id])
                 fhs[found_id].write(line[6:-5])
                 fhs[found_id].write(ends[found_id])
@@ -339,7 +352,7 @@ def extract_posts_titles(src: pathlib.Path, dst: pathlib.Path):
 
     CSV must include appropriate quoting for use as an SGML attribute"""
     index = get_index_in(src, "Id")
-    with open(src, "r") as srch, open(dst, "w") as dsth:
+    with open(src) as srch, open(dst, "w") as dsth:
         for line in srch:
             try:
                 post_id = get_id_in(line, index, sep='"')
@@ -355,6 +368,7 @@ def extract_posts_titles(src: pathlib.Path, dst: pathlib.Path):
 
 
 def add_post_names_to_links(
+    *,
     links_src: pathlib.Path,
     csv_src: pathlib.Path,
     dst: pathlib.Path,
@@ -362,9 +376,11 @@ def add_post_names_to_links(
 ):
     """Recreate links file but each row gets a PostName with post name from CSV"""
     index = get_index_in(links_src, "PostId")
-    with open(links_src, "rb") as linksh, open(csv_src, "rb") as csvh, open(
-        dst, "wb"
-    ) as dsth:
+    with (
+        open(links_src, "rb") as linksh,
+        open(csv_src, "rb") as csvh,
+        open(dst, "wb") as dsth,
+    ):
 
         def read_csv():
             line = csvh.readline()
@@ -375,6 +391,8 @@ def add_post_names_to_links(
 
         # read first CSV line so we can compare it in loop
         current_csv = read_csv()
+        if not current_csv:
+            raise Exception(f"CSV at {csv_src} is empty")
 
         # loop on links as this is our base that we'll update with names
         for line in linksh:
@@ -389,7 +407,8 @@ def add_post_names_to_links(
                 break
 
             if current_csv[0] == post_id:
-                # write user line to dest; removing 2 spaces, tag open (<row), tag end (/>) and CRLF
+                # write user line to dest; removing 2 spaces, tag open (<row), tag end
+                # (/>) and CRLF
                 dsth.write(b"<link")
                 dsth.write(line[6:-4])
                 # CSV title already includes appropriate quoting
@@ -409,6 +428,7 @@ class PostsAnswersLinksMerger:
 
     def __init__(
         self,
+        *,
         questions_src: pathlib.Path,
         answers_src: pathlib.Path,
         links_src: pathlib.Path,
@@ -505,7 +525,7 @@ class PostsAnswersLinksMerger:
 
 
 def merge_users_with_badges(
-    workdir: pathlib.Path, delete_src: bool = False
+    workdir: pathlib.Path, *, delete_src: bool = False
 ) -> pathlib.Path:
     """list of User <row> (inside <root>) nodes with <badges /> (<badge />) merged-in"""
 
@@ -522,37 +542,33 @@ def merge_users_with_badges(
 
     users_orig = workdir / "Users.xml"
     users_nohead = workdir / "users_nohead.xml"
-    remove_xml_headers(users_orig, users_nohead, delete_src=delete_src)
+    remove_xml_headers(src=users_orig, dst=users_nohead, delete_src=delete_src)
     logger.info("removed users headers")
 
     users_with_badges = workdir / "users_with_badges.xml"
 
     # Merge Users and Badges
     merge_two_xml_files(
-        users_nohead,
-        badges_sorted,
-        users_with_badges,
+        main_src=users_nohead,
+        sub_src=badges_sorted,
+        dst=users_with_badges,
         sub_node_name="badge",
         delete_src=delete_src,
     )
     logger.info("merged both sets")
     return users_with_badges
 
-def count_xml_rows(
-    src: pathlib.Path,
-    tag: str
-): 
+
+def count_xml_rows(src: pathlib.Path, tag: str):
     """Count number of rows in an XML file having a given tag"""
-    args = ["/usr/bin/env",
-        "grep",
-        "-F",
-        "-c",
-        f"<{tag}",
-        str(src)
-        ]
+    args = ["/usr/bin/env", "grep", "-F", "-c", f"<{tag}", str(src)]
 
     cmd = subprocess.run(
-        args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env={"LC_ALL": "C"}
+        args,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        env={"LC_ALL": "C"},
     )
 
     if not cmd.returncode == 0:
@@ -563,7 +579,7 @@ def count_xml_rows(
 
 
 def merge_posts_with_answers_comments(
-    workdir: pathlib.Path, delete_src: bool = False
+    workdir: pathlib.Path, *, delete_src: bool = False
 ) -> pathlib.Path:
     """List of <post> nodes inside <root> with answers/comments/links merged-in
 
@@ -652,7 +668,9 @@ def merge_posts_with_answers_comments(
         delete_src=delete_src,
     )
     del postlinks_sorted
-    sort_dump_by_id(postlinks_named, postlinks_named_sorted, id_attr="RelatedPostId")
+    sort_dump_by_id(
+        src=postlinks_named, dst=postlinks_named_sorted, id_attr="RelatedPostId"
+    )
     logger.info("sorted named post links by RelatedPostId")
 
     posts_complete = workdir / "posts_complete.xml"

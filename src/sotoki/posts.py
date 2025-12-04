@@ -1,13 +1,14 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4 nu
 import datetime
+from typing import Any
 
-from .utils.shared import logger, Global
-from .constants import NB_QUESTIONS_PER_PAGE, NB_PAGINATED_QUESTIONS
-from .renderer import SortedSetPaginator
-from .utils.generator import Generator, Walker
-from .utils.html import get_slug_for
+from zimscraperlib.typing import Callback
+
+from sotoki.constants import NB_PAGINATED_QUESTIONS, NB_QUESTIONS_PER_PAGE
+from sotoki.renderer import SortedSetPaginator
+from sotoki.utils.generator import Generator, Walker
+from sotoki.utils.html import get_slug_for
+from sotoki.utils.shared import context, logger, shared
 
 
 def harmonize_post(post: dict):
@@ -19,29 +20,29 @@ def harmonize_post(post: dict):
 
 
 class WalkerWithTrigger(Walker):
-    def startDocument(self):
+    def startDocument(self):  # noqa: N802
         self.seen = 0
 
     def check_trigger(self):
         self.seen += 1
         if self.seen % 10000 == 0:
             logger.debug(f"Seen {self.seen}")
-            Global.collect()
+            shared.collect()
 
 
 class FirstPassWalker(WalkerWithTrigger):
-    def startElement(self, name, attrs):
+    def startElement(self, name, attrs):  # noqa: N802
         def _user_to_set(aset, field):
-            if attrs.get(field):
-                aset.add(int(attrs.get(field)))
+            if value := attrs.get(field):
+                aset.add(int(value))
 
         # a question
         if name == "post":
             # store xml data until we're through with the <post /> node
-            self.post = dict(attrs.items())
+            self.post: dict[str, Any] = dict(attrs.items())
             self.post["Id"] = int(self.post["Id"])
             self.post["Score"] = int(self.post["Score"])
-            self.post["Tags"] = self.post.get("Tags","")[1:-1].split("><")
+            self.post["Tags"] = self.post.get("Tags", "")[1:-1].split("><")
             self.post["users_ids"] = set()
             self.post["nb_answers"] = 0
             _user_to_set(self.post["users_ids"], "OwnerUserId")
@@ -62,7 +63,7 @@ class FirstPassWalker(WalkerWithTrigger):
             _user_to_set(self.post["users_ids"], "LastEditorUserId")
             self.post["nb_answers"] += 1
 
-    def endElement(self, name):
+    def endElement(self, name):  # noqa: N802
 
         if name == "post":
             self.processor(item=self.post)
@@ -75,12 +76,15 @@ class FirstPassWalker(WalkerWithTrigger):
 
 class PostFirstPasser(Generator):
 
-    walker = FirstPassWalker
+    @property
+    def walker(self):
+        return FirstPassWalker
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.fpath = self.conf.build_dir / "posts_complete.xml"
+    @property
+    def fpath(self):
+        return shared.build_dir / "posts_complete.xml"
 
+    def __init__(self):
         self.nb_answers = 0
         self.nb_answered = 0
         self.nb_accepted = 0
@@ -88,7 +92,7 @@ class PostFirstPasser(Generator):
 
     def run(self):
         super().run()
-        self.database.record_questions_stats(
+        shared.postsdatabase.record_questions_stats(
             nb_answers=self.nb_answers,
             nb_answered=self.nb_answered,
             nb_accepted=self.nb_accepted,
@@ -101,7 +105,7 @@ class PostFirstPasser(Generator):
             self.release()
             return
         # skip post without answers ; maybe?
-        if self.conf.without_unanswered and not item["nb_answers"]:
+        if context.without_unanswered and not item["nb_answers"]:
             self.release()
             return
 
@@ -114,10 +118,9 @@ class PostFirstPasser(Generator):
         if item["nb_answers"]:
             self.nb_answered += 1
 
-        if item["CreationTimestamp"] > self.most_recent_ts:
-            self.most_recent_ts = item["CreationTimestamp"]
+        self.most_recent_ts = max(self.most_recent_ts, item["CreationTimestamp"])
 
-        self.database.record_question(post=item)
+        shared.postsdatabase.record_question(post=item)
 
         self.release()
 
@@ -143,22 +146,22 @@ class PostsWalker(WalkerWithTrigger):
         </links>
     </post>"""
 
-    def startDocument(self):
+    def startDocument(self):  # noqa: N802
         super().startDocument()
         self.currently_in = None
         self.post = {}
         self.comments = []
         self.answers = []
 
-    def startElement(self, name, attrs):
+    def startElement(self, name, attrs):  # noqa: N802
         # a question
         if name == "post":
             # store xml data until we're through with the <post /> node
             self.currently_in = "post"
-            self.post = dict(attrs.items())
+            self.post: dict[str, Any] = dict(attrs.items())
             self.post["Id"] = int(self.post["Id"])
             self.post["Score"] = int(self.post["Score"])
-            self.post["Tags"] = self.post.get("Tags","")[1:-1].split("><")
+            self.post["Tags"] = self.post.get("Tags", "")[1:-1].split("><")
             self.post["links"] = {"relateds": [], "duplicates": []}
             return
 
@@ -204,7 +207,7 @@ class PostsWalker(WalkerWithTrigger):
                     }
                 )
 
-    def endElement(self, name):
+    def endElement(self, name):  # noqa: N802
         # closing comments of an answer. adding comments array to last answer
         if name == "comments" and self.currently_in == "post/answers/comments":
             self.answers[-1]["comments"] = self.comments
@@ -244,15 +247,17 @@ class PostsWalker(WalkerWithTrigger):
 
 
 class PostGenerator(Generator):
-    walker = PostsWalker
+    @property
+    def walker(self):
+        return PostsWalker
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.fpath = self.conf.build_dir / "posts_complete.xml"
+    @property
+    def fpath(self):
+        return shared.build_dir / "posts_complete.xml"
 
     def processor(self, item):
         post = item
-        if self.conf.without_unanswered and not post["answers"]:
+        if context.without_unanswered and not post["answers"]:
             self.release()
             return
         # ignore deleted posts
@@ -263,52 +268,54 @@ class PostGenerator(Generator):
 
         path = f'questions/{post["Id"]}/{get_slug_for(post["Title"])}'
         # prepare post page outside Lock to prevent dead-lock on image discovery
-        post_page = self.renderer.get_question(post)
-        with self.lock:
-            self.creator.add_item_for(
+        post_page = shared.renderer.get_question(post)
+        with shared.lock:
+            shared.creator.add_item_for(
                 path=path,
-                title=self.rewriter.rewrite_string(post.get("Title")),
+                title=shared.rewriter.rewrite_string(post.get("Title")),
                 content=post_page,
                 mimetype="text/html",
                 is_front=True,
-                callback=self.release,
+                callbacks=[Callback(func=self.release)],
             )
-            self.creator.add_redirect(
+            shared.creator.add_redirect(
                 path=f'questions/{post["Id"]}',
                 target_path=path,
             )
         del post_page
 
         for answer in post.get("answers", []):
-            with self.lock:
-                self.creator.add_redirect(
+            with shared.lock:
+                shared.creator.add_redirect(
                     path=f'a/{answer["Id"]}',
                     target_path=path,
                 )
 
     def generate_questions_page(self):
         paginator = SortedSetPaginator(
-            self.database.questions_key(),
+            shared.postsdatabase.questions_key(),
             per_page=NB_QUESTIONS_PER_PAGE,
             at_most=NB_PAGINATED_QUESTIONS,
         )
         for page_number in paginator.page_range:
             page = paginator.get_page(page_number)
-            with self.lock:
-                page_content = self.renderer.get_all_questions_for_page(page)
+            with shared.lock:
+                page_content = shared.renderer.get_all_questions_for_page(page)
                 # we don't index same-title page for all paginated pages
                 # instead we index the redirect to the first page
-                self.creator.add_item_for(
-                    path="questions"
-                    if page_number == 1
-                    else f"questions_page={page_number}",
+                shared.creator.add_item_for(
+                    path=(
+                        "questions"
+                        if page_number == 1
+                        else f"questions_page={page_number}"
+                    ),
                     content=page_content,
                     mimetype="text/html",
                     title="Highest Voted Questions" if page_number == 1 else None,
                     is_front=page_number == 1,
                 )
                 del page_content
-        with self.lock:
-            self.creator.add_redirect(
+        with shared.lock:
+            shared.creator.add_redirect(
                 path="questions_page=1", target_path="questions", is_front=False
             )

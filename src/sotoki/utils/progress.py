@@ -1,16 +1,15 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4 nu
 
-import json
 import datetime
-from typing import Union
+import json
 from collections import OrderedDict, namedtuple
+from typing import ClassVar
 
-from .shared import logger, GlobalMixin
+from sotoki.context import Context
+from sotoki.utils.shared import logger, shared
 
 
-class Progresser(GlobalMixin):
+class Progresser:
 
     PREPARATION_STEP = "prep"
     TAGS_METADATA_STEP = "tags_meta"
@@ -22,7 +21,7 @@ class Progresser(GlobalMixin):
     IMAGES_STEP = "images"
 
     # steps names and weights
-    STEPS = OrderedDict(
+    STEPS: ClassVar[OrderedDict[str, int]] = OrderedDict[str, int](
         [
             (PREPARATION_STEP, 152),
             (TAGS_METADATA_STEP, 2),
@@ -68,20 +67,24 @@ class Progresser(GlobalMixin):
             key: value / sum(self.STEPS.values()) for key, value in self.STEPS.items()
         }
 
-        self.last_print_on = datetime.datetime.now()
+        self.last_print_on = datetime.datetime.now(datetime.UTC)
 
     def update_json(self):
         """Update JSON progress file if such a file was requested"""
-        if not self.conf.stats_filename:
+        if not Context.stats_filename:
             return
-        with open(self.conf.stats_filename, "w") as fh:
+        with open(Context.stats_filename, "w") as fh:
             json.dump(
                 {"done": round(self.overall_progress * 100, 2), "total": 100},
                 fh,
             )
 
     def update(
-        self, nb_done: int = None, nb_total: int = None, incr: Union[int, bool] = None
+        self,
+        *,
+        nb_done: int | None = None,
+        nb_total: int | None = None,
+        incr: int | bool | None = None,
     ):
         """update current step's progress
 
@@ -106,7 +109,7 @@ class Progresser(GlobalMixin):
         """log current progress state"""
 
         msg = (
-            f"PROGRESS: {self.overall_progress * 100:.1f}% – "
+            f"PROGRESS: {self.overall_progress * 100:.1f}% – "  # noqa: RUF001
             f"Step {self.current_step_index + 1}/{len(self.STEPS)}: "
             f"{self.current_step.title()} -- "
             f"{self.current_step_progress}/{self.current_step_total}"
@@ -115,13 +118,13 @@ class Progresser(GlobalMixin):
         if self.images_progress:
             msg += f" -- Images: {self.nb_img_done}"
         logger.info(msg)
-        self.last_print_on = datetime.datetime.now()
+        self.last_print_on = datetime.datetime.now(datetime.UTC)
 
     def print_maybe(self):
         if (
             self.current_step_updates % self.print_every_updates == 0
             or self.last_print_on + datetime.timedelta(seconds=self.print_every_seconds)
-            < datetime.datetime.now()
+            < datetime.datetime.now(datetime.UTC)
         ):
             self.print()
 
@@ -137,7 +140,7 @@ class Progresser(GlobalMixin):
         # compute done steps weight
         self.previous_step_weight = sum(
             [
-                self.weights.get(s)
+                self.weight_for(s)
                 for i, s in enumerate(self.STEPS.keys())
                 if i < step_index
             ]
@@ -152,7 +155,10 @@ class Progresser(GlobalMixin):
 
     def weight_for(self, step: str) -> float:
         """weight of a step within total"""
-        return self.weights.get(step)
+        weight = self.weights.get(step)
+        if not weight:
+            raise KeyError(f"Step `{step}` does not have a matching weight")
+        return weight
 
     @property
     def step_progress(self) -> float:
@@ -164,11 +170,11 @@ class Progresser(GlobalMixin):
 
     @property
     def nb_img_requested(self):
-        return getattr(self.imager, "nb_requested", 0)
+        return getattr(shared.imager, "nb_requested", 0)
 
     @property
     def nb_img_done(self):
-        return getattr(self.imager, "nb_done", 0)
+        return getattr(shared.imager, "nb_done", 0)
 
     @property
     def images_progress(self) -> float:

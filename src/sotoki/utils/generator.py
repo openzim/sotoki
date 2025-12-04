@@ -1,51 +1,59 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4 nu
-import xml.sax
 
-from ..utils.shared import Global, GlobalMixin
+import xml.sax.handler
+from abc import abstractmethod
+from pathlib import Path
 
-logger = Global.logger
+from sotoki.utils.shared import logger, shared
 
 
-class Generator(GlobalMixin):
+class Walker(xml.sax.handler.ContentHandler):
+    def __init__(self, processor):
+        super().__init__()
+        self.processor = processor
 
-    walker = None
 
-    def __init__(self):
+class Generator:
 
-        self.fpath = None
+    @property
+    @abstractmethod
+    def walker(self) -> type[Walker]:
+        pass
+
+    @property
+    @abstractmethod
+    def fpath(self) -> Path:
+        pass
 
     def run(self):
-        Global.database.begin()
-        Global.executor.start()
+        shared.executor.start()
 
         # parse XML file. not using defusedxml for performances reasons.
         # although containing user-generated content, we trust Stack Exchange dump
-        parser = xml.sax.make_parser()  # nosec
+        parser = xml.sax.make_parser()  # nosec # noqa: S317
         try:
             parser.setContentHandler(self.walker(processor=self.processor_callback))
             parser.parse(self.fpath)
-            parser.setContentHandler(None)
+            parser.setContentHandler(None)  # pyright: ignore[reportArgumentType]
         finally:
             try:
-                parser.close()
+                parser.close()  # pyright: ignore[reportAttributeAccessIssue]
             except xml.sax.SAXException as exc:
                 logger.exception(exc)
         logger.debug(f"Done parsing {type(self).__name__}, collecting workers…")
 
         # await offloaded processing
-        Global.executor.join()
+        shared.executor.join()
         logger.debug(f"{type(self).__name__} Workers collected.")
 
         # ensure we commited tail of data
-        Global.database.commit(done=True)
+        shared.database.commit(done=True)
 
-        if Global.executor.exception:
-            raise Global.executor.exception
+        if shared.executor.exception:
+            raise shared.executor.exception
 
     def processor_callback(self, item):
-        Global.executor.submit(
+        shared.executor.submit(
             self.processor, item=item, raises=True, dont_release=True
         )
 
@@ -54,11 +62,5 @@ class Generator(GlobalMixin):
         raise NotImplementedError()
 
     def release(self):
-        self.executor.task_done()
-        self.progresser.update(incr=True)
-
-
-class Walker(xml.sax.handler.ContentHandler, GlobalMixin):
-    def __init__(self, processor):
-        super().__init__()
-        self.processor = processor
+        shared.executor.task_done()
+        shared.progresser.update(incr=True)

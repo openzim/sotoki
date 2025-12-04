@@ -1,88 +1,44 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4 nu
 
-import collections
 import threading
 import time
-from typing import Union
+from collections.abc import Iterator
 
-import bidict
 import redis
-from sotoki.constants import NB_PAGINATED_USERS, UTF8
+import redis.client
+import redis.exceptions
 
-from ..misc import restart_redis_at
-from ..shared import Global, logger
-from .common import Database
-from .posts import PostsDatabaseMixin
-from .tags import TagsDatabaseMixin
-from .users import UsersDatabaseMixin
+from sotoki.constants import UTF8
+from sotoki.utils.misc import restart_redis_at
+from sotoki.utils.shared import context, logger
 
 
-class TopDict(collections.UserDict):
-    """A fixed-sized dict that keeps only the highest values"""
+class RedisDatabase:
 
-    def __init__(self, maxlen: int):
-        super().__init__()
-        self.maxlen = maxlen
-        self.lock = threading.Lock()
+    commit_every = 1000
 
-    def __setitem__(self, key, value):
-        with self.lock:
-            # we're full, might not accept value
-            if len(self) >= self.maxlen:
-                # value is bellow our min, don't care
-                min_val = min(self.values())
-                if value < min_val:
-                    return
-
-                # value should be in top, let's remove our min to allow it
-                min_key = list(self.keys())[list(self.values()).index(min_val)]
-                del self[min_key]
-            super().__setitem__(key, value)
-
-    def sorted(self):
-        return [k for k, _ in sorted(self.items(), key=lambda x: x[1], reverse=True)]
-
-
-class RedisDatabase(
-    Database, TagsDatabaseMixin, UsersDatabaseMixin, PostsDatabaseMixin
-):
-    def __init__(self, initialize: bool = False):
-        self.connections = {}
-        self.pipes = {}
-        self.nb_seens = {}
-        self.should_commits = {}
-
-        super().__init__()
-
-        # temp set to hold all active users' IDs
-        self._all_users_ids = set()
-        # temp dict to hold `n` most active users' ID:score
-        self._top_users = TopDict(NB_PAGINATED_USERS)
-        # total number of active users
-        self.nb_users = 0
-
-        self.tags_details_ids = {}
-        # bidirectionnal Tag ID:name and (as inverse) name:ID mapping
-        self.tags_ids = bidict.bidict()
+    def __init__(self, *, initialize: bool = False):
+        self.connections: dict[int, redis.Redis] = {}
+        self.pipes: dict[int, redis.client.Pipeline] = {}
+        self.nb_seens: dict[int, int] = {}
+        self.should_commits: dict[int, bool] = {}
 
         if initialize:
             self.initialize()
 
     @property
-    def conn(self):
+    def conn(self) -> redis.Redis:
         """thread-specific Redis connection"""
         try:
             return self.connections[threading.get_ident()]
         except KeyError:
             self.connections[threading.get_ident()] = redis.StrictRedis.from_url(
-                Global.conf.redis_url, encoding=UTF8, decode_responses=False
+                context.redis_url, encoding=UTF8, decode_responses=False
             )
             return self.connections[threading.get_ident()]
 
     @property
-    def pipe(self):
+    def pipe(self) -> redis.client.Pipeline:
         """thread-specific Pipeline for this thread-specific connection"""
         try:
             return self.pipes[threading.get_ident()]
@@ -121,7 +77,7 @@ class RedisDatabase(
         self.conn.get("NOOP")
 
         # clean up potentially existing DB
-        if not Global.conf.open_shell and not Global.conf.keep_redis:
+        if not context.open_shell and not context.keep_redis:
             self.conn.flushdb()
 
     def make_dummy_query(self):
@@ -135,7 +91,7 @@ class RedisDatabase(
         """ZCARD command retried on ConnectionError"""
         return self.safe_command("zcard", key)
 
-    def safe_zscore(self, key: str, member: Union[str, int]):
+    def safe_zscore(self, key: str, member: str | int):
         """ZSCORE command retried on ConnectionError"""
         return self.safe_command("zscore", key, member)
 
@@ -155,7 +111,7 @@ class RedisDatabase(
                 threading.Event().wait(2)
         return func(*args)
 
-    def commit(self, done=False):
+    def commit(self, *, done=False):
         self.pipe.execute()
 
         # make sure we've commited pipes on all thread-specific pipelines
@@ -169,15 +125,15 @@ class RedisDatabase(
         self.conn.memory_purge()
 
     def defrag_external(self):
-        if not Global.conf.redis_pid:
-            logger.warning("Cannot defrag with {Global.conf.redis_pid=}")
+        if not context.redis_pid:
+            logger.warning(f"Cannot defrag with {context.redis_pid=}")
             return
 
         logger.info("Starting REDIS defrag (external)")
         logger.debug(".. dumping to filesystem")
         self.dump()
         logger.debug(".. restarting redis")
-        restart_redis_at(Global.conf.redis_pid)
+        restart_redis_at(context.redis_pid)
         logger.debug(".. awaiting dump load completion")
         while True:
             try:
@@ -199,5 +155,57 @@ class RedisDatabase(
 
     def remove(self):
         """flush database"""
-        if not Global.conf.keep_redis:
+        if not context.keep_redis:
             self.conn.flushdb()
+
+    def get_set_count(self, set_name: str) -> int:
+        """Number of recorded entries in set"""
+        return self.safe_zcard(set_name)
+
+    def query_set(
+        self,
+        set_name: str,
+        start: int = 0,
+        num: int | None = None,
+        *,
+        desc: bool = True,
+        scored: bool = True,
+    ) -> Iterator[tuple[object, int] | object]:
+        """Query entries in named sorted set"""
+
+        def decode_results(results):
+            for result in results:
+                if scored:
+                    yield (result[0].decode(UTF8), result[1])
+                else:
+                    yield result.decode(UTF8)
+
+        func = getattr(self.conn, "zrevrangebyscore" if desc else "zrangebyscore")
+
+        if num is None:
+            num = self.safe_zcard(set_name)
+
+        kwargs = {
+            "name": set_name,
+            "max": "+inf",
+            "min": "-inf",
+            "start": start,
+            "num": num,
+            "withscores": scored,
+            "score_cast_func": int,
+        }
+        return decode_results(func(**kwargs))
+
+    def commit_maybe(self):
+        """commit() should should_commit allows it"""
+        if self.should_commit:
+            self.commit()
+            self.should_commit = False
+
+    def bump_seen(self, by: int = 1):
+        """track number of items seen and update commit decision"""
+        old_threshold = self.nb_seen // self.commit_every
+        self.nb_seen += by
+        new_threshold = self.nb_seen // self.commit_every
+        if old_threshold != new_threshold:
+            self.should_commit_global = True

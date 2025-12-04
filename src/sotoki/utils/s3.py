@@ -1,11 +1,9 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4 nu
 
-from pif import get_public_ip
 from kiwixstorage import KiwixStorage
+from pif import get_public_ip
 
-from .shared import logger
+from sotoki.utils.shared import logger
 
 
 def setup_s3_and_check_credentials(s3_url_with_credentials):

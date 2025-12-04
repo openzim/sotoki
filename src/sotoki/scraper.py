@@ -1,130 +1,290 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4 nu
 
-import shutil
-import pathlib
 import datetime
+import logging
+import pathlib
+import re
+import shutil
+import tempfile
+from urllib.parse import urlparse
 
+import bs4
 import requests
-from zimscraperlib.zim.items import URLItem
-from zimscraperlib.inputs import handle_user_provided_file, compute_descriptions
-from zimscraperlib.image.convertion import convert_image
+from zimscraperlib.i18n import NotFoundError, get_language
+from zimscraperlib.image.conversion import convert_image
 from zimscraperlib.image.transformation import resize_image
+from zimscraperlib.inputs import handle_user_provided_file
+from zimscraperlib.zim import Creator, metadata
 
-from .constants import (
-    Sotoconf,
-    ROOT_DIR,
+from sotoki.archives import ArchiveManager
+from sotoki.constants import (
+    HTTP_REQUEST_TIMEOUT,
+    NAME,
     NB_PAGINATED_QUESTIONS_PER_TAG,
-    NB_USERS_PER_PAGE,
-    NB_USERS_PAGES,
-    NB_QUESTIONS_PER_PAGE,
     NB_QUESTIONS_PAGES,
+    NB_QUESTIONS_PER_PAGE,
+    NB_USERS_PAGES,
+    NB_USERS_PER_PAGE,
+    ROOT_DIR,
+    VERSION,
 )
-from .archives import ArchiveManager
-from .utils.s3 import setup_s3_and_check_credentials
-from .utils.shared import Global, logger
-from .users import UserGenerator
-from .posts import PostGenerator, PostFirstPasser
-from .tags import TagGenerator, TagFinder, TagExcerptRecorder, TagDescriptionRecorder
+from sotoki.models import SiteDetails
+from sotoki.posts import PostFirstPasser, PostGenerator
+from sotoki.renderer import Renderer
+from sotoki.tags import (
+    TagDescriptionRecorder,
+    TagExcerptRecorder,
+    TagFinder,
+    TagGenerator,
+)
+from sotoki.users import UserGenerator
+from sotoki.utils.database.posts import PostsDatabase
+from sotoki.utils.database.redisdb import RedisDatabase
+from sotoki.utils.database.tags import TagsDatabase
+from sotoki.utils.database.users import UsersDatabase
+from sotoki.utils.exceptions import DatabaseError
+from sotoki.utils.executor import SotokiExecutor
+from sotoki.utils.html import Rewriter
+from sotoki.utils.imager import Imager
+from sotoki.utils.progress import Progresser
+from sotoki.utils.s3 import setup_s3_and_check_credentials
+from sotoki.utils.shared import context, logger, shared
 
 
 class StackExchangeToZim:
-    def __init__(self, **kwargs):
+    def __init__(self):
+        level = logging.DEBUG if context.debug else logging.INFO
+        logger.setLevel(level)
+        for handler in logger.handlers:
+            handler.setLevel(level)
 
-        Global.conf = Sotoconf(**kwargs)
-        for option in Global.conf.required:
-            if getattr(Global.conf, option) is None:
-                raise ValueError(f"Missing parameter `{option}`")
+        # dumps are named after unfixed domains, so we need to keep that input
+        shared.dump_domain = context.domain
+        self._get_site_details()
+        # real domain as found online after potential redirection for fixed domains
+        shared.online_domain = shared.site_details.domain
+        self.iso_langs_1, self.iso_langs_3 = self.langs_for_domain(context.domain)
+        self.flavour = "nopic" if context.without_images else ""
+        lang_in_name = self.iso_langs_1[0] if len(self.iso_langs_1) == 1 else "mul"
+        context.name = (
+            context.name or f"{context.domain}_{lang_in_name}_all_{self.flavour}"
+            if self.flavour
+            else f"{context.domain}_{lang_in_name}_all"
+        )
+        context.output_dir.mkdir(parents=True, exist_ok=True)
+        context.tmp_dir.mkdir(parents=True, exist_ok=True)
+        if context.build_dir_is_tmp_dir:
+            shared.build_dir = context.tmp_dir
+        else:
+            shared.build_dir = pathlib.Path(
+                tempfile.mkdtemp(prefix=f"{context.domain}_", dir=context.tmp_dir)
+            )
+        if context.stats_filename:
+            context.stats_filename.parent.mkdir(parents=True, exist_ok=True)
+
+    def _get_site_details(self):
+        resp = requests.get(f"https://{context.domain}", timeout=HTTP_REQUEST_TIMEOUT)
+        resp.raise_for_status()
+        soup = bs4.BeautifulSoup(resp.text, "lxml")
+        title_tag = soup.title
+        if not title_tag or not title_tag.string:
+            raise Exception("Failed to extract site title from homepage")
+        site_title = title_tag.string
+        primary_css_tag = soup.find(
+            "link", href=lambda href: bool(href and "primary.css" in href)
+        )
+        if not primary_css_tag or not primary_css_tag.get("href"):
+            raise Exception("Failed to extract primary CSS from homepage")
+        primary_css = str(primary_css_tag["href"])
+        small_favicon_tag = soup.find("link", rel="icon")
+        if not small_favicon_tag or not small_favicon_tag.get("href"):
+            raise Exception("Failed to extract small favicon URL from homepage")
+        small_favicon = str(small_favicon_tag["href"])
+        big_favicon_tag = soup.find("link", rel="apple-touch-icon")
+        if not big_favicon_tag or not big_favicon_tag.get("href"):
+            raise Exception("Failed to extract big favicon URL from homepage")
+        big_favicon = str(big_favicon_tag["href"])
+        shared.site_details = SiteDetails(
+            mathjax='<script type="text/x-mathjax-config">' in resp.text,
+            highlight='"styleCodeWithHighlightjs":true' in resp.text,
+            domain=urlparse(resp.url).netloc,
+            site_title=site_title,
+            primary_css=primary_css,
+            secondary_css=primary_css.replace("primary", "secondary"),
+            small_favicon=small_favicon,
+            big_favicon=big_favicon,
+        )
+
+    def langs_for_domain(self, domain: str) -> tuple[list[str], list[str]]:
+        """(ISO-639-1 lang codes, ISO-639-3 lang codes) for a domain"""
+        iso_langs_1, iso_langs_3 = ["en"], ["eng"]
+        match = re.match(
+            r"^(?P<lang>[a-z]+)\.(stackexchange|stackoverflow)\.com$", domain
+        )
+        if match:
+            so_code = match.groupdict()["lang"]
+            if so_code not in (
+                "meta",
+                "diy",
+                "sqa",
+                "tor",
+                "dba",
+                "tex",
+                "law",
+                "ham",
+                "gis",
+                "ell",
+                "or",
+                "vi",
+                "cs",
+            ):
+                try:
+                    lang = get_language(so_code)
+                    if not lang.iso_639_1 or not lang.iso_639_3:
+                        raise NotFoundError("Might be an abbreviation")
+                    if lang.iso_639_1 not in iso_langs_1:
+                        iso_langs_1.append(lang.iso_639_1)
+                    if lang.iso_639_3 not in iso_langs_3:
+                        iso_langs_3.append(lang.iso_639_3)
+                except NotFoundError:
+                    ...
+        return iso_langs_1, iso_langs_3
 
     @property
-    def conf(self):
-        return Global.conf
-
-    @property
-    def domain(self):
-        return self.conf.domain
-
-    @property
-    def build_dir(self):
-        return self.conf.build_dir
+    def tags(self) -> list[str]:
+        return list(
+            {
+                *context.tags,
+                *[
+                    "_category:stack_exchange",
+                    "stack_exchange",
+                    "_videos:no",
+                    "_details:no",
+                ],
+                *(["_pictures:no"] if context.without_images else []),
+            }
+        )
 
     def cleanup(self):
         """Remove temp files and release resources before exiting"""
-        if not self.conf.keep_build_dir:
-            logger.debug(f"Removing {self.build_dir}")
-            shutil.rmtree(self.build_dir, ignore_errors=True)
+        if not context.keep_build_dir:
+            logger.debug(f"Removing {shared.build_dir}")
+            shutil.rmtree(shared.build_dir, ignore_errors=True)
 
     def sanitize_inputs(self):
         """input & metadata sanitation"""
 
-        if self.conf.censor_words_list:
-            words_list_fpath = self.build_dir.joinpath("words.list")
+        if context.censor_words_list:
+            words_list_fpath = shared.build_dir.joinpath("words.list")
             handle_user_provided_file(
-                source=self.conf.censor_words_list, dest=words_list_fpath
+                source=context.censor_words_list, dest=words_list_fpath
             )
 
-        period = datetime.datetime.now().strftime("%Y-%m")
-        if self.conf.fname:
+        period = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m")
+        if context.fname:
             # make sure we were given a filename and not a path
-            self.conf.fname = pathlib.Path(self.conf.fname.format(period=period))
-            if pathlib.Path(self.conf.fname.name) != self.conf.fname:
-                raise ValueError(f"filename is not a filename: {self.conf.fname}")
+            self.fname = pathlib.Path(context.fname.format(period=period))
+            if pathlib.Path(context.fname) != self.fname:
+                raise ValueError(f"--zim-file is not a filename: {context.fname}")
         else:
-            self.conf.fname = f"{self.conf.name}_{period}.zim"
-
-        self.conf.title = self.conf.title.strip()
-        self.conf.description = self.conf.description.strip()
-        if self.conf.long_description:
-            self.conf.long_description = self.conf.long_description.strip()
-
-        if not self.conf.author:
-            self.conf.author = "Stack Exchange"
-        self.conf.author = self.conf.author.strip()
-
-        if not self.conf.publisher:
-            self.conf.publisher = "openZIM"
-        self.conf.publisher = self.conf.publisher.strip()
+            self.fname = pathlib.Path(f"{context.name}_{period}.zim")
 
     def add_illustrations(self):
         # download and add actual favicon (ICO file)
-        small_favicon_fpath = self.build_dir / "favicon.ico"
-        small_favicon_source = Global.conf.site_details.get("small_favicon")
-        handle_user_provided_file(source=small_favicon_source, dest=small_favicon_fpath)
-        Global.creator.add_item_for("favicon.ico", fpath=small_favicon_fpath, is_front=False)
+        small_favicon_fpath = shared.build_dir / "favicon.ico"
+        handle_user_provided_file(
+            source=shared.site_details.small_favicon, dest=small_favicon_fpath
+        )
+        shared.creator.add_item_for(
+            "favicon.ico", fpath=small_favicon_fpath, is_front=False
+        )
 
         # download apple-touch-icon
-        big_favicon_fpath = self.build_dir / "apple-touch-icon.png"
-        big_favicon_source = Global.conf.site_details.get("big_favicon")
-        handle_user_provided_file(source=big_favicon_source, dest=big_favicon_fpath)
-        Global.creator.add_item_for("apple-touch-icon.png", fpath=big_favicon_fpath, is_front=False)
+        big_favicon_fpath = shared.build_dir / "apple-touch-icon.png"
+        handle_user_provided_file(
+            source=shared.site_details.big_favicon, dest=big_favicon_fpath
+        )
+        shared.creator.add_item_for(
+            "apple-touch-icon.png", fpath=big_favicon_fpath, is_front=False
+        )
 
     def add_assets(self):
         assets_root = ROOT_DIR.joinpath("assets")
-        with Global.lock:
+        with shared.lock:
             for fpath in assets_root.glob("**/*"):
                 if not fpath.is_file() or fpath.name == "README":
                     continue
                 logger.debug(str(fpath.relative_to(assets_root)))
-                Global.creator.add_item_for(
+                shared.creator.add_item_for(
                     path=str(fpath.relative_to(assets_root)),
                     fpath=fpath,
                     is_front=False,
                 )
 
         # download primary|secondary.css from target
-        primary_css_fpath = self.build_dir / "primary.css"
-        handle_user_provided_file(source=Global.conf.site_details["primary_css"], dest=primary_css_fpath)
-        Global.creator.add_item_for("static/css/primary.css", fpath=primary_css_fpath, is_front=False)
+        primary_css_fpath = shared.build_dir / "primary.css"
+        handle_user_provided_file(
+            source=shared.site_details.primary_css, dest=primary_css_fpath
+        )
+        shared.creator.add_item_for(
+            "static/css/primary.css", fpath=primary_css_fpath, is_front=False
+        )
 
-        secondary_css_fpath = self.build_dir / "secondary.css"
-        handle_user_provided_file(source=Global.conf.site_details["secondary_css"], dest=secondary_css_fpath)
-        Global.creator.add_item_for("static/css/secondary.css", fpath=secondary_css_fpath, is_front=False)
+        secondary_css_fpath = shared.build_dir / "secondary.css"
+        handle_user_provided_file(
+            source=shared.site_details.secondary_css, dest=secondary_css_fpath
+        )
+        shared.creator.add_item_for(
+            "static/css/secondary.css", fpath=secondary_css_fpath, is_front=False
+        )
 
     def run(self):
+
+        redis_url = urlparse(context.redis_url)
+        if redis_url and redis_url.scheme not in ("unix", "redis"):
+            raise ValueError(
+                f"Unknown scheme `{redis_url.scheme}` for redis. "
+                "Use redis:// or unix://"
+            )
+
+        # shell implies debug
+        if context.open_shell:
+            context.debug = True
+
+        try:
+            shared.database = RedisDatabase(initialize=True)
+        except Exception as exc:
+            raise DatabaseError(exc) from exc
+
+        # Individual classes to handle each object type storage in Redis
+        shared.tagsdatabase = TagsDatabase()
+        shared.postsdatabase = PostsDatabase()
+        shared.usersdatabase = UsersDatabase()
+
+        # mostly transforms HTML and sends to zim.
+        # tests show no speed improv. beyond 3 workers.
+        shared.executor = SotokiExecutor(
+            queue_size=10,
+            nb_workers=3,
+        )
+
+        # images handled on a different queue.
+        # mostly network I/O to retrieve and/or upload image.
+        # if not in S3 bucket, resize/optimize webp image
+        # we should consider using coroutines instead of threads
+        shared.img_executor = SotokiExecutor(
+            queue_size=200,
+            nb_workers=10,
+            prefix="IMG-T-",
+        )
+
+        shared.imager = Imager()
+        shared.rewriter = Rewriter()
+        shared.renderer = Renderer()
+
         s3_storage = (
-            setup_s3_and_check_credentials(self.conf.s3_url_with_credentials)
-            if self.conf.s3_url_with_credentials
+            setup_s3_and_check_credentials(context.s3_url_with_credentials)
+            if context.s3_url_with_credentials
             else None
         )
 
@@ -136,46 +296,96 @@ class StackExchangeToZim:
         )
         logger.info(
             f"Starting scraper with:\n"
-            f"  domain: {self.domain}\n"
-            f"  lang: {self.conf.iso_langs_1} ({self.conf.iso_langs_3})\n"
-            f"  build_dir: {self.build_dir}\n"
-            f"  output_dir: {self.conf.output_dir}\n"
+            f"  dump domain: {shared.dump_domain}\n"
+            f"  fixed domain: {context.domain}\n"
+            f"  lang: {self.iso_langs_1} ({self.iso_langs_3})\n"
+            f"  build_dir: {shared.build_dir}\n"
+            f"  output_dir: {context.output_dir}\n"
             f"{s3_msg}"
         )
 
-        Global.init()
+        shared.progresser = Progresser(shared.total_questions)
 
         self.sanitize_inputs()
+
+        # load illustration data, required for creator metadata setup
+        illus_nosuffix_fpath = shared.build_dir / "illustration"
+        handle_user_provided_file(
+            source=context.favicon or shared.site_details.big_favicon,
+            dest=illus_nosuffix_fpath,
+        )
+
+        # convert to PNG (might already be PNG but it's OK)
+        illus_fpath = illus_nosuffix_fpath.with_suffix(".png")
+        convert_image(illus_nosuffix_fpath, illus_fpath)
+
+        # resize to appropriate size
+        resize_image(illus_fpath, width=48, height=48, method="thumbnail")
+        with open(illus_fpath, "rb") as fh:
+            illustration_data = fh.read()
+
+        if not context.name:
+            raise Exception(f"ZIM name cannot be None or empty: '{context.name}'")
+
+        shared.creator = (
+            Creator(
+                filename=context.output_dir.joinpath(self.fname),
+                main_path="questions",
+            )
+            .config_metadata(
+                metadata.StandardMetadataList(
+                    Name=metadata.NameMetadata(context.name),
+                    Language=metadata.LanguageMetadata(
+                        self.iso_langs_3
+                    ),  # python-scraperlib needs language list as a single string
+                    Title=metadata.TitleMetadata(context.title),
+                    Description=metadata.DescriptionMetadata(context.description),
+                    LongDescription=(
+                        metadata.LongDescriptionMetadata(context.long_description)
+                        if context.long_description
+                        else None
+                    ),
+                    Creator=metadata.CreatorMetadata(context.creator),
+                    Publisher=metadata.PublisherMetadata(context.publisher),
+                    Date=metadata.DateMetadata(datetime.date.today()),
+                    Illustration_48x48_at_1=metadata.DefaultIllustrationMetadata(
+                        illustration_data
+                    ),
+                    Tags=metadata.TagsMetadata(self.tags) if self.tags else None,
+                    Scraper=metadata.ScraperMetadata(f"{NAME} v{VERSION}"),
+                    Flavour=(
+                        metadata.FlavourMetadata(self.flavour) if self.flavour else None
+                    ),
+                    # Source=,
+                    License=metadata.LicenseMetadata(
+                        "CC-BY-SA"
+                    ),  # as per stack exchange ToS, see about page in ZIM
+                    # Relation=,
+                )
+            )
+            .config_verbose(context.debug)
+        )
 
         logger.info("XML Dumps preparation")
         ark_manager = ArchiveManager()
         ark_manager.check_and_prepare_dumps()
         del ark_manager
 
-        if self.conf.prepare_only:
+        if context.prepare_only:
             logger.info("Requested preparation only; exiting")
             return
 
-        Global.progresser.print()
+        shared.progresser.print()
         return self.start()
 
     def start(self):
 
-        try:
-            Global.setup()
-        except Exception as exc:
-            if isinstance(exc, Global.DatabaseException):
-                logger.critical("Unable to initialize database. Check --redis-url")
-            if Global.debug:
-                logger.exception(exc)
-            else:
-                logger.error(str(exc))
-            return 1
-
         # debug/devel mode to open a shell with the inited context
-        if Global.conf.open_shell:
+        if context.open_shell:
             try:
-                from IPython import start_ipython
+                from IPython import (  # noqa: PLC0415  # pyright: ignore[reportMissingImports]
+                    start_ipython,
+                )
             except ImportError:
                 logger.critical("You need ipython to use --shell")
                 raise
@@ -184,7 +394,7 @@ class StackExchangeToZim:
                 "Dropping into an ipython shell.\n"
                 "Import `Global` var to retrieve context: "
                 "from sotoki.utils.shared import Global\n"
-                "Global.creator is ready but not started.\n"
+                "shared.creator is ready but not started.\n"
                 "Scraper execution will be halted once you exit the shell.\n"
             )
 
@@ -192,7 +402,7 @@ class StackExchangeToZim:
 
             raise RuntimeError("End of debug shell session")
 
-        Global.creator.start()
+        shared.creator.start()
 
         try:
             self.add_illustrations()
@@ -210,36 +420,36 @@ class StackExchangeToZim:
 
             self.process_pages_lists()
 
-            Global.executor.shutdown()
-            Global.img_executor.shutdown()
+            shared.executor.shutdown()
+            shared.img_executor.shutdown()
 
-            Global.database.teardown()
-            Global.database.remove()
+            shared.database.teardown()
+            shared.database.remove()
         except Exception as exc:
             # request Creator not to create a ZIM file on finish
-            Global.creator.can_finish = False
+            shared.creator.can_finish = False
             if isinstance(exc, KeyboardInterrupt):
                 logger.error("KeyboardInterrupt, exiting.")
             else:
                 logger.error(f"Interrupting process due to error: {exc}")
                 logger.exception(exc)
-            Global.imager.abort()
-            Global.executor.shutdown(wait=False)
-            Global.img_executor.shutdown(wait=False)
+            shared.imager.abort()
+            shared.executor.shutdown(wait=False)
+            shared.img_executor.shutdown(wait=False)
             return 1
         else:
             logger.info("Finishing ZIM file…")
             # we need to release libzim's resources.
             # currently does nothing but crash if can_finish=False but that's awaiting
             # impl. at libkiwix level
-            with Global.lock:
-                Global.creator.finish()
+            with shared.lock:
+                shared.creator.finish()
             logger.info(
-                f"Finished Zim {Global.creator.filename.name} "
-                f"in {Global.creator.filename.parent}"
+                f"Finished Zim {shared.creator.filename.name} "
+                f"in {shared.creator.filename.parent}"
             )
         finally:
-            Global.progresser.print()
+            shared.progresser.print()
 
     def process_tags_metadata(self):
         # First, walk through Tags and record tags details in DB
@@ -247,18 +457,18 @@ class StackExchangeToZim:
         # Then do the same with descriptions
         # Clear the matching that was required for Excerpt/Desc filtering-in
         logger.info("Recording Tag metadata to Database")
-        Global.progresser.start(
-            Global.progresser.TAGS_METADATA_STEP,
-            nb_total=Global.total_tags * 3,
+        shared.progresser.start(
+            shared.progresser.TAGS_METADATA_STEP,
+            nb_total=shared.total_tags * 3,
         )
-        if not self.conf.skip_tags_meta:
+        if not context.skip_tags_meta:
             TagFinder().run()
-        Global.database.ack_tags_ids()
-        if not self.conf.skip_tags_meta:
+        shared.tagsdatabase.ack_tags_ids()
+        if not context.skip_tags_meta:
             TagExcerptRecorder().run()
             TagDescriptionRecorder().run()
-        Global.database.clear_tags_mapping()
-        Global.database.purge()
+        shared.tagsdatabase.clear_tags_mapping()
+        shared.database.purge()
 
     def process_questions_metadata(self):
         # We walk through all Posts a first time to record question in DB
@@ -267,15 +477,17 @@ class StackExchangeToZim:
         # list of PostId for all questions of all tags (incr. update)
         # Details for all questions: date, owner, title, excerpt, has_accepted
         logger.info("Recording questions metadata to Database")
-        Global.progresser.start(
-            Global.progresser.QUESTIONS_METADATA_STEP,
-            nb_total=Global.total_questions,
+        shared.progresser.start(
+            shared.progresser.QUESTIONS_METADATA_STEP,
+            nb_total=shared.total_questions,
         )
-        if not self.conf.skip_questions_meta:
+        if not context.skip_questions_meta:
             PostFirstPasser().run()
-        Global.database.ack_users_ids()
-        Global.database.clear_extra_tags_questions_list(NB_PAGINATED_QUESTIONS_PER_TAG)
-        Global.database.purge()
+        shared.usersdatabase.ack_users_ids()
+        shared.tagsdatabase.clear_extra_tags_questions_list(
+            NB_PAGINATED_QUESTIONS_PER_TAG
+        )
+        shared.database.purge()
 
     def process_indiv_users_pages(self):
         # We walk through all Users and skip all those without interactions
@@ -283,46 +495,44 @@ class StackExchangeToZim:
         # Then we create a page in Zim for each user
         # Eventually, we sort our list of users by Reputation
         logger.info("Generating individual Users pages")
-        Global.progresser.start(
-            Global.progresser.USERS_STEP,
-            nb_total=Global.total_users,
+        shared.progresser.start(
+            shared.progresser.USERS_STEP,
+            nb_total=shared.total_users,
         )
-        if not self.conf.skip_users:
+        if not context.skip_users:
             UserGenerator().run()
         logger.debug("Cleaning-up users list")
-        Global.database.cleanup_users()
-        Global.database.purge()
-        if self.conf.redis_pid:
-            Global.database.defrag_external()
+        shared.usersdatabase.cleanup_users()
+        shared.database.purge()
+        if context.redis_pid:
+            shared.database.defrag_external()
 
     def process_questions(self):
         # We walk again through all Posts, this time to create indiv pages in Zim
         # for each.
         logger.info("Generating Questions pages")
-        Global.progresser.start(
-            Global.progresser.QUESTIONS_STEP,
-            nb_total=Global.total_questions,
+        shared.progresser.start(
+            shared.progresser.QUESTIONS_STEP,
+            nb_total=shared.total_questions,
         )
         PostGenerator().run()
-        Global.database.purge()
+        shared.database.purge()
 
     def process_tags(self):
         # We walk on Tags again, this time creating indiv pages for each Tag.
         # Each tag is actually a number of paginated pages with a list of questions
         logger.info("Generating Tags pages")
-        Global.progresser.start(
-            Global.progresser.TAGS_STEP, nb_total=Global.total_tags
-        )
+        shared.progresser.start(shared.progresser.TAGS_STEP, nb_total=shared.total_tags)
         TagGenerator().run()
 
     def process_pages_lists(self):
         # compute expected number of items to add to Zim (for progress)
-        nb_user_pages = Global.database.nb_users / NB_USERS_PER_PAGE
+        nb_user_pages = shared.usersdatabase.nb_users / NB_USERS_PER_PAGE
         nb_user_pages = int(
             nb_user_pages if nb_user_pages < NB_USERS_PAGES else NB_USERS_PAGES
         )
         nb_question_pages = int(
-            Global.database.get_set_count(Global.database.questions_key())
+            shared.database.get_set_count(shared.postsdatabase.questions_key())
             / NB_QUESTIONS_PER_PAGE
         )
         nb_question_pages = (
@@ -330,34 +540,34 @@ class StackExchangeToZim:
             if nb_question_pages < NB_QUESTIONS_PAGES
             else NB_QUESTIONS_PAGES
         )
-        Global.progresser.start(
-            Global.progresser.LISTS_STEP,
+        shared.progresser.start(
+            shared.progresser.LISTS_STEP,
             nb_total=nb_user_pages + nb_question_pages + 1,
         )
 
         logger.info("Generating Users page")
         UserGenerator().generate_users_page()
-        Global.progresser.update(incr=nb_user_pages)
+        shared.progresser.update(incr=nb_user_pages)
         logger.info(".. done")
 
-        Global.progresser.print()
+        shared.progresser.print()
 
         # build home page in ZIM using questions list
         logger.info("Generating Questions page (homepage)")
 
         PostGenerator().generate_questions_page()
-        Global.progresser.update(incr=nb_question_pages)
+        shared.progresser.update(incr=nb_question_pages)
 
-        with Global.lock:
-            Global.creator.add_item_for(
+        with shared.lock:
+            shared.creator.add_item_for(
                 path="about",
                 title="About",
-                content=Global.renderer.get_about_page(),
+                content=shared.renderer.get_about_page(),
                 mimetype="text/html",
                 is_front=True,
             )
-            Global.creator.add_redirect(path="", target_path="questions")
-        Global.progresser.update(incr=True)
+            shared.creator.add_redirect(path="", target_path="questions")
+        shared.progresser.update(incr=True)
         logger.info(".. done")
 
-        Global.progresser.print()
+        shared.progresser.print()
