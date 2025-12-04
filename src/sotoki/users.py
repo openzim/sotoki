@@ -23,7 +23,7 @@ class UsersWalker(Walker):
         <root>
         <row Id="" Reputation="" CreationDate="" DisplayName=""
              LastAccessDate="2" WebsiteUrl="" Location="" AboutMe="" Views="" UpVotes=""
-             DownVotes="" ProfileImageUrl="" AccountId="" ><badges><badge Id=""
+             DownVotes="" AccountId="" ><badges><badge Id=""
              UserId="" Name="" Date="" Class="" TagBased="" /></badges></row>
         </root>"""
 
@@ -99,17 +99,6 @@ class UserGenerator(Generator):
                 callbacks=[Callback(func=self.release)],
             )
         del user_page
-
-        if not context.with_user_identicons:
-            return
-
-        profile_url = item.get("ProfileImageUrl")
-        if profile_url:
-            shared.imager.defer(
-                url=profile_url,
-                path=f"users/profiles/{user.id}.webp",
-                is_profile=True,
-            )
 
     def generate_users_page(self):
         paginator = ListPaginator(

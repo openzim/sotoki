@@ -55,7 +55,6 @@ class Context:
     censor_words_list: str = ""
     without_images: bool = False
     without_user_profiles: bool = False
-    without_user_identicons: bool = False
     without_external_links: bool = False
     without_unanswered: bool = False
     without_users_links: bool = False
@@ -119,7 +118,3 @@ class Context:
                 except Exception:
                     return None
         return None
-
-    @property
-    def with_user_identicons(self):
-        return not self.without_images and not self.without_user_identicons

@@ -93,7 +93,6 @@ class Rewriter:
             re.compile(r"users/[0-9]+/.+"),
             re.compile(r"questions/[0-9]+/.+"),
             re.compile(r"a/[0-9]+/?$"),
-            re.compile(r"users/profiles/[0-9]+.webp$"),
             re.compile(r"questions/?$"),
             re.compile(r"questions_page=[0-9]+$"),
             re.compile(r"users/?$"),
@@ -446,7 +445,7 @@ class Rewriter:
                 if is_in_code(img):
                     continue
 
-                path = shared.imager.defer(img["src"], is_profile=False)
+                path = shared.imager.defer(img["src"])
                 if path is None:
                     del img.attrs["src"]
                 else:

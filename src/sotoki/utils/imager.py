@@ -4,7 +4,6 @@ import hashlib
 import io
 import re
 import urllib.parse
-from abc import abstractmethod
 from typing import Any
 
 import requests
@@ -20,97 +19,10 @@ from sotoki.constants import (
     HTTP_REQUEST_TIMEOUT,
     IMAGES_ENCODER_VERSION,
     POSTS_IMAGE_SIZE,
-    PROFILE_IMAGE_SIZE,
     USER_AGENT,
 )
-from sotoki.utils.misc import rebuild_uri, web_backoff
+from sotoki.utils.misc import web_backoff
 from sotoki.utils.shared import context, logger, shared
-
-
-class ImageProvider:
-
-    @abstractmethod
-    def matches(self, url: urllib.parse.ParseResult, *, for_profile: bool) -> bool: ...
-
-    @abstractmethod
-    def get_source_url(
-        self, url: urllib.parse.ParseResult, *, for_profile: bool
-    ) -> urllib.parse.ParseResult: ...
-
-
-class GoogleImageProvider(ImageProvider):
-    def matches(self, url: urllib.parse.ParseResult, *, for_profile: bool) -> bool:
-        return (
-            for_profile
-            and url.hostname is not None
-            and url.hostname.endswith(".googleusercontent.com")
-        )
-
-    def get_source_url(
-        self, url: urllib.parse.ParseResult, *, for_profile: bool
-    ) -> urllib.parse.ParseResult:
-        if not for_profile:
-            return url
-        qs = urllib.parse.parse_qs(url.query)
-        qs["sz"] = [str(PROFILE_IMAGE_SIZE)]
-        return rebuild_uri(url, query=urllib.parse.urlencode(qs, doseq=True))
-
-
-class GravatarImageProvider(ImageProvider):
-    def matches(self, url: urllib.parse.ParseResult, *, for_profile: bool) -> bool:
-        return (
-            for_profile
-            and url.hostname is not None
-            and url.hostname == "www.gravatar.com"
-            and "d=identicon" not in url.query
-        )
-
-    def get_source_url(self, url, *, for_profile: bool) -> urllib.parse.ParseResult:
-        if not for_profile:
-            return url
-        qs = urllib.parse.parse_qs(url.query)
-        qs["s"] = [str(PROFILE_IMAGE_SIZE)]
-        return rebuild_uri(url, query=urllib.parse.urlencode(qs, doseq=True))
-
-
-class GravatarIdenticonProvider(ImageProvider):
-    def matches(self, url: urllib.parse.ParseResult, *, for_profile: bool) -> bool:
-        return (
-            for_profile
-            and url.hostname is not None
-            and url.hostname == "www.gravatar.com"
-            and "d=identicon" in url.query
-        )
-
-    def get_source_url(self, url, *, for_profile: bool) -> urllib.parse.ParseResult:
-        if not for_profile:
-            return url
-        qs = urllib.parse.parse_qs(url.query)
-        qs["s"] = [str(PROFILE_IMAGE_SIZE)]
-        return rebuild_uri(url, query=urllib.parse.urlencode(qs, doseq=True))
-
-
-class StackImgurProvider(ImageProvider):
-    """SE's used i.stack.imgur.com for both profile and post images
-
-    For profile, it's an option next to several others.
-    For Posts, it's the upload option and the only alternative is to
-    provide an URL.
-
-    i.stack.imgur.com provides on demand resizing based on ?s= param
-    but this is usable only for profile picture as this does a square thumbnail
-    and would break any non-square image.
-    Also, it only works on powers of 2 sizes, up to the image's width."""
-
-    def matches(self, url: urllib.parse.ParseResult, *, for_profile: bool) -> bool:
-        return for_profile and url.hostname == "i.stack.imgur.com"
-
-    def get_source_url(self, url, *, for_profile: bool) -> urllib.parse.ParseResult:
-        if not for_profile:
-            return url
-        qs = urllib.parse.parse_qs(url.query)
-        qs["s"] = [str(PROFILE_IMAGE_SIZE)]
-        return rebuild_uri(url, query=urllib.parse.urlencode(qs, doseq=True))
 
 
 class Imager:
@@ -120,29 +32,11 @@ class Imager:
         self.handled = []
         self.nb_requested = 0
         self.nb_done = 0
-
-        self.providers: list[ImageProvider] = [
-            StackImgurProvider(),
-            GravatarIdenticonProvider(),
-            GravatarImageProvider(),
-            GoogleImageProvider(),
-        ]
-
         shared.img_executor.start()
 
     def abort(self):
         """request imager to cancel processing of futures"""
         self.aborted = True
-
-    def get_source_url(
-        self, url: urllib.parse.ParseResult, *, for_profile: bool = False
-    ) -> urllib.parse.ParseResult:
-        """Actual source URL to use. Might be changed by a Provider"""
-        for provider in self.providers:
-            if provider.matches(url, for_profile=for_profile):
-                return provider.get_source_url(url, for_profile=for_profile)
-        # no provider
-        return url
 
     @web_backoff
     def get_image_data(self, url: str, **resize_args: Any) -> io.BytesIO:
@@ -210,17 +104,14 @@ class Imager:
         self,
         url: str,
         path: str | None = None,
-        *,
-        is_profile: bool = False,
     ) -> str | None:
         """request full processing of url, returning in-zim path immediately"""
 
         # find actual URL should it be from a provider
         try:
             parsed_url = urllib.parse.urlparse(url)
-            parsed_url = self.get_source_url(parsed_url, for_profile=is_profile)
         except Exception:
-            logger.warning(f"Can't parse image URL `{parsed_url}`. Skipping")
+            logger.warning(f"Can't parse image URL `{url}`. Skipping")
             return
 
         if parsed_url.scheme not in ("http", "https"):
@@ -247,7 +138,6 @@ class Imager:
             self.process_image,
             parsed_url=parsed_url,
             path=path,
-            is_profile=is_profile,
             dont_release=True,
         )
 
@@ -263,7 +153,6 @@ class Imager:
         *,
         parsed_url: urllib.parse.ParseResult,
         path: str,
-        is_profile: bool = False,
     ) -> str | None:
         """download image from url or S3 and add to Zim at path. Upload if req."""
 
@@ -271,15 +160,7 @@ class Imager:
             return
 
         # setup resizing based on request
-        resize_args = (
-            {
-                "width": PROFILE_IMAGE_SIZE,
-                "height": PROFILE_IMAGE_SIZE,
-                "method": "thumbnail",
-            }
-            if is_profile
-            else {"width": POSTS_IMAGE_SIZE}
-        )
+        resize_args = {"width": POSTS_IMAGE_SIZE}
 
         # just download, optimize and add to ZIM if not using S3
         if not context.s3_url_with_credentials:
