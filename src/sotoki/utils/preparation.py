@@ -263,6 +263,28 @@ def merge_two_xml_files(
         sub_src.unlink()
 
 
+def create_sorted_posts(
+    workdir: pathlib.Path, *, delete_src: bool = False
+) -> pathlib.Path:
+    """prepare posts by removing headers and sorting by PostId"""
+
+    posts_orig = workdir / "Posts.xml"
+    posts_nohead = workdir / "posts_nohead.xml"
+    posts_sorted = workdir / "posts_sorted.xml"
+    remove_xml_headers(src=posts_orig, dst=posts_nohead, delete_src=delete_src)
+    logger.info("removed posts headers")
+    del posts_orig
+
+    sort_dump_by_id(
+        src=posts_nohead,
+        dst=posts_sorted,
+        id_attr="Id",
+        delete_src=delete_src,
+    )
+    logger.info("sorted Posts by PostId")
+    return posts_sorted
+
+
 def create_sorted_comments(
     workdir: pathlib.Path, *, delete_src: bool = False
 ) -> pathlib.Path:
@@ -281,7 +303,7 @@ def create_sorted_comments(
         id_attr="PostId",
         delete_src=delete_src,
     )
-    logger.info("sorted Comments by UserId")
+    logger.info("sorted Comments by PostId")
     return comments_sorted
 
 
@@ -289,16 +311,12 @@ def merge_posts_with_comments(
     workdir: pathlib.Path, *, delete_src: bool = False
 ) -> pathlib.Path:
     """prepare posts+comments by removing post headers and merging with sorted comm"""
+    posts_sorted = workdir / "posts_sorted.xml"
     comments_sorted = workdir / "comments_sorted.xml"
-    posts_orig = workdir / "Posts.xml"
-    posts_nohead = workdir / "posts_nohead.xml"
     posts_comments = workdir / "posts_with_comments.xml"
-    remove_xml_headers(src=posts_orig, dst=posts_nohead, delete_src=delete_src)
-    logger.info("removed posts headers")
-    del posts_orig
 
     merge_two_xml_files(
-        main_src=posts_nohead,
+        main_src=posts_sorted,
         sub_src=comments_sorted,
         dst=posts_comments,
         sub_node_name="comment",
@@ -587,8 +605,12 @@ def merge_posts_with_answers_comments(
     <answer> can contain <comments />
     """
 
+    # pepare Posts without headers, sorted Id
+    create_sorted_posts(workdir=workdir, delete_src=delete_src)
+
     # pepare Comments without headers, sorted PostId
     create_sorted_comments(workdir=workdir, delete_src=delete_src)
+
     # merge comments inside each post node respectively
     posts_comments = merge_posts_with_comments(workdir=workdir, delete_src=delete_src)
 
