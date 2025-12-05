@@ -44,26 +44,19 @@
         {% endif %}
     </head>
     <body class="{{ body_class}} unified-theme">
-        <div class="topbar mobile-only">
-            <div class="network-items">
-                <a class="s-btn s-btn__unset topbar-icon js-site-switcher-button icon-site-switcher-bubble" aria-expanded="false"><span class="hidden">Stack Exchange</span></a>
-                <div class="site-name"><a href="{{ to_root }}">{{ shared.site_details.site_title }}</a></div>
-                <div class="-actions ai-center"></div>
-            </div>
-        </div>
-        <nav class="nav mobile-only">
-            <ul>
-                <li {% if whereis == 'questions' %}class="current"{% endif %}><a href="{{ to_root }}questions" title="Questions">Questions</a></li>
-                <li {% if whereis == 'tags' %}class="current"{% endif %}><a href="{{ to_root }}tags" title="Tags">Tags</a></li>
-                {% if not context.without_user_profiles %}<li {% if whereis == 'users' %}class="current"{% endif %}><a href="{{ to_root }}users" title="Users">Users</a></li>{% endif %}
-                <li {% if whereis == 'about' %}class="current"{% endif %}><a href="{{ to_root }}about" title="About">About</a></li>
-            </ul>
-        </nav>
-        <header class="site-header desktop-only">
-            <div class="site-header--container">
-                <a class="site-header--link fs-headline1 fw-bold" href="{{ to_root }}">{{ shared.site_details.site_title }}</a>
+        <header data-is-here-when="sm" class="s-topbar ps-fixed t0 l0 js-top-bar">
+            <div class="s-topbar--container pl8">
+                <ol class="s-navigation fw-nowrap" role="presentation">
+                    <li><a class="s-navigation--item{% if whereis == 'questions' %} is-selected{% endif %}" href="{{ to_root }}questions">Questions</a></li>
+                    <li><a class="s-navigation--item{% if whereis == 'tags' %} is-selected{% endif %}" href="{{ to_root }}tags">Tags</a></li>
+                    {% if not context.without_user_profiles %}<li><a class="s-navigation--item{% if whereis == 'users' %} is-selected{% endif %}" href="{{ to_root }}users">Users</a></li>{% endif %}
+                    <li><a class="s-navigation--item{% if whereis == 'about' %} is-selected{% endif %}" href="{{ to_root }}about">About</a></li>
+                </li>
+                </ol>
             </div>
         </header>
+        <header data-is-here-when="sm" class="kiwix-topbar-fill s-topbar"></header>
+        {{ shared.site_details.header_html|rewrote(to_root) }}
         {% block fullwidth %}{% endblock %}
         <div class="container">
             <div id="left-sidebar" data-is-here-when="md lg" class="left-sidebar js-pinned-left-sidebar ps-relative">
@@ -72,30 +65,36 @@
                         <ol class="nav-links">
                             <li>
                                 <ol class="nav-links">
-                                    <li class="fs-fine tt-uppercase ml8 mt16 mb4 fc-light d-none">Public</li>
+                                    <li>
+                                        <a id="nav-home" href="{{ to_root }}" class="pl8 js-gps-track nav-links--link -link__with-icon">
+                                            <img aria-hidden="true" class="svg-icon iconHome" src="{{ to_root }}static/img/home.svg">
+                                            <span class="-link--channel-name pl8">Home</span>
+                                        </a>
+                                    </li>
                                     <li class="{% if whereis == 'questions' %}youarehere{% endif %}">
-                                        <a id="nav-questions" href="{{ to_root }}questions" class="pl8 js-gps-track nav-links--link -link__with-icon" data-gps-track="top_nav.click({is_current:true, location:2, destination:1})" aria-controls="" data-controller="" data-s-popover-placement="right">
-                                            <svg aria-hidden="true" class="svg-icon iconGlobe" width="18" height="18" viewBox="0 0 18 18">
-                                                <path d="M9 1C4.64 1 1 4.64 1 9c0 4.36 3.64 8 8 8 4.36 0 8-3.64 8-8 0-4.36-3.64-8-8-8zM8 15.32a6.46 6.46 0 01-4.3-2.74 6.46 6.46 0 0 1-.93-5.01L7 11.68v.8c0 .88.12 1.32 1 1.32v1.52zm5.72-2c-.2-.66-1-1.32-1.72-1.32h-1v-2c0-.44-.56-1-1-1H6V7h1c.44 0 1-.56 1-1V5h2c.88 0 1.4-.72 1.4-1.6v-.33a6.45 6.45 0 013.83 4.51 6.45 6.45 0 0 1-1.51 5.73v.01z"></path>
-                                            </svg>
-                                            <span class="-link--channel-name">Questions</span>
+                                        <a id="nav-questions" href="{{ to_root }}questions" class="pl8 js-gps-track nav-links--link -link__with-icon">
+                                            <img aria-hidden="true" class="svg-icon iconQuestion" src="{{ to_root }}static/img/question.svg">
+                                            <span class="-link--channel-name pl8">Questions</span>
                                         </a>
                                     </li>
                                     <li class="{% if whereis == 'tags' %}youarehere{% endif %}">
-                                        <a id="nav-tags" href="{{ to_root }}tags" class=" js-gps-track nav-links--link">
-                                            <div class="grid ai-center"><div class="grid--cell truncate">Tags</div></div>
+                                        <a id="nav-tags" href="{{ to_root }}tags" class="pl8 js-gps-track nav-links--link -link__with-icon">
+                                            <img aria-hidden="true" class="svg-icon iconTags" src="{{ to_root }}static/img/tag.svg">
+                                            <span class="-link--channel-name pl8">Tags</span>
                                         </a>
                                     </li>
                                     {% if not context.without_user_profiles %}
                                     <li class="{% if whereis == 'users' %}youarehere{% endif %}">
-                                        <a href="{{ to_root }}users" id="nav-users" class=" js-gps-track nav-links--link">
-                                            <div class="grid ai-center"><div class="grid--cell truncate">Users</div></div>
+                                        <a href="{{ to_root }}users" id="nav-users" class="pl8 js-gps-track nav-links--link -link__with-icon">
+                                            <img aria-hidden="true" class="svg-icon iconPeople" src="{{ to_root }}static/img/people.svg">
+                                            <span class="-link--channel-name pl8">Users</span>
                                         </a>
                                     </li>
                                     {% endif %}
                                     <li class="{% if whereis == 'about' %}youarehere{% endif %}">
-                                        <a href="{{ to_root }}about" id="nav-about" class=" js-gps-track nav-links--link">
-                                            <div class="grid ai-center"><div class="grid--cell truncate">About</div></div>
+                                        <a href="{{ to_root }}about" id="nav-about" class="pl8 js-gps-track nav-links--link -link__with-icon">
+                                            <img aria-hidden="true" class="svg-icon iconAnswer" src="{{ to_root }}static/img/people.svg">
+                                            <span class="-link--channel-name pl8">About</span>
                                         </a>
                                     </li>
                                 </ol>

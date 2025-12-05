@@ -11,3 +11,4 @@ class SiteDetails:
     secondary_css: str
     small_favicon: str
     big_favicon: str
+    header_html: str

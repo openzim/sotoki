@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Posts tags can be split by | or by >< characters (#356)
 - Fix numbers passed to Users progresser (#353)
 - Fix display of comments randomly not present (#361)
+- Add SVG icons for all left menu entries (#365)
+- Fetch, rewrite and include real online page header (including potential SVG image) (#241)
+- Simplify mobile topbar to better reuse styles already fetched (#364)
+- Fix display of user infos in posts (#362)
+- Fix display of post vote counts (#355)
+- Add support for SVG images (#364)
 
 ## [2.2.1] - 2025-06-26
 

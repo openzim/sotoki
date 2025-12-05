@@ -12,6 +12,7 @@ from PIL import Image
 from resizeimage.imageexceptions import ImageSizeError
 from zimscraperlib.download import stream_file
 from zimscraperlib.image.optimization import OptimizeWebpOptions, optimize_webp
+from zimscraperlib.image.probing import format_for
 from zimscraperlib.image.transformation import resize_image
 from zimscraperlib.typing import Callback
 
@@ -39,10 +40,12 @@ class Imager:
         self.aborted = True
 
     @web_backoff
-    def get_image_data(self, url: str, **resize_args: Any) -> io.BytesIO:
+    def get_image_data(self, url: str, **resize_args: Any) -> tuple[io.BytesIO, str]:
         """Bytes stream of an optimized, resized WebP of the source image"""
         src, webp = io.BytesIO(), io.BytesIO()
         stream_file(url=url, byte_stream=src)
+        if format_for(src, from_suffix=False) == "SVG":
+            return src, "image/svg+xml"
         # first resize then convert to webp and optimize, because conversion to webp
         # proved to consume lots of memory ; a smaller image obviously consumes less
         resize_args = resize_args or {}
@@ -60,9 +63,13 @@ class Imager:
             pass
         with Image.open(src) as img:
             img.save(webp, format="WEBP")
-        return optimize_webp(
-            src=webp, options=OptimizeWebpOptions(lossless=False, quality=60, method=6)
-        )  # pyright: ignore[reportReturnType]
+        return (
+            optimize_webp(  # pyright: ignore[reportReturnType]
+                src=webp,
+                options=OptimizeWebpOptions(lossless=False, quality=60, method=6),
+            ),
+            "image/webp",
+        )
 
     def get_s3_key_for(self, url: str) -> str:
         """S3 key to use for that url"""
@@ -123,7 +130,7 @@ class Imager:
         # skip processing if we already processed it or have it in pipe
         digest = self.get_digest_for(parsed_url.geturl())
         if path is None:
-            path = f"images/{digest}.webp"
+            path = f"images/{digest}"
 
         if digest in self.handled:
             logger.debug(f"URL `{parsed_url.geturl()}` already processed.")
@@ -164,13 +171,14 @@ class Imager:
 
         # just download, optimize and add to ZIM if not using S3
         if not context.s3_url_with_credentials:
+            image_content, image_mimetype = self.get_image_data(
+                parsed_url.geturl(), **resize_args
+            )
             with shared.lock:
                 shared.creator.add_item_for(
                     path=path,
-                    content=self.get_image_data(
-                        parsed_url.geturl(), **resize_args
-                    ).getvalue(),
-                    mimetype="image/webp",
+                    content=image_content.getvalue(),
+                    mimetype=image_mimetype,
                     is_front=False,
                     callbacks=[Callback(func=self.once_done)],
                 )
@@ -189,8 +197,8 @@ class Imager:
         download_failed = False  # useful to trigger reupload or not
         try:
             logger.debug(f"Attempting download of S3::{key} into ZIM::{path}")
-            fileobj = io.BytesIO()
-            s3_storage.download_matching_fileobj(key, fileobj, meta=meta)
+            image_content = io.BytesIO()
+            s3_storage.download_matching_fileobj(key, image_content, meta=meta)
         except NotFoundError:
             # don't have it, not a donwload error. we'll upload after processing
             pass
@@ -199,11 +207,12 @@ class Imager:
             logger.exception(exc)
             download_failed = True
         else:
+            image_mimetype = format_for(image_content, from_suffix=False)
             with shared.lock:
                 shared.creator.add_item_for(
                     path=path,
-                    content=fileobj.getvalue(),
-                    mimetype="image/webp",
+                    content=image_content.getvalue(),
+                    mimetype=image_mimetype,
                     is_front=False,
                     callbacks=[Callback(func=self.once_done)],
                 )
@@ -211,7 +220,9 @@ class Imager:
 
         # we're using S3 but don't have it or failed to download
         try:
-            fileobj = self.get_image_data(parsed_url.geturl(), **resize_args)
+            image_content, image_mimetype = self.get_image_data(
+                parsed_url.geturl(), **resize_args
+            )
         except Exception as exc:
             logger.error(
                 f"Failed to download/convert/optim source  at {parsed_url.geturl()}"
@@ -222,8 +233,8 @@ class Imager:
         with shared.lock:
             shared.creator.add_item_for(
                 path=path,
-                content=fileobj.getvalue(),
-                mimetype="image/webp",
+                content=image_content.getvalue(),
+                mimetype=image_mimetype,
                 is_front=False,
                 callbacks=[Callback(func=self.once_done)],
             )
@@ -232,7 +243,7 @@ class Imager:
         if not download_failed:
             logger.debug(f"Uploading {parsed_url.geturl()} to S3::{key} with {meta}")
             try:
-                s3_storage.upload_fileobj(fileobj=fileobj, key=key, meta=meta)
+                s3_storage.upload_fileobj(fileobj=image_content, key=key, meta=meta)
             except Exception as exc:
                 logger.error(f"{key} failed to upload to cache: {exc}")
 
