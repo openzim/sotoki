@@ -69,12 +69,6 @@
       "title": "Without User Profiles",
       "description": "Don't include user profile pages. Faster"
     },
-    "without_user_identicons": {
-      "type": "boolean",
-      "required": false,
-      "title": "Without Identicons",
-      "description": "Don't include user's profile pictures. Replaced by generated ones. Faster"
-    },
     "without_external_links": {
       "type": "boolean",
       "required": false,

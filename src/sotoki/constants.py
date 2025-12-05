@@ -18,7 +18,6 @@ USER_AGENT = (
     f"{NAME}/{VERSION} (https://github.com/openzim/sotoki; "
     f"contact+crawl@kiwix.org) requests/{requests.__version__}"
 )
-PROFILE_IMAGE_SIZE = 128
 POSTS_IMAGE_SIZE = 540
 IMAGES_ENCODER_VERSION = 1
 NB_QUESTIONS_PER_TAG_PAGE = 15
