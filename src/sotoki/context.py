@@ -118,3 +118,15 @@ class Context:
                 except Exception:
                     return None
         return None
+
+    @property
+    def any_restriction(self) -> bool:
+        return (
+            self.without_unanswered
+            or self.without_images
+            or self.without_user_profiles
+            or self.without_external_links
+            or self.without_users_links
+            or self.without_names
+            or bool(self.censor_words_list)
+        )

@@ -21,6 +21,7 @@
                     <li>Content is at least few weeks old because it's a one-shot export, not being updated until you download a new ZIM, most recent question being from {{ most_recent_date }}.</li>
                     <li>Views number correspond to number of Views on the online website at the time of the Dump. Yours are not counted.</li>
                     <li>Only Users with interactions with the platform are included and thus have profile pages.</li>
+                    <li>All User's profile pictures have been removed, they are not provided in StackExchange dumps used to build this copy. You'll see generated pictures (each user has a unique one) instead.</li>
                 </ul>
 
                 {% if context.any_restriction %}
@@ -35,9 +36,6 @@
                     {% endif %}
                     {% if context.without_user_profiles %}
                         <li>All User's profile pages have been removed.</li>
-                    {% endif %}
-                    {% if context.without_user_identicons and not context.without_images %}
-                        <li>All User's profile pictures have been removed. You'll see generated ones instead.</li>
                     {% endif %}
                     {% if context.without_external_links %}
                         <li>All external links have been edited and points nowhere.</li>
