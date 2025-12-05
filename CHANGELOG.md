@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplify mobile topbar to better reuse styles already fetched (#364)
 - Fix display of user infos in posts (#362)
 - Fix display of post vote counts (#355)
+- Add support for SVG images (#364)
 
 ## [2.2.1] - 2025-06-26
 
