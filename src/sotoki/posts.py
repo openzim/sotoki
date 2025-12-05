@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import datetime
+import re
 from typing import Any
 
 from zimscraperlib.typing import Callback
@@ -17,6 +18,9 @@ def harmonize_post(post: dict):
     post["CreationTimestamp"] = int(
         datetime.datetime.fromisoformat(post["CreationDate"]).strftime("%s")
     )
+    # split either by | or by >< (some dumps use the |tag1|tag2| format,
+    # others use the <tag1><tag2> format)
+    post["Tags"] = re.split(r"\||><", post["Tags"][1:-1])
 
 
 class WalkerWithTrigger(Walker):
@@ -42,7 +46,7 @@ class FirstPassWalker(WalkerWithTrigger):
             self.post: dict[str, Any] = dict(attrs.items())
             self.post["Id"] = int(self.post["Id"])
             self.post["Score"] = int(self.post["Score"])
-            self.post["Tags"] = self.post.get("Tags", "")[1:-1].split("><")
+            self.post["Tags"] = self.post.get("Tags", "")
             self.post["users_ids"] = set()
             self.post["nb_answers"] = 0
             _user_to_set(self.post["users_ids"], "OwnerUserId")
@@ -161,7 +165,7 @@ class PostsWalker(WalkerWithTrigger):
             self.post: dict[str, Any] = dict(attrs.items())
             self.post["Id"] = int(self.post["Id"])
             self.post["Score"] = int(self.post["Score"])
-            self.post["Tags"] = self.post.get("Tags", "")[1:-1].split("><")
+            self.post["Tags"] = self.post.get("Tags", "")
             self.post["links"] = {"relateds": [], "duplicates": []}
             return
 

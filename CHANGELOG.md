@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Docker image does not build anymore on `main` branch (#346)
 - Scraper fails while processing posts tags (#338)
+- Posts tags can be split by | or by >< characters (#356)
 
 ## [2.2.1] - 2025-06-26
 
