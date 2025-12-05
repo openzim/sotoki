@@ -85,12 +85,6 @@ def prepare_context(raw_args: list[str]) -> None:
         help="Don't include user profile pages. Faster",
     )
     censored.add_argument(
-        "--without-user-identicons",
-        action="store_true",
-        help="Don't include user's profile pictures. "
-        "Replaced by generated ones. Faster",
-    )
-    censored.add_argument(
         "--without-external-links",
         action="store_true",
         help="Remove all external links from posts and user profiles. "

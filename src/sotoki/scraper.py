@@ -86,10 +86,15 @@ class StackExchangeToZim:
         resp = requests.get(f"https://{context.domain}", timeout=HTTP_REQUEST_TIMEOUT)
         resp.raise_for_status()
         soup = bs4.BeautifulSoup(resp.text, "lxml")
+        domain = urlparse(resp.url).netloc
         title_tag = soup.title
         if not title_tag or not title_tag.string:
             raise Exception("Failed to extract site title from homepage")
         site_title = title_tag.string
+        header_tag = soup.find("header", class_="site-header")
+        if not header_tag:
+            raise Exception("Failed to extract header HTML from homepage")
+        header_html = str(header_tag)
         primary_css_tag = soup.find(
             "link", href=lambda href: bool(href and "primary.css" in href)
         )
@@ -107,12 +112,13 @@ class StackExchangeToZim:
         shared.site_details = SiteDetails(
             mathjax='<script type="text/x-mathjax-config">' in resp.text,
             highlight='"styleCodeWithHighlightjs":true' in resp.text,
-            domain=urlparse(resp.url).netloc,
+            domain=domain,
             site_title=site_title,
             primary_css=primary_css,
             secondary_css=primary_css.replace("primary", "secondary"),
             small_favicon=small_favicon,
             big_favicon=big_favicon,
+            header_html=header_html,
         )
 
     def langs_for_domain(self, domain: str) -> tuple[list[str], list[str]]:

@@ -38,6 +38,14 @@ def is_in_code(elem):
     return False
 
 
+def is_in_header(elem):
+    """whether this node is inside a <header /> node"""
+    for parent in elem.parents:
+        if parent.name == "header":
+            return True
+    return False
+
+
 SOCIAL_DOMAINS = [
     "facebook.com",
     "youtube.com",
@@ -77,6 +85,7 @@ class Rewriter:
     redacted_text = "[redacted]"
 
     def __init__(self):
+        self.domain_root_re = re.compile(rf"^https?://{shared.online_domain}/?$")
         self.domain_re = re.compile(rf"(https?:)?//{shared.online_domain}(?P<path>/.+)")
         self.qid_slug_answer_re = re.compile(
             r"^(q|questions)/(?P<post_id>[0-9]+)/[^/]+/(?P<answer_id>[0-9]+)"
@@ -101,7 +110,7 @@ class Rewriter:
             re.compile(r"tags_page=[0-9]+$"),
             re.compile(r"api/tags.json$"),
             re.compile(r"about$"),
-            re.compile(r"images/[0-9]+.webp$"),
+            re.compile(r"images/[0-9a-f]+$"),
         )
 
         self.redacted_string = bs4.element.NavigableString(self.redacted_text)
@@ -210,10 +219,9 @@ class Rewriter:
         # rewrite links targets
         for link in soup.find_all("a", href=True):
 
-            # don't bother empty href=""
+            # remove link to "" as the use of a <base /> in our template
+            # would turn it into a link to root
             if not link.get("href", "").strip():
-                # remove link to "" as the use of a <base /> in our template
-                # would turn it into a link to root
                 del link.attrs["href"]
                 continue
 
@@ -222,6 +230,11 @@ class Rewriter:
                 continue
 
             link["href"] = link["href"].strip()
+
+            # handle links to root directly
+            if self.domain_root_re.match(link["href"]):
+                link["href"] = to_root
+                continue
 
             # relative links (/xxx or ./ or ../)
             # we could have relative links starting with about anything else but
@@ -436,7 +449,7 @@ class Rewriter:
                 continue
 
             # remove all images
-            if context.without_images:
+            if context.without_images and not is_in_header(img):
                 del img.attrs["src"]
             # process all images
             else:
