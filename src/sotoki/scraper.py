@@ -63,13 +63,13 @@ class StackExchangeToZim:
         self._get_site_details()
         # real domain as found online after potential redirection for fixed domains
         shared.online_domain = shared.site_details.domain
-        self.iso_langs_1, self.iso_langs_3 = self.langs_for_domain(context.domain)
+        self.iso_langs_1, self.iso_langs_3 = self.langs_for_domain(shared.online_domain)
         self.flavour = "nopic" if context.without_images else ""
         lang_in_name = self.iso_langs_1[0] if len(self.iso_langs_1) == 1 else "mul"
         context.name = (
-            context.name or f"{context.domain}_{lang_in_name}_all_{self.flavour}"
+            context.name or f"{shared.online_domain}_{lang_in_name}_all_{self.flavour}"
             if self.flavour
-            else f"{context.domain}_{lang_in_name}_all"
+            else f"{shared.online_domain}_{lang_in_name}_all"
         )
         context.output_dir.mkdir(parents=True, exist_ok=True)
         context.tmp_dir.mkdir(parents=True, exist_ok=True)
@@ -77,7 +77,7 @@ class StackExchangeToZim:
             shared.build_dir = context.tmp_dir
         else:
             shared.build_dir = pathlib.Path(
-                tempfile.mkdtemp(prefix=f"{context.domain}_", dir=context.tmp_dir)
+                tempfile.mkdtemp(prefix=f"{shared.online_domain}_", dir=context.tmp_dir)
             )
         if context.stats_filename:
             context.stats_filename.parent.mkdir(parents=True, exist_ok=True)
@@ -297,7 +297,7 @@ class StackExchangeToZim:
         logger.info(
             f"Starting scraper with:\n"
             f"  dump domain: {shared.dump_domain}\n"
-            f"  fixed domain: {context.domain}\n"
+            f"  online domain: {shared.online_domain}\n"
             f"  lang: {self.iso_langs_1} ({self.iso_langs_3})\n"
             f"  build_dir: {shared.build_dir}\n"
             f"  output_dir: {context.output_dir}\n"
