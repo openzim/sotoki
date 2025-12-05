@@ -41,6 +41,7 @@ class TagFinder(Generator):
         tag = item
         if tag["Count"] == "0":
             logger.debug(f"Tag {item['TagName']} is not used.")
+            self.release()
             return
 
         tag["Count"] = int(tag["Count"])

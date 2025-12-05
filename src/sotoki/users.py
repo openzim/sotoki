@@ -66,7 +66,9 @@ class UserGenerator(Generator):
 
     def processor_callback(self, item):
         if not shared.usersdatabase.is_active_user(int(item["Id"])):
-            return False  # user was skipped
+            # skip user (still increasing progresser to keep accurate progress)
+            shared.progresser.update(incr=True)
+            return False
         super().processor_callback(item=item)
 
     def processor(self, item):
