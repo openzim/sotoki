@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix display of user infos in posts (#362)
 - Fix display of post vote counts (#355)
 - Add support for SVG images (#364)
+- Fix computation of article excerpt to produce valid safe HTML (#320)
 
 ## [2.2.1] - 2025-06-26
 
