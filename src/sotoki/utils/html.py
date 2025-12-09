@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import html
 import re
 import urllib.parse
 import warnings
@@ -14,13 +15,24 @@ from sotoki.utils.shared import context, logger, shared
 
 
 def get_text(content: str, strip_at: int = -1):
-    """extracted text from an HTML source, optionaly striped"""
+    """extracted text from an HTML source, optionally stripped
+
+    Result does not contain any HTML tag anymore, but is escaped for safe usage
+    in an HTML document.
+
+    Counting chars for stripping is done on unescaped text.
+
+    Stripping is done at words boundaries.
+    """
     soup = bs4.BeautifulSoup(content, "lxml")
-    text = soup.text
+    text = soup.get_text(" ")
     soup.decompose()
-    if strip_at and len(text) > strip_at:
-        return f'{text[0:strip_at].rsplit(" ", 1)[0]}…'
-    return text
+    # Normalize whitespace: replace all whitespace sequences with single space
+    text = " ".join(text.split())
+    if strip_at > 0 and len(text) > strip_at:
+        text = f'{text[0:strip_at].rsplit(" ", 1)[0]}…'
+    # Escape HTML entities so the text is safe to use in HTML documents
+    return html.escape(text)
 
 
 def get_slug_for(title: str):
