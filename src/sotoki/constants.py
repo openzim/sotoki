@@ -31,3 +31,10 @@ NB_USERS_PAGES = 100
 NB_PAGINATED_USERS = NB_USERS_PER_PAGE * NB_USERS_PAGES
 
 HTTP_REQUEST_TIMEOUT = 30
+MAX_FILE_DOWNLOAD_RETRIES = 5
+# minimum number of files failing download before starting to consider for failing
+# the scrape
+FILES_DOWNLOAD_FAILURE_MINIMUM_FOR_CHECK = 50
+FILES_DOWNLOAD_FAILURE_TRESHOLD_PER_TEN_THOUSAND = 1000  # 10 = 0.1% ; 1000 = 10%
+# 60000 = 60s max between file download attempts
+FILES_DOWNLOAD_MAX_INTERVAL = 60000

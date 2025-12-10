@@ -6,7 +6,7 @@ from collections import OrderedDict, namedtuple
 from typing import ClassVar
 
 from sotoki.context import Context
-from sotoki.utils.shared import logger, shared
+from sotoki.utils.shared import logger
 
 
 class Progresser:
@@ -30,6 +30,7 @@ class Progresser:
             (QUESTIONS_STEP, 3460),
             (TAGS_STEP, 10),
             (LISTS_STEP, 2),
+            (IMAGES_STEP, 5000),
         ]
     )
 
@@ -114,9 +115,6 @@ class Progresser:
             f"{self.current_step.title()} -- "
             f"{self.current_step_progress}/{self.current_step_total}"
         )
-
-        if self.images_progress:
-            msg += f" -- Images: {self.nb_img_done}"
         logger.info(msg)
         self.last_print_on = datetime.datetime.now(datetime.UTC)
 
@@ -165,29 +163,6 @@ class Progresser:
         """progress of current step (0-1)"""
         try:
             return min([self.current_step_progress / self.current_step_total, 1])
-        except ZeroDivisionError:
-            return 1
-
-    @property
-    def nb_img_requested(self):
-        return getattr(shared.imager, "nb_requested", 0)
-
-    @property
-    def nb_img_done(self):
-        return getattr(shared.imager, "nb_done", 0)
-
-    @property
-    def images_progress(self) -> float:
-        """progress of images step (0-1)"""
-        if self.nb_img_requested == 0:
-            return 0
-        try:
-            return min(
-                [
-                    self.nb_img_done / self.nb_img_requested,
-                    1,
-                ]
-            )
         except ZeroDivisionError:
             return 1
 

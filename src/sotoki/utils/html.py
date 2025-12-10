@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-
+import email.utils
 import html
 import re
 import urllib.parse
 import warnings
+from datetime import UTC, datetime, timedelta
 
 import bs4
 import mistune
@@ -56,6 +57,41 @@ def is_in_header(elem):
         if parent.name == "header":
             return True
     return False
+
+
+def parse_retry_after_header(header_value: str):
+    """
+    Parse a Retry-After header into a Python datetime (UTC).
+    Returns:
+        datetime | None: The datetime at which you can retry, or None if invalid.
+    """
+    if not header_value:
+        return None
+
+    value = header_value.strip()
+
+    # Case 1: delta-seconds (numeric)
+    if value.isdigit():
+        seconds = int(value)
+        if seconds > 0:
+            return datetime.now(UTC) + timedelta(seconds=seconds)
+        else:
+            return None
+
+    # Case 2: HTTP-date
+    try:
+        # email.utils handles all valid HTTP-date formats (RFC 7231)
+        dt = email.utils.parsedate_to_datetime(value)
+        if dt is None:
+            return None
+
+        # Ensure timezone-aware (HTTP dates are GMT by definition)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=UTC)
+
+        return dt.astimezone(UTC)
+    except Exception:
+        return None
 
 
 SOCIAL_DOMAINS = [

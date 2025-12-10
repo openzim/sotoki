@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Upgrade to Python 3.14 + Debian bookworm (#351)
 - **BREAKING**: Replace usage of multiple `--tag` with single CSV `--tags` for Zimfarm integration (#351)
+- Enhance logic to download images to better respect upstream servers (#xxx)
 
 ### Fixed
 

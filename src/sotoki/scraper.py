@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 import bs4
 import requests
+from kiwixstorage import KiwixStorage
 from zimscraperlib.i18n import NotFoundError, get_language
 from zimscraperlib.image.conversion import convert_image
 from zimscraperlib.image.transformation import resize_image
@@ -46,6 +47,7 @@ from sotoki.utils.exceptions import DatabaseError
 from sotoki.utils.executor import SotokiExecutor
 from sotoki.utils.html import Rewriter
 from sotoki.utils.imager import Imager
+from sotoki.utils.misc import web_backoff
 from sotoki.utils.progress import Progresser
 from sotoki.utils.s3 import setup_s3_and_check_credentials
 from sotoki.utils.shared import context, logger, shared
@@ -82,6 +84,7 @@ class StackExchangeToZim:
         if context.stats_filename:
             context.stats_filename.parent.mkdir(parents=True, exist_ok=True)
 
+    @web_backoff(base=10, max_tries=10)
     def _get_site_details(self):
         resp = requests.get(f"https://{context.domain}", timeout=HTTP_REQUEST_TIMEOUT)
         resp.raise_for_status()
@@ -267,6 +270,13 @@ class StackExchangeToZim:
         shared.postsdatabase = PostsDatabase()
         shared.usersdatabase = UsersDatabase()
 
+        # manipulate S3 objects
+        shared.s3_storage = (
+            KiwixStorage(context.s3_url_with_credentials)
+            if context.s3_url_with_credentials
+            else None
+        )
+
         # mostly transforms HTML and sends to zim.
         # tests show no speed improv. beyond 3 workers.
         shared.executor = SotokiExecutor(
@@ -425,6 +435,9 @@ class StackExchangeToZim:
             self.process_tags()
 
             self.process_pages_lists()
+
+            shared.imager.process_images()
+            shared.img_executor.join()
 
             shared.executor.shutdown()
             shared.img_executor.shutdown()
