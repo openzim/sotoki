@@ -43,13 +43,9 @@
             {% endfor %}
         </div>
     </div>
-    {% if post.links.duplicates or post.links.relateds %}
+    {% if post.links.linked %}
     <div id="sidebar" class="show-votes" role="complementary" aria-label="sidebar">
-        {% with list=post.links.duplicates, name="Linked" %}
-            {% include "linked_list.html" %}
-        {% endwith %}
-
-        {% with list=post.links.relateds, name="Related" %}
+        {% with list=post.links.linked, name="Linked" %}
             {% include "linked_list.html" %}
         {% endwith %}
     </div>
