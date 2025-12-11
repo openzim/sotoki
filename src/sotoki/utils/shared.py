@@ -6,8 +6,8 @@ import threading
 from threading import Lock
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from zimscraperlib.zim import Creator
+from kiwixstorage import KiwixStorage
+from zimscraperlib.zim import Creator
 
 from sotoki.context import Context
 
@@ -46,6 +46,7 @@ class Shared:
     lock: Lock = Lock()
     dump_domain: str
     online_domain: str
+    s3_storage: KiwixStorage | None
 
     # total stats
     total_tags = 0

@@ -131,11 +131,17 @@ def restart_redis_at(pid: str | int):
     )
 
 
-def web_backoff(func):
+def web_backoff(
+    base: float = 3,
+    factor: int = 2,
+    max_value: float | None = None,
+    max_tries: int | None = None,
+    max_time: int | None = None,
+):
 
     def backoff_hdlr(details: Any):
         """Default backoff handler to log something when backoff occurs"""
-        logger.debug(
+        logger.warning(
             "Request error, starting backoff of {wait:0.1f} seconds after {tries} "
             "tries. Exception: {exception}".format(**details)
         )
@@ -149,9 +155,10 @@ def web_backoff(func):
         return False  # Retry for all other RequestException types
 
     return backoff.on_exception(
-        partial(backoff.expo, base=3, factor=2),
+        partial(backoff.expo, base=base, factor=factor, max_value=max_value),
         requests.RequestException,
-        max_time=60,  # secs
+        max_tries=max_tries,
+        max_time=max_time,
         on_backoff=backoff_hdlr,
         giveup=should_giveup,
-    )(func)
+    )
