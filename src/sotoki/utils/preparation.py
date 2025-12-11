@@ -393,7 +393,7 @@ def add_post_names_to_links(
     delete_src: bool = False,
 ):
     """Recreate links file but each row gets a PostName with post name from CSV"""
-    index = get_index_in(links_src, "PostId")
+    index = get_index_in(links_src, "RelatedPostId")
     with (
         open(links_src, "rb") as linksh,
         open(csv_src, "rb") as csvh,
@@ -464,7 +464,7 @@ class PostsAnswersLinksMerger:
         self.indexes = {
             "id": get_index_in(questions_src, "Id"),
             "parent_id": get_index_in(answers_src, "ParentId"),
-            "related_post_id": get_index_in(links_src, "RelatedPostId"),
+            "post_id": get_index_in(links_src, "PostId"),
         }
         self.open_files()
 
@@ -522,7 +522,7 @@ class PostsAnswersLinksMerger:
     def read_line(self, kind):
         """read line in requested file and return matched-id, line"""
         within = get_within_chars(*{"answers": (39, 2), "links": (78, 3)}[kind])
-        index = self.indexes[{"answers": "parent_id", "links": "related_post_id"}[kind]]
+        index = self.indexes[{"answers": "parent_id", "links": "post_id"}[kind]]
 
         line = self.handlers[kind].readline()
         if not line:
@@ -674,13 +674,13 @@ def merge_posts_with_answers_comments(
     sort_dump_by_id(
         src=postlinks_nohead,
         dst=postlinks_sorted,
-        id_attr="PostId",
+        id_attr="RelatedPostId",
         delete_src=delete_src,
     )
-    logger.info("sorted PostLinks by PostId")
+    logger.info("sorted PostLinks by RelatedPostId")
     del postlinks_nohead
 
-    # add post names to <link /> nodes and sort them by RelatedPostId
+    # add post names to <link /> nodes and sort them by PostId
     postlinks_named = workdir / "postlinks_named.xml"
     postlinks_named_sorted = workdir / "postlinks_named_sorted.xml"
     add_post_names_to_links(
@@ -690,10 +690,8 @@ def merge_posts_with_answers_comments(
         delete_src=delete_src,
     )
     del postlinks_sorted
-    sort_dump_by_id(
-        src=postlinks_named, dst=postlinks_named_sorted, id_attr="RelatedPostId"
-    )
-    logger.info("sorted named post links by RelatedPostId")
+    sort_dump_by_id(src=postlinks_named, dst=postlinks_named_sorted, id_attr="PostId")
+    logger.info("sorted named post links by PostId")
 
     posts_complete = workdir / "posts_complete.xml"
     PostsAnswersLinksMerger(

@@ -166,7 +166,7 @@ class PostsWalker(WalkerWithTrigger):
             self.post["Id"] = int(self.post["Id"])
             self.post["Score"] = int(self.post["Score"])
             self.post["Tags"] = self.post.get("Tags", "")
-            self.post["links"] = {"relateds": [], "duplicates": []}
+            self.post["links"] = {"linked": [], "duplicate": []}
             return
 
         # opening comments of a question
@@ -202,11 +202,11 @@ class PostsWalker(WalkerWithTrigger):
 
         # link on a question
         if name == "link":
-            pipe = {"1": "duplicates", "3": "relateds"}.get(attrs["LinkTypeId"])
+            pipe = {"1": "linked", "3": "duplicate"}.get(attrs["LinkTypeId"])
             if pipe:
                 self.post["links"][pipe].append(
                     {
-                        "Id": int(attrs["PostId"]),
+                        "Id": int(attrs["RelatedPostId"]),
                         "Name": attrs["PostName"],
                     }
                 )
