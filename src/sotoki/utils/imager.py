@@ -201,15 +201,19 @@ class Imager:
         shared.img_executor.start()
         for _ in range(shared.img_executor.nb_workers):
             shared.img_executor.submit(self.worker_loop)
-        while not self.aborted and (self.nb_done + self.nb_failed) < self.nb_requested:
+        while not self.aborted and not self.all_hosts_done:
             sleep(2)
+
+    @property
+    def all_hosts_done(self) -> bool:
+        return all(host.downloads_complete for host in self.hosts.values())
 
     def _get_next_file_to_download(self) -> FileToDownload | None:
         while not self.aborted:
             now = datetime.now(UTC)
 
             # check if all downloads have completed and exit
-            if all(host.downloads_complete for host in self.hosts.values()):
+            if self.all_hosts_done:
                 logger.debug("all hosts have done all downloads")
                 return None
 
