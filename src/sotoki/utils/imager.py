@@ -413,7 +413,7 @@ class Imager:
 
         download_failed = False  # useful to trigger reupload or not
         try:
-            logger.debug(f"Attempting download of S3::{key} into ZIM::{file.zim_path}")
+            # Attempting download from S3
             image_content = io.BytesIO()
             shared.s3_storage.download_matching_fileobj(key, image_content, meta=meta)
         except NotFoundError:
