@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add support for SVG images (#364)
 - Fix computation of article excerpt to produce valid safe HTML (#320)
 - Adjust computation of linked questions and remove related ones (#263)
+- Scraper keeps re-uploading same images (#373)
 
 ## [2.2.1] - 2025-06-26
 
