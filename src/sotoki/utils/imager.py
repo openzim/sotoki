@@ -214,7 +214,6 @@ class Imager:
 
             # check if all downloads have completed and exit
             if self.all_hosts_done:
-                logger.debug("all hosts have done all downloads")
                 return None
 
             for hostname, host_data in self.hosts.items():
@@ -265,7 +264,6 @@ class Imager:
                 if next_file is None:
                     break
                 self.process_image(next_file)
-            logger.debug("worker loop completed")
         except Exception:
             self.abort()
 
