@@ -23,6 +23,10 @@ from sotoki.constants import (
     FILES_DOWNLOAD_FAILURE_MINIMUM_FOR_CHECK,
     FILES_DOWNLOAD_FAILURE_TRESHOLD_PER_TEN_THOUSAND,
     FILES_DOWNLOAD_MAX_INTERVAL,
+    FILES_DOWNLOAD_MIN_INTERVAL,
+    FILES_DOWNLOAD_SLOW_DOWN_FACTOR,
+    FILES_DOWNLOAD_SPEED_UP_AFTER,
+    FILES_DOWNLOAD_SPEED_UP_FACTOR,
     HTTP_REQUEST_TIMEOUT,
     IMAGES_ENCODER_VERSION,
     MAX_FILE_DOWNLOAD_RETRIES,
@@ -38,11 +42,12 @@ from sotoki.utils.shared import context, logger, shared
 class HostData:
     files_to_download: FileDatabase
     last_request_date: datetime | None = None
-    request_interval_milliseconds: float = 10
+    request_interval_milliseconds: float = FILES_DOWNLOAD_MIN_INTERVAL
     not_before_date: datetime | None = None
     download_success: int = 0
     download_failure: int = 0
     downloads_complete: bool = False
+    requests_done_since_last_speed_change: int = 0
 
 
 @dataclass(kw_only=True)
@@ -61,7 +66,6 @@ class Imager:
         self.nb_done = 0
         self.filesDatabases: list[FileDatabase] = []
         self.hosts: dict[str, HostData] = {}
-        self.hosts_with_bad_retry_after: set[str] = set()
 
     def abort(self):
         """request imager to cancel processing of futures"""
@@ -190,7 +194,7 @@ class Imager:
     def process_images(self):
         logger.info("Starting images download")
         for hostname, host_data in self.hosts.items():
-            logger.info(f"- {hostname}: {host_data.files_to_download.len()}")
+            logger.debug(f"- {hostname}: {host_data.files_to_download.len()}")
         shared.progresser.start(
             shared.progresser.IMAGES_STEP, nb_total=self.nb_requested
         )
@@ -279,6 +283,25 @@ class Imager:
 
         try:
             self.download_image(file)
+            file.host_data.requests_done_since_last_speed_change += 1
+            if (
+                file.host_data.requests_done_since_last_speed_change
+                > FILES_DOWNLOAD_SPEED_UP_AFTER
+                and file.host_data.request_interval_milliseconds
+                > FILES_DOWNLOAD_MIN_INTERVAL
+            ):
+                file.host_data.request_interval_milliseconds = max(
+                    FILES_DOWNLOAD_MIN_INTERVAL,
+                    file.host_data.request_interval_milliseconds
+                    / FILES_DOWNLOAD_SPEED_UP_FACTOR,
+                )
+                file.host_data.requests_done_since_last_speed_change = 0
+                logger.debug(
+                    f"Speeding up {file.hostname} to"
+                    f" {file.host_data.request_interval_milliseconds}ms interval"
+                    f" ({file.host_data.files_to_download.len()} files remaining"
+                    " to download from host)"
+                )
         except requests.exceptions.RequestException as exc:
             if isinstance(exc, requests.HTTPError):
                 err_details = f"HTTP error code {exc.response.status_code}"
@@ -309,16 +332,14 @@ class Imager:
                     retry_date = parse_retry_after_header(retry_after_header)
                     if retry_date:
                         file.host_data.not_before_date = retry_date
-                        logger.info(
+                        logger.debug(
                             f"Received a [Retry-After={retry_after_header}], pausing "
                             f"down {file.hostname} until {retry_date}"
                         )
-                    elif file.hostname not in self.hosts_with_bad_retry_after:
-                        self.hosts_with_bad_retry_after.add(file.hostname)
-                        logger.warning(
+                    else:
+                        logger.debug(
                             f"Received a [Retry-After={retry_after_header}] from "
-                            f"{file.hostname} but failed to interpret it (other 'bad'"
-                            "Retry-After from this host will not issue a warning log)"
+                            f"{file.hostname} but failed to interpret it"
                         )
 
                 if exc.response.status_code in [
@@ -326,12 +347,13 @@ class Imager:
                     HTTPStatus.SERVICE_UNAVAILABLE,
                     524,
                 ]:
-                    # 1.2 is arbitrary value to progressively slow requests to host down
                     file.host_data.request_interval_milliseconds = min(
                         FILES_DOWNLOAD_MAX_INTERVAL,
-                        file.host_data.request_interval_milliseconds * 1.2,
+                        file.host_data.request_interval_milliseconds
+                        * FILES_DOWNLOAD_SLOW_DOWN_FACTOR,
                     )
-                    logger.info(
+                    file.host_data.requests_done_since_last_speed_change = 0
+                    logger.debug(
                         f"Received a {exc.response.status_code} HTTP status for "
                         f"{file.url}. Slowing down {file.hostname} to"
                         f" {file.host_data.request_interval_milliseconds}ms interval"
@@ -341,8 +363,11 @@ class Imager:
 
             # put file back in the queue
             file.host_data.files_to_download.push(file)
-        except Exception:
-            logger.exception(f"Error downloading file {file.url}, skipping")
+        except Exception as exc:
+            logger.warning(
+                f"Error downloading file {file.url} due to '{exc}' exception, skipping",
+                exc_info=context.debug,
+            )
             file.host_data.download_failure += 1
             self.nb_failed += 1
         else:
@@ -392,11 +417,12 @@ class Imager:
             image_content = io.BytesIO()
             shared.s3_storage.download_matching_fileobj(key, image_content, meta=meta)
         except NotFoundError:
-            # don't have it, not a donwload error. we'll upload after processing
+            # don't have it, not a download error. we'll upload after processing
             pass
         except Exception as exc:
-            logger.error(f"failed to download {key} from cache: {exc}")
-            logger.exception(exc)
+            logger.warning(
+                f"failed to download {key} from cache: {exc}", exc_info=context.debug
+            )
             download_failed = True
         else:
             image_mimetype = format_for(image_content, from_suffix=False)
