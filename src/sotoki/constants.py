@@ -38,3 +38,9 @@ FILES_DOWNLOAD_FAILURE_MINIMUM_FOR_CHECK = 50
 FILES_DOWNLOAD_FAILURE_TRESHOLD_PER_TEN_THOUSAND = 1000  # 10 = 0.1% ; 1000 = 10%
 # 60000 = 60s max between file download attempts
 FILES_DOWNLOAD_MAX_INTERVAL = 60000
+# 10 = 10ms min between file download attempts
+FILES_DOWNLOAD_MIN_INTERVAL = 10
+# consider speeding download a bit once this amount of files have succeeded to download
+FILES_DOWNLOAD_SPEED_UP_AFTER = 10
+FILES_DOWNLOAD_SPEED_UP_FACTOR = 1.1
+FILES_DOWNLOAD_SLOW_DOWN_FACTOR = 1.2
