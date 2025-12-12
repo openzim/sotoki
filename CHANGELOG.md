@@ -5,9 +5,10 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (as of version 2.0.1).
 
-## [Unreleased]
+## [3.0.0] - 2025-12-12
 
 ### Changed
+
 - Upgrade to Python 3.14 + Debian bookworm (#351)
 - **BREAKING**: Replace usage of multiple `--tag` with single CSV `--tags` for Zimfarm integration (#351)
 - Enhance logic to download images to better respect upstream servers (#367 and #369)
