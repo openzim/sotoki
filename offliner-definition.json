@@ -33,7 +33,8 @@
       "maxLength": 80
     },
     "favicon": {
-      "type": "url",
+      "type": "blob",
+      "kind": "image",
       "required": false,
       "title": "Favicon",
       "description": "URL for Favicon. Site square logo otherwise"
