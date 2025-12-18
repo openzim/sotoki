@@ -29,6 +29,7 @@ from sotoki.constants import (
     ROOT_DIR,
     VERSION,
 )
+from sotoki.css import process_css
 from sotoki.models import SiteDetails
 from sotoki.posts import PostFirstPasser, PostGenerator
 from sotoki.renderer import Renderer
@@ -94,10 +95,25 @@ class StackExchangeToZim:
         if not title_tag or not title_tag.string:
             raise Exception("Failed to extract site title from homepage")
         site_title = title_tag.string
-        header_tag = soup.find("header", class_="site-header")
-        if not header_tag:
-            raise Exception("Failed to extract header HTML from homepage")
-        header_html = str(header_tag)
+        if "stackexchange" in context.domain:
+            # For "regular" stackexchange domains, use the whole header
+            header_tag = soup.find("header", class_="site-header")
+            if not header_tag:
+                raise Exception("Failed to extract header HTML from homepage")
+            header_html = str(header_tag)
+        else:
+            # For stackoverflow domains, build custom header with logo since there is
+            # no real header on these domains
+            a_header_tag = soup.find("a", class_="s-topbar--logo")
+            if not a_header_tag:
+                raise Exception("Failed to extract header HTML from homepage")
+            header_html = f"""
+<header class="s-topbar z-minus-1">
+	<div class="s-topbar--container">
+        {a_header_tag}
+	</div>
+</header>
+"""
         primary_css_tag = soup.find(
             "link", href=lambda href: bool(href and "primary.css" in href)
         )
@@ -231,21 +247,8 @@ class StackExchangeToZim:
                 )
 
         # download primary|secondary.css from target
-        primary_css_fpath = shared.build_dir / "primary.css"
-        handle_user_provided_file(
-            source=shared.site_details.primary_css, dest=primary_css_fpath
-        )
-        shared.creator.add_item_for(
-            "static/css/primary.css", fpath=primary_css_fpath, is_front=False
-        )
-
-        secondary_css_fpath = shared.build_dir / "secondary.css"
-        handle_user_provided_file(
-            source=shared.site_details.secondary_css, dest=secondary_css_fpath
-        )
-        shared.creator.add_item_for(
-            "static/css/secondary.css", fpath=secondary_css_fpath, is_front=False
-        )
+        process_css(shared.site_details.primary_css, "primary.css")
+        process_css(shared.site_details.secondary_css, "secondary.css")
 
     def run(self):
 

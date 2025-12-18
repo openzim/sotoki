@@ -39,7 +39,7 @@ body {
     }
      body.user-page .reputation-box, .metadata-box {
          margin: auto;
-         flex-shrink: unset 
+         flex-shrink: unset
     }
      body.user-page .metadata-box {
          max-width: unset;
@@ -56,5 +56,16 @@ body {
 /* custom rule to fill space behind the mobile topbar */
 header.kiwix-topbar-fill {
      position: static !important;
+}
+
+/* custom rule used to push stuff behind mobile topbar */
+.z-minus-1 {
      z-index: -1;
+}
+
+/* custom rule to not adapt header logo on small screens for stackoverflow domains */
+@media screen and (max-width: 640px) {
+  html.html__responsive .s-topbar .s-topbar--logo .-img._glyph {
+    width: 150px !important;
+  }
 }
