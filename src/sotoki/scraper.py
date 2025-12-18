@@ -94,10 +94,25 @@ class StackExchangeToZim:
         if not title_tag or not title_tag.string:
             raise Exception("Failed to extract site title from homepage")
         site_title = title_tag.string
-        header_tag = soup.find("header", class_="site-header")
-        if not header_tag:
-            raise Exception("Failed to extract header HTML from homepage")
-        header_html = str(header_tag)
+        if "stackexchange" in context.domain:
+            # For "regular" stackexchange domains, use the whole header
+            header_tag = soup.find("header", class_="site-header")
+            if not header_tag:
+                raise Exception("Failed to extract header HTML from homepage")
+            header_html = str(header_tag)
+        else:
+            # For stackoverflow domains, build custom header with logo since there is
+            # no real header on these domains
+            a_header_tag = soup.find("a", class_="s-topbar--logo")
+            if not a_header_tag:
+                raise Exception("Failed to extract header HTML from homepage")
+            header_html = f"""
+<header class="s-topbar z-minus-1">
+	<div class="s-topbar--container">
+        {a_header_tag}
+	</div>
+</header>
+"""
         primary_css_tag = soup.find(
             "link", href=lambda href: bool(href and "primary.css" in href)
         )
