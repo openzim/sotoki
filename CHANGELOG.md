@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix scraper is looping over failing URLs forever (#379)
+
 ## [3.0.0] - 2025-12-12
 
 ### Changed
