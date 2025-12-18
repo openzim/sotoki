@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fix scraper is looping over failing URLs forever (#379)
 - Fix extraction of header content for stackoverflow domains (#378)
+- Rewrite CSS files (#383)
 
 ## [3.0.0] - 2025-12-12
 

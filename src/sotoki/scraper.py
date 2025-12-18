@@ -29,6 +29,7 @@ from sotoki.constants import (
     ROOT_DIR,
     VERSION,
 )
+from sotoki.css import process_css
 from sotoki.models import SiteDetails
 from sotoki.posts import PostFirstPasser, PostGenerator
 from sotoki.renderer import Renderer
@@ -246,21 +247,8 @@ class StackExchangeToZim:
                 )
 
         # download primary|secondary.css from target
-        primary_css_fpath = shared.build_dir / "primary.css"
-        handle_user_provided_file(
-            source=shared.site_details.primary_css, dest=primary_css_fpath
-        )
-        shared.creator.add_item_for(
-            "static/css/primary.css", fpath=primary_css_fpath, is_front=False
-        )
-
-        secondary_css_fpath = shared.build_dir / "secondary.css"
-        handle_user_provided_file(
-            source=shared.site_details.secondary_css, dest=secondary_css_fpath
-        )
-        shared.creator.add_item_for(
-            "static/css/secondary.css", fpath=secondary_css_fpath, is_front=False
-        )
+        process_css(shared.site_details.primary_css, "primary.css")
+        process_css(shared.site_details.secondary_css, "secondary.css")
 
     def run(self):
 
