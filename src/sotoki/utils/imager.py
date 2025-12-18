@@ -116,8 +116,9 @@ class Imager:
             resp = requests.head(
                 url, headers={"User-Agent": USER_AGENT}, timeout=HTTP_REQUEST_TIMEOUT
             )
+            resp.raise_for_status()
         except Exception:
-            logger.warning(f"Unable to HEAD {url}")
+            logger.debug(f"Unable to HEAD {url}")
             _, headers = stream_file(
                 url=url,
                 headers={"User-Agent": USER_AGENT},
@@ -125,7 +126,6 @@ class Imager:
                 block_size=1,
                 only_first_block=True,
             )
-        resp.raise_for_status()
         headers = resp.headers
         for header in ("ETag", "Last-Modified", "Content-Length"):
             if headers.get(header):
@@ -283,6 +283,7 @@ class Imager:
                 f"{self.nb_requested}]"
             )
 
+        file.download_attempts += 1
         try:
             self.download_image(file)
             file.host_data.requests_done_since_last_speed_change += 1
@@ -386,7 +387,6 @@ class Imager:
 
         # just download, optimize and add to ZIM if not using S3
         if not context.s3_url_with_credentials:
-            file.download_attempts += 1
             image_content, image_mimetype = self.get_image_data(
                 parsed_url.geturl(), **resize_args
             )
@@ -407,7 +407,7 @@ class Imager:
         # we are using S3 cache
         ident = self.get_version_ident_for(parsed_url.geturl())
         if ident is None:
-            logger.error(f"Unable to query {parsed_url.geturl()}. Skipping")
+            logger.warning(f"Unable to query {parsed_url.geturl()}. Skipping")
             return
 
         key = self.get_s3_key_for(parsed_url.geturl())
@@ -443,7 +443,6 @@ class Imager:
             raise Exception("s3_key and s3_meta should have been populated")
 
         # we're using S3 but don't have it or failed to download
-        file.download_attempts += 1
         image_content, image_mimetype = self.get_image_data(
             parsed_url.geturl(), **resize_args
         )
