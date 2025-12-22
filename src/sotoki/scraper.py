@@ -95,7 +95,7 @@ class StackExchangeToZim:
         if not title_tag or not title_tag.string:
             raise Exception("Failed to extract site title from homepage")
         site_title = title_tag.string
-        if "stackexchange" in context.domain:
+        if "stackoverflow" not in context.domain:
             # For "regular" stackexchange domains, use the whole header
             header_tag = soup.find("header", class_="site-header")
             if not header_tag:
