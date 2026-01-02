@@ -208,4 +208,4 @@ class RedisDatabase:
         self.nb_seen += by
         new_threshold = self.nb_seen // self.commit_every
         if old_threshold != new_threshold:
-            self.should_commit_global = True
+            self.should_commit = True

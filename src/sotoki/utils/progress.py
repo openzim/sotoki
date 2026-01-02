@@ -44,7 +44,7 @@ class Progresser:
             10000: MConf(100, 5),
             100000: MConf(1000, 10),
             1000000: MConf(5000, 15),
-            10000000: MConf(1000, 30),
+            10000000: MConf(10000, 30),
         }
         for milestone, conf in milestones.items():
             if nb_questions >= milestone:
