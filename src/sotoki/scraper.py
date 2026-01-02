@@ -323,8 +323,6 @@ class StackExchangeToZim:
             f"{s3_msg}"
         )
 
-        shared.progresser = Progresser(shared.total_questions)
-
         self.sanitize_inputs()
 
         # load illustration data, required for creator metadata setup
@@ -385,6 +383,10 @@ class StackExchangeToZim:
             .config_verbose(context.debug)
         )
 
+        # "Dummy" progresser just for preparation step (we do not know yet total number
+        # of questions)
+        shared.progresser = Progresser(0)
+
         logger.info("XML Dumps preparation")
         ark_manager = ArchiveManager()
         ark_manager.check_and_prepare_dumps()
@@ -394,6 +396,7 @@ class StackExchangeToZim:
             logger.info("Requested preparation only; exiting")
             return
 
+        shared.progresser = Progresser(shared.total_questions)
         shared.progresser.print()
         return self.start()
 
