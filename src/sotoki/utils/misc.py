@@ -85,21 +85,52 @@ def rebuild_uri(
         raise exc
 
 
+def get_available_memory_from_cgroup() -> int | None:
+    """Available RAM in container if inside one, in bytes"""
+
+    # Retrieve mem for Docker limit (with the two paths possible depending
+    # on Docker version, with priority for Docker >= 20)
+    cgroup_memory_limit_file = pathlib.Path("/sys/fs/cgroup/memory.max")
+    if not cgroup_memory_limit_file.exists():
+        cgroup_memory_limit_file = pathlib.Path(
+            "/sys/fs/cgroup/memory/memory.limit_in_bytes"
+        )
+    cgroup_memory_usage_file = pathlib.Path("/sys/fs/cgroup/memory.current")
+    if not cgroup_memory_limit_file.exists():
+        cgroup_memory_usage_file = pathlib.Path(
+            "/sys/fs/cgroup/memory/memory.usage_in_bytes"
+        )
+
+    if cgroup_memory_limit_file.exists() and cgroup_memory_usage_file.exists():
+        try:
+            mem_total_str = cgroup_memory_limit_file.read_text().strip()
+            if not mem_total_str.isdigit():
+                logger.warning(
+                    f"Unexpected non-int value found in {cgroup_memory_limit_file}: "
+                    f"{mem_total_str}"
+                )
+                return
+            mem_total = int(mem_total_str)
+            mem_used_str = cgroup_memory_usage_file.read_text().strip()
+            if not mem_used_str.isdigit():
+                logger.warning(
+                    f"Unexpected non-int value found in {cgroup_memory_usage_file}: "
+                    f"{mem_total_str}"
+                )
+                return
+            mem_used = int(mem_used_str)
+            return mem_total - mem_used
+        except ValueError:
+            logger.exception("Unexpected conversion error while getting memory")
+        return None
+
+
 def get_available_memory():
     """Available RAM in system (container if inside one) in bytes"""
-    cgroup_memory_limit_file = pathlib.Path(
-        "/sys/fs/cgroup/memory/memory.limit_in_bytes"
-    )
-    cgroup_memory_usage_file = pathlib.Path(
-        "/sys/fs/cgroup/memory/memory.usage_in_bytes"
-    )
-    if cgroup_memory_limit_file.exists() and cgroup_memory_usage_file.exists():
-        with open(cgroup_memory_limit_file) as fp:
-            mem_total = int(fp.read().strip())
-        with open(cgroup_memory_usage_file) as fp:
-            mem_used = int(fp.read().strip())
-        return mem_total - mem_used
 
+    available = get_available_memory_from_cgroup()
+    if available is not None:
+        return available
     return psutil.virtual_memory().available
 
 
