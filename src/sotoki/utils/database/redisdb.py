@@ -147,6 +147,7 @@ class RedisDatabase:
 
     def dump(self):
         """SAVE a dump on disk (as dump.rdb on CWD)"""
+        self.conn.config_set("dir", str(context.tmp_dir))
         self.conn.save()
 
     def teardown(self):
