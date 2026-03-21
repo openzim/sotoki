@@ -40,6 +40,7 @@ def get_slug_for(title: str):
     """stackexchange-similar slug for a title"""
     return slugify(str(title))[:78]
 
+
 def escape_comment_text(content: str) -> str:
     """HTML-escape comment plain text before markdown processing.
 

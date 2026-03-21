@@ -2,6 +2,7 @@ import mistune
 
 from sotoki.utils.html import escape_comment_text, get_text
 
+
 class TestGetText:
     """Test basic get_text functionality without stripping"""
 
@@ -176,7 +177,10 @@ class TestEscapeCommentText:
 
     def test_plain_text_unchanged(self):
         """Plain comment text with no special chars passes through"""
-        assert escape_comment_text("This is a normal comment") == "This is a normal comment"
+        assert (
+            escape_comment_text("This is a normal comment")
+            == "This is a normal comment"
+        )
 
     def test_multiple_generics(self):
         """Multiple generic type annotations in one comment are all escaped"""
