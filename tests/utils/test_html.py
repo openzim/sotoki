@@ -155,7 +155,10 @@ class TestGetText:
 class TestEscapeCommentText:
 
     def test_angle_brackets_in_code_span(self):
-        """Regression test for issue #391 — angle brackets in code spans must be escaped"""
+        """Regression test for issue #391.
+
+        Angle brackets in code spans must be escaped.
+        """
         result = escape_comment_text("Use `BufReader<Input>` for buffered reading")
         assert "&lt;Input&gt;" in result
         assert "<Input>" not in result
