@@ -1,5 +1,6 @@
-from sotoki.utils.html import get_text
+import mistune
 
+from sotoki.utils.html import escape_comment_text, get_text
 
 class TestGetText:
     """Test basic get_text functionality without stripping"""
@@ -148,3 +149,39 @@ class TestGetText:
         """
         result = get_text(content, strip_at=40)
         assert result == "&lt;?php if(current_user_can(&#x27;editor&#x27;)) {…"
+
+
+class TestEscapeCommentText:
+
+    def test_angle_brackets_in_code_span(self):
+        """Regression test for issue #391 — angle brackets in code spans must be escaped"""
+        result = escape_comment_text("Use `BufReader<Input>` for buffered reading")
+        assert "&lt;Input&gt;" in result
+        assert "<Input>" not in result
+
+    def test_mistune_renders_escaped_code_span_correctly(self):
+        """After escaping, mistune must produce safe <code> output"""
+        md = mistune.create_markdown(escape=False)
+        result = md(escape_comment_text("`BufReader<Input>`"))
+        # <Input> must NOT appear as a raw HTML tag
+        assert "<Input>" not in result
+        # angle brackets are double-escaped by mistune inside code spans
+        assert "BufReader" in result
+        assert "<code>" in result
+
+    def test_empty_comment(self):
+        """Empty or whitespace-only comment returns empty string"""
+        assert escape_comment_text("") == ""
+        assert escape_comment_text("   ") == ""
+
+    def test_plain_text_unchanged(self):
+        """Plain comment text with no special chars passes through"""
+        assert escape_comment_text("This is a normal comment") == "This is a normal comment"
+
+    def test_multiple_generics(self):
+        """Multiple generic type annotations in one comment are all escaped"""
+        result = escape_comment_text("Use `HashMap<K, V>` or `Vec<T>`")
+        assert "<K," not in result
+        assert "<T>" not in result
+        assert "&lt;K," in result
+        assert "&lt;T&gt;" in result

@@ -40,6 +40,18 @@ def get_slug_for(title: str):
     """stackexchange-similar slug for a title"""
     return slugify(str(title))[:78]
 
+def escape_comment_text(content: str) -> str:
+    """HTML-escape comment plain text before markdown processing.
+
+    Comment Text from SO dumps is plain text with markdown, not pre-rendered HTML.
+    Angle brackets in code spans like `BufReader<Input>` must be escaped before
+    mistune processes them, otherwise escape=False causes raw HTML tags (issue #391).
+    """
+    content = content.strip()
+    if not content:
+        return ""
+    return html.escape(content)
+
 
 def is_in_code(elem):
     """whether this node is inside a <code /> one
@@ -256,6 +268,16 @@ class Rewriter:
         result = str(soup)
         soup.decompose()
         return result
+
+    def rewrite_comment(self, content: str, to_root: str = "") -> str:
+        """Rewrite comment text for display in ZIM.
+
+        Unlike post bodies (pre-rendered HTML in SO dumps), comment Text is
+        plain text with markdown. HTML-escape before markdown processing to
+        prevent angle brackets in code spans like `BufReader<Input>` from
+        being treated as HTML tags (issue #391).
+        """
+        return self.rewrite(escape_comment_text(content), to_root=to_root, unwrap=True)
 
     def rewrite_string(self, content: str) -> str:
         """rewritten single-string using non-markup-related rules"""
