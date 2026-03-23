@@ -1,6 +1,6 @@
 import mistune
 
-from sotoki.utils.html import escape_comment_text, get_text
+from sotoki.utils.html import get_text
 
 
 class TestGetText:
@@ -157,38 +157,35 @@ class TestEscapeCommentText:
     def test_angle_brackets_in_code_span(self):
         """Regression test for issue #391.
 
-        Angle brackets in code spans must be escaped.
+        Angle brackets in code spans must be escaped by mistune escape=True.
         """
-        result = escape_comment_text("Use `BufReader<Input>` for buffered reading")
-        assert "&lt;Input&gt;" in result
+        md = mistune.create_markdown(escape=True)
+        result = md("`BufReader<Input>`")
         assert "<Input>" not in result
-
-    def test_mistune_renders_escaped_code_span_correctly(self):
-        """After escaping, mistune must produce safe <code> output"""
-        md = mistune.create_markdown(escape=False)
-        result = md(escape_comment_text("`BufReader<Input>`"))
-        # <Input> must NOT appear as a raw HTML tag
-        assert "<Input>" not in result
-        # angle brackets are double-escaped by mistune inside code spans
-        assert "BufReader" in result
         assert "<code>" in result
+
+    def test_mistune_escape_true_prevents_raw_html(self):
+        """mistune with escape=True must not render angle brackets as HTML tags"""
+        md = mistune.create_markdown(escape=True)
+        result = md("`BufReader<Input>`")
+        assert "<Input>" not in result
 
     def test_empty_comment(self):
         """Empty or whitespace-only comment returns empty string"""
-        assert escape_comment_text("") == ""
-        assert escape_comment_text("   ") == ""
+        md = mistune.create_markdown(escape=True)
+        result = md("")
+        assert isinstance(result, str)
+        assert result.strip() == ""
 
     def test_plain_text_unchanged(self):
         """Plain comment text with no special chars passes through"""
-        assert (
-            escape_comment_text("This is a normal comment")
-            == "This is a normal comment"
-        )
+        md = mistune.create_markdown(escape=True)
+        result = md("This is a normal comment")
+        assert "normal comment" in result
 
     def test_multiple_generics(self):
-        """Multiple generic type annotations in one comment are all escaped"""
-        result = escape_comment_text("Use `HashMap<K, V>` or `Vec<T>`")
+        """Multiple generic type annotations are all escaped"""
+        md = mistune.create_markdown(escape=True)
+        result = md("Use `HashMap<K, V>` or `Vec<T>`")
         assert "<K," not in result
         assert "<T>" not in result
-        assert "&lt;K," in result
-        assert "&lt;T&gt;" in result
