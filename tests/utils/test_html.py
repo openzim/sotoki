@@ -1,7 +1,9 @@
-import pytest
 from unittest.mock import MagicMock
 
-from sotoki.utils.html import get_text, Rewriter
+import pytest
+
+from sotoki.utils.html import Rewriter, get_text
+from sotoki.utils.shared import shared
 
 
 class TestGetText:
@@ -158,10 +160,11 @@ class TestEscapeCommentText:
 
     @pytest.fixture(autouse=True)
     def _setup(self, monkeypatch):
-        from sotoki.utils.shared import shared
 
-        monkeypatch.setattr(shared, 'online_domain', 'example.com', raising=False)
-        monkeypatch.setattr(shared, 'site_details', MagicMock(highlight=False), raising=False)
+        monkeypatch.setattr(shared, "online_domain", "example.com", raising=False)
+        monkeypatch.setattr(
+            shared, "site_details", MagicMock(highlight=False), raising=False
+        )
         self.rewriter = Rewriter()
 
     def test_angle_brackets_in_code_span(self):
