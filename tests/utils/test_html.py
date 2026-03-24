@@ -155,7 +155,7 @@ class TestGetText:
         assert result == "&lt;?php if(current_user_can(&#x27;editor&#x27;)) {…"
 
 
-class TestEscapeCommentText:
+class TestRewriteComment:
     """Test rewrite_comment method which uses mistune with escape=True."""
 
     @pytest.fixture(autouse=True)
