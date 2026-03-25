@@ -277,7 +277,7 @@ class Rewriter:
             raise Exception(
                 f"Unexpected markdown_comment type: {gen_markdown.__class__}"
             )
-        return self.rewrite(gen_markdown, to_root=to_root)
+        return self.rewrite(gen_markdown, to_root=to_root, unwrap=True)
 
     def rewrite_string(self, content: str) -> str:
         """rewritten single-string using non-markup-related rules"""

@@ -176,11 +176,6 @@ class TestRewriteComment:
         assert "<Input>" not in result
         assert "<code>" in result
 
-    def test_mistune_escape_true_prevents_raw_html(self):
-        """mistune with escape=True must not render angle brackets as HTML tags"""
-        result = self.rewriter.rewrite_comment("`BufReader<Input>`")
-        assert "<Input>" not in result
-
     def test_empty_comment(self):
         """Empty or whitespace-only comment returns empty string"""
         result = self.rewriter.rewrite_comment("")
