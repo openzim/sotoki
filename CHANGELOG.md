@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix retrieval of memory limit and usage on Docker >= 20 (#394)
 - Fix commit logic to Redis DB + progress display (#389)
 - Fix redis dump writing to tmp_dir instead of hardcoded /output (#240)
+- Fix comment text rendering raw HTML tags from inline code spans by HTML-escaping before markdown processing (#391)
 
 ## [3.0.2] - 2025-12-22
 

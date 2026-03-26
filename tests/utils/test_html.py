@@ -1,4 +1,9 @@
-from sotoki.utils.html import get_text
+from unittest.mock import MagicMock
+
+import pytest
+
+from sotoki.utils.html import Rewriter, get_text
+from sotoki.utils.shared import shared
 
 
 class TestGetText:
@@ -148,3 +153,42 @@ class TestGetText:
         """
         result = get_text(content, strip_at=40)
         assert result == "&lt;?php if(current_user_can(&#x27;editor&#x27;)) {…"
+
+
+class TestRewriteComment:
+    """Test rewrite_comment method which uses mistune with escape=True."""
+
+    @pytest.fixture(autouse=True)
+    def _setup(self, monkeypatch):
+
+        monkeypatch.setattr(shared, "online_domain", "example.com", raising=False)
+        monkeypatch.setattr(
+            shared, "site_details", MagicMock(highlight=False), raising=False
+        )
+        self.rewriter = Rewriter()
+
+    def test_angle_brackets_in_code_span(self):
+        """Regression test for issue #391.
+
+        Angle brackets in code spans must be escaped by mistune escape=True.
+        """
+        result = self.rewriter.rewrite_comment("`BufReader<Input>`")
+        assert "<Input>" not in result
+        assert "<code>" in result
+
+    def test_empty_comment(self):
+        """Empty or whitespace-only comment returns empty string"""
+        result = self.rewriter.rewrite_comment("")
+        assert isinstance(result, str)
+        assert result.strip() == ""
+
+    def test_plain_text_unchanged(self):
+        """Plain comment text with no special chars passes through"""
+        result = self.rewriter.rewrite_comment("This is a normal comment")
+        assert "normal comment" in result
+
+    def test_multiple_generics(self):
+        """Multiple generic type annotations are all escaped"""
+        result = self.rewriter.rewrite_comment("Use `HashMap<K, V>` or `Vec<T>`")
+        assert "<K," not in result
+        assert "<T>" not in result

@@ -117,6 +117,7 @@ class Renderer:
             shared.postsdatabase.question_has_accepted_answer
         )
         self.env.filters["rewrote"] = shared.rewriter.rewrite
+        self.env.filters["rewrote_comment"] = shared.rewriter.rewrite_comment
         self.env.filters["rewrote_string"] = shared.rewriter.rewrite_string
         self.env.filters["slugify"] = get_slug_for
         self.global_context = {

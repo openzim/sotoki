@@ -166,6 +166,10 @@ class Rewriter:
             escape=False,
             plugins=["strikethrough", "table", "footnotes"],
         )
+        self.markdown_comment = mistune.create_markdown(
+            escape=True,
+            plugins=["strikethrough", "table", "footnotes"],
+        )
         if context.censor_words_list:
             with open(shared.build_dir.joinpath("words.list")) as fh:
                 # this will actually replace occurences of ~strings matching
@@ -256,6 +260,24 @@ class Rewriter:
         result = str(soup)
         soup.decompose()
         return result
+
+    def rewrite_comment(self, content: str, to_root: str = "") -> str:
+        """Rewrite comment text for display in ZIM.
+
+        Unlike post bodies (pre-rendered HTML in SO dumps), comment Text is
+        plain text with markdown. Uses a separate mistune instance with
+        escape=True so that HTML special chars in code spans like
+        `BufReader<Input>` are properly escaped by mistune itself (issue #391).
+        """
+        content = content.strip()
+        if not content:
+            return ""
+        gen_markdown = self.markdown_comment(content)
+        if not isinstance(gen_markdown, str):
+            raise Exception(
+                f"Unexpected markdown_comment type: {gen_markdown.__class__}"
+            )
+        return self.rewrite(gen_markdown, to_root=to_root, unwrap=True)
 
     def rewrite_string(self, content: str) -> str:
         """rewritten single-string using non-markup-related rules"""
