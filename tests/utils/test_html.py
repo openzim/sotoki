@@ -192,3 +192,27 @@ class TestRewriteComment:
         result = self.rewriter.rewrite_comment("Use `HashMap<K, V>` or `Vec<T>`")
         assert "<K," not in result
         assert "<T>" not in result
+
+    def test_no_double_markdown_parse(self):
+        """rewrite_comment must not run mistune twice (issue #398).
+
+        If markdown runs twice, **bold** text would first become <strong>bold</strong>,
+        then on the second pass the asterisks are gone but the HTML tags are
+        treated as literal text and double-escaped.
+        Single pass: **bold** → <strong>bold</strong>
+        Double pass: **bold** → &lt;strong&gt;bold&lt;/strong&gt;
+        """
+        result = self.rewriter.rewrite_comment("**bold**")
+        assert "<strong>" in result
+        assert "&lt;strong&gt;" not in result
+
+    def test_no_double_markdown_parse_code_span(self):
+        """Code spans must not be re-processed by mistune (issue #398).
+
+        If markdown runs twice on already-rendered HTML like <code>foo</code>,
+        the angle brackets get treated as raw HTML on the second pass (escape=False
+        is used inside rewrite()) and the <code> tag disappears or corrupts.
+        """
+        result = self.rewriter.rewrite_comment("`some code`")
+        assert result.count("<code>") == 1
+        assert result.count("</code>") == 1
