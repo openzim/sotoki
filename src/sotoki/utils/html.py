@@ -208,22 +208,25 @@ class Rewriter:
         cases like Comments.
 
         """
-        # Content might be empty
         content = content.strip()
         if not content:
             return ""
 
-        try:
-            gen_markdown = self.markdown(content)
-            if not isinstance(gen_markdown, str):
-                raise Exception(
-                    f"Unexpected gen_markdown type: {gen_markdown.__class__}"
-                )
-            soup = bs4.BeautifulSoup(gen_markdown, "lxml")
-            # soup = BeautifulSoup(content, "lxml")
-        except Exception as exc:
-            logger.error(f"Unable to init soup or markdown for {content}: {exc}")
-            return content
+        gen_markdown = self.markdown(content)
+        if not isinstance(gen_markdown, str):
+            raise Exception(f"Unexpected gen_markdown type: {gen_markdown.__class__}")
+
+        return self._rewrite_html(gen_markdown, to_root=to_root, unwrap=unwrap)
+
+    def _rewrite_html(
+        self, content: str, to_root: str = "", *, unwrap: bool = False
+    ) -> str:
+        """Parse and rewrite an HTML string to comply with ZIM and options.
+
+        This is the BS4 half of rewrite(). Kept separate so rewrite_comment()
+        can call it directly without triggering a second mistune pass (issue #398).
+        """
+        soup = bs4.BeautifulSoup(content, "lxml")
 
         if not soup:
             return ""
@@ -250,7 +253,6 @@ class Rewriter:
             self.rewrite_code(soup)
 
         self.rewrite_links(soup, to_root)
-
         self.rewrite_images(soup, to_root)
 
         # apply censorship rewriting
@@ -264,20 +266,23 @@ class Rewriter:
     def rewrite_comment(self, content: str, to_root: str = "") -> str:
         """Rewrite comment text for display in ZIM.
 
-        Unlike post bodies (pre-rendered HTML in SO dumps), comment Text is
-        plain text with markdown. Uses a separate mistune instance with
-        escape=True so that HTML special chars in code spans like
-        `BufReader<Input>` are properly escaped by mistune itself (issue #391).
+        Uses escape=True mistune so angle brackets in code spans like
+        `BufReader<Input>` are escaped (issue #391).
+
+        Calls _rewrite_html() directly to avoid a second mistune pass
+        that would occur if rewrite() were called here (issue #398).
         """
         content = content.strip()
         if not content:
             return ""
+
         gen_markdown = self.markdown_comment(content)
         if not isinstance(gen_markdown, str):
             raise Exception(
                 f"Unexpected markdown_comment type: {gen_markdown.__class__}"
             )
-        return self.rewrite(gen_markdown, to_root=to_root, unwrap=True)
+
+        return self._rewrite_html(gen_markdown, to_root=to_root, unwrap=True)
 
     def rewrite_string(self, content: str) -> str:
         """rewritten single-string using non-markup-related rules"""

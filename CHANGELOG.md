@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix commit logic to Redis DB + progress display (#389)
 - Fix redis dump writing to tmp_dir instead of hardcoded /output (#240)
 - Fix comment text rendering raw HTML tags from inline code spans by HTML-escaping before markdown processing (#391)
+- Fix double mistune parsing in rewrite_comment() by extracting BS4 logic into _rewrite_html() (#398)
 
 ## [3.0.2] - 2025-12-22
 
