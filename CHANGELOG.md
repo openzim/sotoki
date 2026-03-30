@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add CONTRIBUTING.md with setup instructions, code style guidelines, and pre-commit usage (#400)
+
 ### Fixed
 
 - Fix retrieval of memory limit and usage on Docker >= 20 (#394)
