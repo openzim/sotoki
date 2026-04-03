@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from sotoki.utils import html as html_module
 from sotoki.utils.html import Rewriter, get_text
 from sotoki.utils.shared import shared
 
@@ -160,7 +161,6 @@ class TestRewriteComment:
 
     @pytest.fixture(autouse=True)
     def _setup(self, monkeypatch):
-
         monkeypatch.setattr(shared, "online_domain", "example.com", raising=False)
         monkeypatch.setattr(
             shared, "site_details", MagicMock(highlight=False), raising=False
@@ -216,3 +216,43 @@ class TestRewriteComment:
         result = self.rewriter.rewrite_comment("`some code`")
         assert result.count("<code>") == 1
         assert result.count("</code>") == 1
+
+
+class TestRewriteUserProfileLinks:
+    """Test that user profile links are removed when --without-user-profiles is set."""
+
+    @pytest.fixture(autouse=True)
+    def _setup(self, monkeypatch):
+        monkeypatch.setattr(shared, "online_domain", "example.com", raising=False)
+        monkeypatch.setattr(
+            shared, "site_details", MagicMock(highlight=False), raising=False
+        )
+        # mock usersdatabase to return a user
+        mock_user = {"name": "Test User"}
+        monkeypatch.setattr(
+            shared,
+            "usersdatabase",
+            MagicMock(get_user_full=MagicMock(return_value=mock_user)),
+            raising=False,
+        )
+        self.rewriter = Rewriter()
+
+    def test_user_link_kept_with_profiles(self, monkeypatch):
+        """
+        User profile links should be rewritten when without_user_profiles is False.
+        """
+
+        monkeypatch.setattr(html_module.context, "without_user_profiles", False)
+        result = self.rewriter.rewrite(
+            '<a href="/users/43968/reid-evans">reid-evans</a>', to_root=""
+        )
+        assert "href=" in result
+
+    def test_user_link_removed_without_profiles(self, monkeypatch):
+        """User profile links should be removed when without_user_profiles is True."""
+
+        monkeypatch.setattr(html_module.context, "without_user_profiles", True)
+        result = self.rewriter.rewrite(
+            '<a href="/users/43968/reid-evans">reid-evans</a>', to_root=""
+        )
+        assert "href=" not in result
