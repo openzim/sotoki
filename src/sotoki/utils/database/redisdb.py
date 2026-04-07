@@ -111,14 +111,26 @@ class RedisDatabase:
                 threading.Event().wait(2)
         return func(*args)
 
+    def _execute_pipe_with_retry(self, pipe, retries: int = 20):
+        """Pipeline execute() retried on ConnectionError"""
+        attempt = 1
+        while attempt < retries:
+            try:
+                return pipe.execute()
+            except redis.exceptions.ConnectionError as exc:
+                logger.error(f"Redis PIPE.EXECUTE Error #{attempt}/{retries}: {exc}")
+                attempt += 1
+                threading.Event().wait(2)
+        return pipe.execute()
+
     def commit(self, *, done=False):
-        self.pipe.execute()
+        self._execute_pipe_with_retry(self.pipe)
 
         # make sure we've commited pipes on all thread-specific pipelines
         if done:
             time.sleep(2)  # prevent last-thread created while we iterate on mini domain
             for pipe in self.pipes.values():
-                pipe.execute()
+                self._execute_pipe_with_retry(pipe)
 
     def purge(self):
         """ask redis to reclaim dirty pages space. Effective only on Linux"""
@@ -151,7 +163,7 @@ class RedisDatabase:
         self.conn.save()
 
     def teardown(self):
-        self.pipe.execute()
+        self._execute_pipe_with_retry(self.pipe)
         self.conn.close()
 
     def remove(self):
