@@ -61,15 +61,11 @@ deactivate  # unloads virtualenv from shell
 
 Anybody is welcome to improve the Sotoki.
 
-To run Sotoki off the git repository, you'll need to download a few
-external dependencies that we pack in Python releases. Just run
-`python src/sotoki/dependencies.py`.
-
-See `requirements.txt` for the list of python dependencies.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, code style guidelines, and changelog requirements.
 
 ## Users
 
-You don't have to make your own ZIM files of Stack Exchange's Web 
-sites. Updated ZIM files are built on a regular basis for all 
+You don't have to make your own ZIM files of Stack Exchange's Web
+sites. Updated ZIM files are built on a regular basis for all
 of them. Look at https://library.kiwix.org/?category=stack_exchange
 to download them.
