@@ -31,7 +31,7 @@ def get_text(content: str, strip_at: int = -1):
     # Normalize whitespace: replace all whitespace sequences with single space
     text = " ".join(text.split())
     if strip_at > 0 and len(text) > strip_at:
-        text = f'{text[0:strip_at].rsplit(" ", 1)[0]}…'
+        text = f"{text[0:strip_at].rsplit(' ', 1)[0]}…"
     # Escape HTML entities so the text is safe to use in HTML documents
     return html.escape(text)
 
@@ -293,7 +293,6 @@ class Rewriter:
     def rewrite_links(self, soup, to_root):
         # rewrite links targets
         for link in soup.find_all("a", href=True):
-
             # remove link to "" as the use of a <base /> in our template
             # would turn it into a link to root
             if not link.get("href", "").strip():
@@ -451,6 +450,9 @@ class Rewriter:
         # > rewrite to users/{uId}/{slug}
         uid_slug_m = self.uid_re.match(uri_path)
         if uid_slug_m:
+            if context.without_user_profiles:
+                del link.attrs["href"]
+                return
             uid = uid_slug_m.groupdict().get("user_id")
             if not isinstance(uid, str):
                 raise Exception(f"Unexpected uid type: {uid.__class__}")
@@ -528,7 +530,6 @@ class Rewriter:
                 del img.attrs["src"]
             # process all images
             else:
-
                 # skip links inside <code /> nodes
                 if is_in_code(img):
                     continue
@@ -583,8 +584,9 @@ class Rewriter:
         # now apply filtering on tag attributes. As per SE rules, users can only
         # set `alt` and `title` on <img />` and `title` on `<a />`
         for tag in soup.find_all(
-            lambda x: x.name in ("a", "img")
-            and (x.has_attr("title") or x.has_attr("alt"))
+            lambda x: (
+                x.name in ("a", "img") and (x.has_attr("title") or x.has_attr("alt"))
+            )
         ):
             for attr in ("title", "alt"):
                 if tag.attrs.get(attr):
