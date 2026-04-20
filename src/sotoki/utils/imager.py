@@ -60,7 +60,7 @@ class Imager:
     def __init__(self):
         # list of source URLs that we've processed and added to ZIM
         self.aborted = False
-        self.handled = []
+        self.handled = set()
         self.nb_requested = 0
         self.nb_failed = 0
         self.nb_done = 0
@@ -168,7 +168,7 @@ class Imager:
             return path
 
         # record that we are processing this one
-        self.handled.append(digest)
+        self.handled.add(digest)
 
         self.nb_requested += 1
 
