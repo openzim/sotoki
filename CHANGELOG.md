@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix double mistune parsing in rewrite_comment() by extracting BS4 logic into _rewrite_html() (#398)
 - Fix user profile links being rewritten instead of removed when `--without-user-profiles` is set (#247)
 - Fix commit() and teardown() failing fatally on transient Redis ConnectionError by retrying pipe.execute() (#387)
+- Adding a new image to process is O(N) instead of O(1) (#407)
 
 ## [3.0.2] - 2025-12-22
 
