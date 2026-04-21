@@ -119,6 +119,7 @@ class Imager:
                 url, headers={"User-Agent": USER_AGENT}, timeout=HTTP_REQUEST_TIMEOUT
             )
             resp.raise_for_status()
+            headers = resp.headers
         except Exception:
             logger.debug(f"Unable to HEAD {url}")
             _, headers = stream_file(
@@ -128,7 +129,6 @@ class Imager:
                 block_size=1,
                 only_first_block=True,
             )
-        headers = resp.headers
         for header in ("ETag", "Last-Modified", "Content-Length"):
             if headers.get(header):
                 return headers.get(header)
