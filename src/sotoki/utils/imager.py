@@ -22,6 +22,7 @@ from zimscraperlib.image.transformation import resize_image
 from sotoki.constants import (
     FILES_DOWNLOAD_FAILURE_MINIMUM_FOR_CHECK,
     FILES_DOWNLOAD_FAILURE_TRESHOLD_PER_TEN_THOUSAND,
+    FILES_DOWNLOAD_INITIAL_INTERVAL,
     FILES_DOWNLOAD_MAX_INTERVAL,
     FILES_DOWNLOAD_MIN_INTERVAL,
     FILES_DOWNLOAD_SLOW_DOWN_FACTOR,
@@ -42,7 +43,7 @@ from sotoki.utils.shared import context, logger, shared
 class HostData:
     files_to_download: FileDatabase
     last_request_date: datetime | None = None
-    request_interval_milliseconds: float = FILES_DOWNLOAD_MIN_INTERVAL
+    request_interval_milliseconds: float = FILES_DOWNLOAD_INITIAL_INTERVAL
     not_before_date: datetime | None = None
     download_success: int = 0
     download_failure: int = 0
@@ -349,6 +350,7 @@ class Imager:
                 if exc.response.status_code in [
                     HTTPStatus.TOO_MANY_REQUESTS,
                     HTTPStatus.SERVICE_UNAVAILABLE,
+                    HTTPStatus.FORBIDDEN,  # Many CDNs return 403 when blocking
                     524,
                 ]:
                     file.host_data.request_interval_milliseconds = min(

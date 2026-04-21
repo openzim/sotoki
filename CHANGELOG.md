@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix commit() and teardown() failing fatally on transient Redis ConnectionError by retrying pipe.execute() (#387)
 - Adding a new image to process is O(N) instead of O(1) (#407)
 - Fix issue with bad SVG being cached in S3 (#410)
+- Enhance handling of Cloudflare throttling (#403)
 
 ## [3.0.2] - 2025-12-22
 
