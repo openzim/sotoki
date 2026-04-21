@@ -12,7 +12,7 @@ from typing import Any
 
 import requests
 from kiwixstorage import NotFoundError
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 from resizeimage.imageexceptions import ImageSizeError
 from zimscraperlib.download import stream_file
 from zimscraperlib.image.optimization import OptimizeWebpOptions, optimize_webp
@@ -76,6 +76,7 @@ class Imager:
         src, webp = io.BytesIO(), io.BytesIO()
         stream_file(url=url, byte_stream=src, headers={"User-Agent": USER_AGENT})
         if format_for(src, from_suffix=False) == "SVG":
+            src.seek(0)
             return src, "image/svg+xml"
         # first resize then convert to webp and optimize, because conversion to webp
         # proved to consume lots of memory ; a smaller image obviously consumes less
@@ -418,16 +419,23 @@ class Imager:
             # Attempting download from S3
             image_content = io.BytesIO()
             shared.s3_storage.download_matching_fileobj(key, image_content, meta=meta)
+            image_mimetype = format_for(image_content, from_suffix=False)
         except NotFoundError:
             # don't have it, not a download error. we'll upload after processing
             pass
+        except UnidentifiedImageError:
+            # problem decoding image => S3 cache is probably corrupted => let's
+            # download and cache new version in S3
+            logger.warning(
+                f"failed to identify image mimetype from cache key {key}",
+                exc_info=context.debug,
+            )
         except Exception as exc:
             logger.warning(
                 f"failed to download {key} from cache: {exc}", exc_info=context.debug
             )
             download_failed = True
         else:
-            image_mimetype = format_for(image_content, from_suffix=False)
             with shared.lock:
                 shared.creator.add_item_for(
                     path=file.zim_path,
