@@ -1,6 +1,6 @@
-FROM redis:8.4.0-bookworm AS redis
+FROM redis:8.6.2-trixie AS redis
 
-FROM python:3.14-bookworm
+FROM python:3.14-trixie
 LABEL org.opencontainers.image.source=https://github.com/openzim/sotoki
 
 RUN groupadd -r -g 999 redis && useradd -r -g redis -u 999 redis
