@@ -3,7 +3,6 @@
 from typing import Any
 
 from slugify import slugify
-from zimscraperlib.typing import Callback
 
 from sotoki.constants import (
     NB_PAGINATED_USERS,
@@ -98,9 +97,9 @@ class UserGenerator(Generator):
                 content=user_page,
                 mimetype="text/html",
                 is_front=True,
-                callbacks=[Callback(func=self.release)],
             )
         del user_page
+        self.release()
 
     def generate_users_page(self):
         paginator = ListPaginator(

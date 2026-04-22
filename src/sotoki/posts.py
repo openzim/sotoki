@@ -3,8 +3,6 @@ import datetime
 import re
 from typing import Any
 
-from zimscraperlib.typing import Callback
-
 from sotoki.constants import NB_PAGINATED_QUESTIONS, NB_QUESTIONS_PER_PAGE
 from sotoki.renderer import SortedSetPaginator
 from sotoki.utils.generator import Generator, Walker
@@ -280,7 +278,6 @@ class PostGenerator(Generator):
                 content=post_page,
                 mimetype="text/html",
                 is_front=True,
-                callbacks=[Callback(func=self.release)],
             )
             shared.creator.add_redirect(
                 path=f'questions/{post["Id"]}',
@@ -294,6 +291,8 @@ class PostGenerator(Generator):
                     path=f'a/{answer["Id"]}',
                     target_path=path,
                 )
+
+        self.release()
 
     def generate_questions_page(self):
         paginator = SortedSetPaginator(

@@ -399,7 +399,6 @@ class Imager:
                     content=image_content.getvalue(),
                     mimetype=image_mimetype,
                     is_front=False,
-                    # callbacks=Callback(func=self.once_done),
                 )
             self.once_done()
             return
@@ -444,7 +443,6 @@ class Imager:
                     content=image_content.getvalue(),
                     mimetype=image_mimetype,
                     is_front=False,
-                    # callbacks=Callback(func=self.once_done),
                 )
             self.once_done()
             return
@@ -463,7 +461,6 @@ class Imager:
                 content=image_content.getvalue(),
                 mimetype=image_mimetype,
                 is_front=False,
-                # callbacks=Callback(func=self.once_done),
             )
         self.once_done()
 

@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix issue with bad SVG being cached in S3 (#410)
 - Enhance handling of Cloudflare throttling (#403)
 - Fix bug in get_version_ident_for fallback to GET method (#413)
+- Do not use scraperlib callbacks to inform about scraper progress (#370)
 
 ## [3.0.2] - 2025-12-22
 
