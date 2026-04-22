@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Upgrade to Debian trixie and Redis 8.6 (#351)
+- Upgrade to Debian trixie and Redis 8.6 (#375)
 
 ### Fixed
 
