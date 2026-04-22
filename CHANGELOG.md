@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Upgrade to Debian trixie and Redis 8.6 (#351)
+
 ### Fixed
 
 - Fix retrieval of memory limit and usage on Docker >= 20 (#394)
