@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 
 import bs4
 import mistune
+import regex
 from slugify import slugify
 from tld import get_fld
 
@@ -286,6 +287,9 @@ class Rewriter:
 
     def rewrite_string(self, content: str) -> str:
         """rewritten single-string using non-markup-related rules"""
+        # remove any control character
+        content = regex.sub(r"\p{C}+", " ", content).strip()
+        # replace censored words
         if context.censor_words_list:
             return self.words_re.sub(self.redacted_text, content)
         return content
