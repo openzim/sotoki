@@ -21,16 +21,16 @@
       "required": false,
       "title": "Title",
       "description": "Custom title for your ZIM. Site name otherwise",
-      "minLength": 1,
-      "maxLength": 30
+      "minGraphemes": 1,
+      "maxGraphemes": 30
     },
     "description": {
       "type": "string",
       "required": false,
       "title": "Description",
       "description": "Custom description for your ZIM. Site tagline otherwise",
-      "minLength": 1,
-      "maxLength": 80
+      "minGraphemes": 1,
+      "maxGraphemes": 80
     },
     "favicon": {
       "type": "blob",
