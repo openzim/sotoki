@@ -20,7 +20,7 @@
         <div class="grid ai-start jc-space-between fw-wrap">
             <div class="grid gs4 fw-wrap tags {% for tag in tags %}t-{{ tag }}{% endfor %}">
                 {% for tag in question.tags %}
-                <a href="{{ to_root }}questions/tagged/{{ tag }}" class="post-tag grid--cell" title="show questions tagged '{{ tag }}'" rel="tag">{{ tag }}</a> 
+                <a href="{{ to_root }}questions/tagged/{{ tag }}" class="post-tag grid--cell" title="show questions tagged '{{ tag }}'" rel="tag">{{ tag }}</a>
                 {% endfor %}
             </div>
             <div class="started mt0">

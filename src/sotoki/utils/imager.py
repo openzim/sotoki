@@ -308,7 +308,7 @@ class Imager:
                     " to download from host)"
                 )
         except requests.exceptions.RequestException as exc:
-            if isinstance(exc, requests.HTTPError):
+            if isinstance(exc, requests.HTTPError) and exc.response:
                 err_details = f"HTTP error code {exc.response.status_code}"
                 err_status_code = exc.response.status_code
             else:
@@ -331,7 +331,9 @@ class Imager:
                 return
 
             if isinstance(exc, requests.HTTPError):
-                retry_after_header = exc.response.headers.get("Retry-After")
+                retry_after_header = (
+                    exc.response.headers.get("Retry-After") if exc.response else ""
+                )
                 # ignore Retry-After header of some hosts giving bad values
                 if retry_after_header and file.hostname not in ["i.imgur.com"]:
                     retry_date = parse_retry_after_header(retry_after_header)
@@ -347,7 +349,7 @@ class Imager:
                             f"{file.hostname} but failed to interpret it"
                         )
 
-                if exc.response.status_code in [
+                if exc.response and exc.response.status_code in [
                     HTTPStatus.TOO_MANY_REQUESTS,
                     HTTPStatus.SERVICE_UNAVAILABLE,
                     HTTPStatus.FORBIDDEN,  # Many CDNs return 403 when blocking

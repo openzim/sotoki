@@ -43,4 +43,3 @@ jobs:
       offliner_definition_b64: ${{ needs.prepare-json.outputs.offliner_definition_b64 }}
     secrets:
       zimfarm_ci_secret: ${{ secrets.ZIMFARM_CI_SECRET }}
-
