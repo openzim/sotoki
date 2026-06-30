@@ -5,11 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (as of version 2.0.1).
 
-## [Unreleased]
+## [3.1.0] - 2026-06-30
 
 ### Changed
 
-- Upgrade to Debian trixie and Redis 8.6 (#375)
+- Upgrade to Debian Trixie, Redis 8.8 and upgrade Python dependencies (#375, #422)
 
 ### Fixed
 
