@@ -307,13 +307,14 @@ class Imager:
                     f" ({file.host_data.files_to_download.len()} files remaining"
                     " to download from host)"
                 )
-        except requests.exceptions.RequestException as exc:
-            if isinstance(exc, requests.HTTPError) and exc.response:
+        except requests.RequestException as exc:
+            if exc.response:
                 err_details = f"HTTP error code {exc.response.status_code}"
-                err_status_code = exc.response.status_code
             else:
                 err_details = str(exc)
-                err_status_code = None
+            logger.debug(
+                f"Error downloading file {file.url}, failed with '{err_details}'"
+            )
             if file.download_attempts > MAX_FILE_DOWNLOAD_RETRIES:
                 logger.warning(
                     f"Error downloading file {file.url}, too many attempts failed, last"
@@ -322,7 +323,7 @@ class Imager:
                 file.host_data.download_failure += 1
                 self.nb_failed += 1
                 return
-            if err_status_code == HTTPStatus.NOT_FOUND:
+            if exc.response and exc.response.status_code == HTTPStatus.NOT_FOUND:
                 logger.warning(
                     f"Error downloading file {file.url}, received a 404, skipping"
                 )
@@ -330,10 +331,8 @@ class Imager:
                 self.nb_failed += 1
                 return
 
-            if isinstance(exc, requests.HTTPError):
-                retry_after_header = (
-                    exc.response.headers.get("Retry-After") if exc.response else ""
-                )
+            if exc.response:
+                retry_after_header = exc.response.headers.get("Retry-After")
                 # ignore Retry-After header of some hosts giving bad values
                 if retry_after_header and file.hostname not in ["i.imgur.com"]:
                     retry_date = parse_retry_after_header(retry_after_header)
