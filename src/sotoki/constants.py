@@ -16,7 +16,7 @@ UTF8 = "utf-8"
 SCRAPER = f"{NAME} v{VERSION}"
 USER_AGENT = (
     f"{NAME}/{VERSION} (https://github.com/openzim/sotoki; "
-    f"contact+crawl@kiwix.org) requests/{requests.__version__}"
+    f"contact+crawl@kiwix.org) requests/{requests.__version__}"  # pyright: ignore[reportPrivateImportUsage]
 )
 POSTS_IMAGE_SIZE = 540
 IMAGES_ENCODER_VERSION = 1

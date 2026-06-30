@@ -9,7 +9,6 @@ Paginator must be subclassed to work:
 
 Usage is similar to Django's one otherwise."""
 
-
 import math
 from abc import abstractmethod
 
