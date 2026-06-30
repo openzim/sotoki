@@ -1,4 +1,4 @@
-FROM redis:8.6.2-trixie AS redis
+FROM redis:8.8.0-trixie AS redis
 
 FROM python:3.14-trixie
 LABEL org.opencontainers.image.source=https://github.com/openzim/sotoki
