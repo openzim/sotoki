@@ -15,6 +15,7 @@ from kiwixstorage import NotFoundError
 from PIL import Image, UnidentifiedImageError
 from resizeimage.imageexceptions import ImageSizeError
 from zimscraperlib.download import stream_file
+from zimscraperlib.filesystem import get_content_mimetype
 from zimscraperlib.image.optimization import OptimizeWebpOptions, optimize_webp
 from zimscraperlib.image.probing import format_for
 from zimscraperlib.image.transformation import resize_image
@@ -424,7 +425,10 @@ class Imager:
             # Attempting download from S3
             image_content = io.BytesIO()
             shared.s3_storage.download_matching_fileobj(key, image_content, meta=meta)
-            image_mimetype = format_for(image_content, from_suffix=False)
+            # send only first bytes to get content mimetype, this is sufficient
+            image_content.seek(0)
+            image_mimetype = get_content_mimetype(image_content.read(2048))
+            image_content.seek(0)
         except NotFoundError:
             # don't have it, not a download error. we'll upload after processing
             pass
