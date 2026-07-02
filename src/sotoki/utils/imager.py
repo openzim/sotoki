@@ -308,7 +308,7 @@ class Imager:
                     " to download from host)"
                 )
         except requests.RequestException as exc:
-            if exc.response:
+            if exc.response is not None:
                 err_details = f"HTTP error code {exc.response.status_code}"
             else:
                 err_details = str(exc)
@@ -323,7 +323,10 @@ class Imager:
                 file.host_data.download_failure += 1
                 self.nb_failed += 1
                 return
-            if exc.response and exc.response.status_code == HTTPStatus.NOT_FOUND:
+            if (
+                exc.response is not None
+                and exc.response.status_code == HTTPStatus.NOT_FOUND
+            ):
                 logger.warning(
                     f"Error downloading file {file.url}, received a 404, skipping"
                 )
@@ -331,7 +334,7 @@ class Imager:
                 self.nb_failed += 1
                 return
 
-            if exc.response:
+            if exc.response is not None:
                 retry_after_header = exc.response.headers.get("Retry-After")
                 # ignore Retry-After header of some hosts giving bad values
                 if retry_after_header and file.hostname not in ["i.imgur.com"]:
@@ -348,7 +351,7 @@ class Imager:
                             f"{file.hostname} but failed to interpret it"
                         )
 
-                if exc.response and exc.response.status_code in [
+                if exc.response.status_code in [
                     HTTPStatus.TOO_MANY_REQUESTS,
                     HTTPStatus.SERVICE_UNAVAILABLE,
                     HTTPStatus.FORBIDDEN,  # Many CDNs return 403 when blocking
