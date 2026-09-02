@@ -21,7 +21,7 @@ dependencies = [
   "lxml==6.1.1",
   "jinja2-pluralize==0.3.0",
   "tld==0.13.2",
-  "mistune==3.3.2",
+  "mistune==3.3.3",
   "python-dateutil==2.9.0.post0",
   "psutil==7.2.2",
   "bidict==0.23.1",
