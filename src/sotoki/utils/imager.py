@@ -75,8 +75,9 @@ class Imager:
 
     def get_image_data(self, url: str, **resize_args: Any) -> tuple[io.BytesIO, str]:
         """Bytes stream of an optimized, resized WebP of the source image"""
+        fetch_url = f"https://wsrv.nl/?url={url.replace('https://', '', 1)}" if url.startswith("https://i.sstatic.net/") else url
         src, webp = io.BytesIO(), io.BytesIO()
-        stream_file(url=url, byte_stream=src, headers={"User-Agent": USER_AGENT})
+        stream_file(url=fetch_url, byte_stream=src, headers={"User-Agent": USER_AGENT})
         if format_for(src, from_suffix=False) == "SVG":
             src.seek(0)
             return src, "image/svg+xml"
@@ -115,16 +116,17 @@ class Imager:
 
     def get_version_ident_for(self, url: str) -> str | None:
         """~version~ of the URL data to use for comparisons. Built from headers"""
+        fetch_url = f"https://wsrv.nl/?url={url.replace('https://', '', 1)}" if url.startswith("https://i.sstatic.net/") else url
         try:
             resp = requests.head(
-                url, headers={"User-Agent": USER_AGENT}, timeout=HTTP_REQUEST_TIMEOUT
+                fetch_url, headers={"User-Agent": USER_AGENT}, timeout=HTTP_REQUEST_TIMEOUT
             )
             resp.raise_for_status()
             headers = resp.headers
         except Exception:
-            logger.debug(f"Unable to HEAD {url}")
+            logger.debug(f"Unable to HEAD {fetch_url}")
             _, headers = stream_file(
-                url=url,
+                url=fetch_url,
                 headers={"User-Agent": USER_AGENT},
                 byte_stream=io.BytesIO(),
                 block_size=1,
