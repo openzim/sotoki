@@ -259,7 +259,7 @@ class PostGenerator(Generator):
 
     def processor(self, item):
         post = item
-        if context.without_unanswered and not post["answers"]:
+        if context.without_unanswered and not post.get("answers"):
             self.release()
             return
         # ignore deleted posts
