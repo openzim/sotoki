@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Skip unanswered posts whose XML has no `answers` element (#436)
 - Fix integration tests failing at zimcheck because `--details` is no longer a valid argument (#438)
 
+### Added
+
+- Add an integration test suite checking the produced ZIM and run it, along with zimcheck, daily (#432)
+
 ## [3.1.0] - 2026-06-30
 
 ### Changed

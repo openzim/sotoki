@@ -1,0 +1,35 @@
+name: DailyTests
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+jobs:
+  run-integration-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Ensure we can build the Docker image
+        run: |
+          docker build -t testimage .
+
+      - name: Run scraper for beer meta
+        run: mkdir -p output && docker run -v $(pwd)/output:/output testimage sotoki --domain "beer.meta.stackexchange.com" --threads 20 --output /output/ --zim-file beer_meta.zim --mirror "https://org-kiwix-stackexchange.s3.us-west-1.wasabisys.com" --redis-url "unix:///var/run/redis.sock" --debug --title "Alcohol StackExchange Meta" --description "Meta for StackExchange questions about beer, wine & spirits" && ls -alh $(pwd)/output
+
+      - name: Archive ZIM
+        uses: actions/upload-artifact@v6
+        with:
+          name: beer_meta.zim
+          path: output/beer_meta.zim
+          retention-days: 30
+
+      - name: Pull zim-tools
+        run: docker pull ghcr.io/openzim/zim-tools:latest
+
+      - name: Run zimcheck
+        run: docker run -v $(pwd)/output:/data:ro ghcr.io/openzim/zim-tools:latest zimcheck --empty --checksum --integrity --metadata --favicon --main /data/beer_meta.zim
+
+      - name: Run integration test suite
+        run: docker run -v $(pwd)/tests-integration:/src/tests-integration:ro -v $(pwd)/output:/output:ro -e ZIM_FILE_PATH=/output/beer_meta.zim testimage bash -c "pip install --no-cache-dir pytest && pytest -v /src/tests-integration"
