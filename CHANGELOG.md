@@ -7,18 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.1.1] - 2026-07-02
-
 ### Fixed
 
-- Fix image download throttling (#424, #426)
-- Fix in-ZIM MIME type of images downloaded from S3 optimization cache (#427)
 - Skip unanswered posts whose XML has no `answers` element (#436)
 - Fix integration tests failing at zimcheck because `--details` is no longer a valid argument (#438)
 
 ### Added
 
 - Add an integration test suite checking the produced ZIM and run it, along with zimcheck, daily (#432)
+
+## [3.1.1] - 2026-07-02
+
+### Fixed
+
+- Fix image download throttling (#424, #426)
+- Fix in-ZIM MIME type of images downloaded from S3 optimization cache (#427)
 
 ## [3.1.0] - 2026-06-30
 
