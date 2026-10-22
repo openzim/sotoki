@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Skip unanswered posts whose XML has no `answers` element (#436)
 - Fix integration tests failing at zimcheck because `--details` is no longer a valid argument (#438)
+- Fix stackoverflow.com main page retrieval failing due to Cloudflare challenge on homepage redirect (#441)
 
 ### Added
 

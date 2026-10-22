@@ -27,6 +27,7 @@ from sotoki.constants import (
     NB_USERS_PAGES,
     NB_USERS_PER_PAGE,
     ROOT_DIR,
+    USER_AGENT,
     VERSION,
 )
 from sotoki.css import process_css
@@ -87,14 +88,18 @@ class StackExchangeToZim:
 
     @web_backoff(base=10, max_tries=10)
     def _get_site_details(self):
-        resp = requests.get(f"https://{context.domain}", timeout=HTTP_REQUEST_TIMEOUT)
+        resp = requests.get(
+            f"https://{context.domain}/help",
+            headers={"User-Agent": USER_AGENT},
+            timeout=HTTP_REQUEST_TIMEOUT,
+        )
         resp.raise_for_status()
         soup = bs4.BeautifulSoup(resp.text, "lxml")
         domain = urlparse(resp.url).netloc
-        title_tag = soup.title
-        if not title_tag or not title_tag.string:
+        site_name_tag = soup.find("meta", property="og:site_name")
+        if not site_name_tag or not site_name_tag.get("content"):
             raise Exception("Failed to extract site title from homepage")
-        site_title = title_tag.string
+        site_title = str(site_name_tag["content"])
         if "stackoverflow" not in context.domain:
             # For "regular" stackexchange domains, use the whole header
             header_tag = soup.find("header", class_="site-header")
