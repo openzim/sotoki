@@ -88,10 +88,6 @@ class StackExchangeToZim:
 
     @web_backoff(base=10, max_tries=10)
     def _get_site_details(self):
-        # use /help rather than the homepage: on stackoverflow.com, the homepage
-        # redirects to /questions, which is behind a Cloudflare bot challenge ;
-        # /help carries the same site-wide title/header/CSS/favicon/mathjax/
-        # highlight information without that issue (see #441)
         resp = requests.get(
             f"https://{context.domain}/help",
             headers={"User-Agent": USER_AGENT},
