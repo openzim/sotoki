@@ -27,6 +27,7 @@ from sotoki.constants import (
     NB_USERS_PAGES,
     NB_USERS_PER_PAGE,
     ROOT_DIR,
+    USER_AGENT,
     VERSION,
 )
 from sotoki.css import process_css
@@ -87,14 +88,35 @@ class StackExchangeToZim:
 
     @web_backoff(base=10, max_tries=10)
     def _get_site_details(self):
-        resp = requests.get(f"https://{context.domain}", timeout=HTTP_REQUEST_TIMEOUT)
+        try:
+            shared.site_details = self._fetch_site_details("")
+        except requests.HTTPError:
+            # on stackoverflow.com (and possibly others), the homepage redirects
+            # to /questions, which is behind a Cloudflare bot challenge ; /help
+            # carries the same site-wide title/header/CSS/favicon/mathjax/
+            # highlight information without that issue (see #441). We don't use
+            # /help as the primary path because on meta.* domains it redirects to
+            # the parent site's own /help, which would wrongly report the
+            # parent's branding instead of the meta site's.
+            logger.warning(
+                "Failed to retrieve homepage, retrying on /help (see "
+                "https://github.com/openzim/sotoki/issues/441)"
+            )
+            shared.site_details = self._fetch_site_details("/help")
+
+    def _fetch_site_details(self, path: str) -> SiteDetails:
+        resp = requests.get(
+            f"https://{context.domain}{path}",
+            headers={"User-Agent": USER_AGENT},
+            timeout=HTTP_REQUEST_TIMEOUT,
+        )
         resp.raise_for_status()
         soup = bs4.BeautifulSoup(resp.text, "lxml")
         domain = urlparse(resp.url).netloc
-        title_tag = soup.title
-        if not title_tag or not title_tag.string:
+        site_name_tag = soup.find("meta", property="og:site_name")
+        if not site_name_tag or not site_name_tag.get("content"):
             raise Exception("Failed to extract site title from homepage")
-        site_title = title_tag.string
+        site_title = str(site_name_tag["content"])
         if "stackoverflow" not in context.domain:
             # For "regular" stackexchange domains, use the whole header
             header_tag = soup.find("header", class_="site-header")
@@ -128,7 +150,7 @@ class StackExchangeToZim:
         if not big_favicon_tag or not big_favicon_tag.get("href"):
             raise Exception("Failed to extract big favicon URL from homepage")
         big_favicon = str(big_favicon_tag["href"])
-        shared.site_details = SiteDetails(
+        return SiteDetails(
             mathjax='<script type="text/x-mathjax-config">' in resp.text,
             highlight='"styleCodeWithHighlightjs":true' in resp.text,
             domain=domain,
