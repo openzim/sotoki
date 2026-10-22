@@ -88,25 +88,12 @@ class StackExchangeToZim:
 
     @web_backoff(base=10, max_tries=10)
     def _get_site_details(self):
-        try:
-            shared.site_details = self._fetch_site_details("")
-        except requests.HTTPError:
-            # on stackoverflow.com (and possibly others), the homepage redirects
-            # to /questions, which is behind a Cloudflare bot challenge ; /help
-            # carries the same site-wide title/header/CSS/favicon/mathjax/
-            # highlight information without that issue (see #441). We don't use
-            # /help as the primary path because on meta.* domains it redirects to
-            # the parent site's own /help, which would wrongly report the
-            # parent's branding instead of the meta site's.
-            logger.warning(
-                "Failed to retrieve homepage, retrying on /help (see "
-                "https://github.com/openzim/sotoki/issues/441)"
-            )
-            shared.site_details = self._fetch_site_details("/help")
-
-    def _fetch_site_details(self, path: str) -> SiteDetails:
+        # use /help rather than the homepage: on stackoverflow.com, the homepage
+        # redirects to /questions, which is behind a Cloudflare bot challenge ;
+        # /help carries the same site-wide title/header/CSS/favicon/mathjax/
+        # highlight information without that issue (see #441)
         resp = requests.get(
-            f"https://{context.domain}{path}",
+            f"https://{context.domain}/help",
             headers={"User-Agent": USER_AGENT},
             timeout=HTTP_REQUEST_TIMEOUT,
         )
@@ -150,7 +137,7 @@ class StackExchangeToZim:
         if not big_favicon_tag or not big_favicon_tag.get("href"):
             raise Exception("Failed to extract big favicon URL from homepage")
         big_favicon = str(big_favicon_tag["href"])
-        return SiteDetails(
+        shared.site_details = SiteDetails(
             mathjax='<script type="text/x-mathjax-config">' in resp.text,
             highlight='"styleCodeWithHighlightjs":true' in resp.text,
             domain=domain,
