@@ -55,7 +55,10 @@ def rebuild_uri(
         username = first(username, uri.username, "")
         password = first(password, uri.password, "")
         hostname = first(hostname, uri.hostname, "")
-        port = first(str(port), str(uri.port), "")
+        port = first(
+            None if port is None else str(port),
+            None if uri.port is None else str(uri.port),
+        )
         netloc = (
             f"{username}{':' if password else ''}{password}"
             f"{'@' if username or password else ''}{hostname}"

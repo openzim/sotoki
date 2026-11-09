@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Skip unanswered posts whose XML has no `answers` element (#436)
+- Do not add a `:None` port to rewritten links, which broke in-ZIM question links (#443)
 - Fix integration tests failing at zimcheck because `--details` is no longer a valid argument (#438)
 - Fix stackoverflow.com main page retrieval failing due to Cloudflare challenge on homepage redirect (#441)
 
